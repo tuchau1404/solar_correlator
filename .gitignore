@@ -1,0 +1,11 @@
+build/
+bin/
+*.o
+*.so
+*.a
+*.dat
+*.h5
+*.fits
+logs/
+solar_data/
+.vscode/
