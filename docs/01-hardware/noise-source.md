@@ -233,7 +233,7 @@ $$
 
 
 This ensures that the hardware standard delivers an invariant zero-phase and fixed-power benchmark across the lifespan of the instrument.
-
+<!-- 
 <details>
 <summary>Hidden / unused section (click to view)</summary>
 
@@ -241,7 +241,7 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 *   **Parasitic Junction Capacitance ($C_j$):** Standard Zener diodes exhibit high junction capacitance ($C_j \approx 30 - 100\text{ pF}$). At $35\text{ MHz}$, this capacitance presents a low reactance ($X_C \approx 91\ \Omega$), shunting high-frequency noise power directly to ground. Conversely, the Base–Emitter junction of an RF BJT (2N2222) features $C_j < 4\text{ pF}$ ($X_C > 1.1\text{ k}\Omega$), preserving spectral flatness into the VHF band.
 *   **Microplasma Generation:** Pure Zener tunneling ($< 5\text{V}$) is an orderly quantum process generating minimal RF excess noise. Operating the B-E junction in reverse avalanche breakdown ($> 6\text{V}$) creates violent impact ionization. Millions of microscopic plasma channels switch randomly at gigahertz rates, yielding a flat white noise floor across 30–40 MHz
 
-</details>
+</details> -->
 
 ---
 
