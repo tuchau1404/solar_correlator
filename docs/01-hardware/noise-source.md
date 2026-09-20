@@ -485,16 +485,16 @@ $$
 * **DC Voltage Drift ($\Delta V_{\text{drift}} = 500\text{ mV}$ drop):**  
   A minor line droop of $500\text{ mV}$ (representing a $3.33\%$ drop on a nominal $15\text{ V}$ rail) induces a severe static current collapse:
 
-  $$
-  \Delta I_{\text{drift}} = \frac{0.5\text{ V}}{2.9\text{ k}\Omega} \approx 0.172\text{ mA} \quad (\approx \mathbf{8.62\%})
-  $$
+$$
+\Delta I_{\text{drift}} = \frac{0.5\text{ V}}{2.9\text{ k}\Omega} \approx 0.172\text{ mA} \quad (\approx \mathbf{8.62\%})
+$$
 
 * **Impact on Excess Noise Ratio (ENR):**  
   In the avalanche breakdown region, the generated shot and microplasma spectral noise power density is directly proportional to the DC bias current ($\overline{i_n^2} \propto I_{\text{bias}}$). Consequently, an $8.62\%$ current drop directly alters the Excess Noise Ratio (ENR):
 
-  $$
-  \Delta \text{ENR} \approx 10 \log_{10}\left(1 + \frac{\Delta I}{I_{\text{bias}}}\right) = 10 \log_{10}(1 - 0.0862) \approx \mathbf{-0.39\text{ dB}}
-  $$
+$$
+\Delta \text{ENR} \approx 10 \log_{10}\left(1 + \frac{\Delta I}{I_{\text{bias}}}\right) = 10 \log_{10}(1 - 0.0862) \approx \mathbf{-0.39\text{ dB}}
+$$
 
   In radio astronomy calibration budgets, where the maximum permissible uncertainty is typically constrained within $\pm 0.15\text{ dB}$, an ENR error of $-0.39\text{ dB}$ skews radiometric system temperature ($T_{\text{sys}}$) and sky flux density calculations by approximately $8.6\%$. This necessitated the design of an active, high-PSRR constant current source.
 
@@ -511,9 +511,9 @@ To insulate the avalanche breakdown junction from supply line fluctuations, an a
 1. The load current flowing into the avalanche breakdown diode passes entirely through the sense resistor $R_{\text{sense}}$ positioned at the emitter of the series-pass transistor $Q_{\text{pass}}$.
 2. As the output current rises, the voltage drop across $R_{\text{sense}}$ increases:
 
-   $$
-   V_{\text{sense}} = I_{\text{bias}} \cdot R_{\text{sense}}
-   $$
+$$
+V_{\text{sense}} = I_{\text{bias}} \cdot R_{\text{sense}}
+$$
 
 3. This voltage directly biases the Base-Emitter junction of the sensing transistor $Q_{\text{sense}}$. When $V_{\text{sense}}$ reaches the threshold $V_{\text{BE(on)}} \approx 0.65\text{ V}$, $Q_{\text{sense}}$ begins conducting collector current.
 4. The collector of $Q_{\text{sense}}$ pulls the Base node of $Q_{\text{pass}}$ upward toward $V_{\text{CC}}$, reducing the $V_{\text{EB}}$ drive of $Q_{\text{pass}}$ and throttling back conduction.
