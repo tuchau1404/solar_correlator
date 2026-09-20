@@ -476,9 +476,9 @@ Because a purely passive pull-up topology provides zero active negative feedback
 * **Switching Power Supply Ripple ($\Delta V_{\text{ripple}} = 100\text{ mV}_{\text{p-p}}$):**  
   High-frequency ripple from step-up/step-down converters produces direct instantaneous current modulation:
 
-    $$
-    \Delta I_{\text{ripple}} = \frac{100\text{ mV}}{2.9\text{ k}\Omega} \approx 0.0345\text{ mA} \quad (\approx 1.72\%)
-    $$
+$$
+\Delta I_{\text{ripple}} = \frac{100\text{ mV}}{2.9\text{ k}\Omega} \approx 0.0345\text{ mA} \quad (\approx 1.72\%)
+$$
 
   This periodic variation amplitude-modulates (AM) the avalanche plasma carrier density, generating spurious spectral spurs across the RF passband and destroying the Gaussian white-noise characteristics of the source.
 
