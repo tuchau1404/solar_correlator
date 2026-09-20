@@ -2,6 +2,7 @@ site_name: Solar Radio Interferometer Docs
 theme:
   name: material
 markdown_extensions:
+  - nl2br
   - pymdownx.arithmatex:
       generic: true
 extra_javascript:
