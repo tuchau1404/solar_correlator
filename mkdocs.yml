@@ -1,9 +1,12 @@
-site_name: Solar Radio Interferometer Docs
+ site_name: Solar Radio Interferometer Docs
 theme:
   name: material
+
 markdown_extensions:
   - nl2br
   - pymdownx.arithmatex:
       generic: true
+
 extra_javascript:
+  - javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
