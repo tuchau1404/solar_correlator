@@ -1,19 +1,19 @@
-# ENGINEERING LOGBOOK: DESIGN, IMPLEMENTATION, AND VALIDATION OF A BROADBAND AVALANCHE NOISE SOURCE (30–40 MHz) FOR RADIO INTERFEROMETRY
+# 1. ENGINEERING LOGBOOK: DESIGN, IMPLEMENTATION, AND VALIDATION OF A BROADBAND AVALANCHE NOISE SOURCE (30–40 MHz) FOR RADIO INTERFEROMETRY
 
 ---
 
-# 1. System Context & Physical Problem Formulation in Radio Interferometry
+# 2. System Context & Physical Problem Formulation in Radio Interferometry
 
-## 1.1 Overview and System Architecture
+## 2.1. 1.1 Overview and System Architecture
 In a dual-channel decametric radio interferometer operating across the $30.0\text{--}40.0\text{ MHz}$ frequency band, two independent Software-Defined Radio (SDR) receivers (SDRplay RSPdx) act as spatial sensing nodes. To detect and characterize transient solar radio emissions (such as Type II and Type III solar bursts) and resolve their spatial-temporal dynamics, the system processes raw digitized baseband signals using a distributed FX correlator architecture hosted on an embedded platform (Raspberry Pi 5).
 
 Although both SDR receivers are disciplined by a shared external $24.0\text{ MHz}$ reference clock fed into their respective `REFin` ports to ensure strictly identical analog-to-digital conversion sampling frequencies ($f_{s1} = f_{s2} = 10.0\text{ MSPS}$), hardware-level clock synchronization alone does not resolve startup time offsets, internal analog phase dispersions, or dynamic gain drifts. An internal broadband avalanche noise source serves as an **in-situ hardware calibration standard**, providing the entropy and radiometric reference required to address four core physical and digital signal processing challenges prior to celestial observation.
 
 ---
 
-## 1.2 USB Startup Sample Delay Alignment ($k_\text{offset}$ — Module 2)
+## 2.2. 1.2 USB Startup Sample Delay Alignment ($k_\text{offset}$ — Module 2)
 
-### 1.2.1 Root Cause of Startup Misalignment
+### 2.2.1. 1.2.1 Root Cause of Startup Misalignment
 Operating system constraints dictate that the proprietary SDR hardware driver API (`sdrplay_api v3`) permits only a single active receiver instance per OS process. Consequently, a multi-process architecture is deployed wherein the parent process spawns two dedicated producer processes via `fork()`. Each child process independently issues `sdrplay_api_Open()`, executes hardware selection, and negotiates stream initializations via `sdrplay_api_Init()`.
 
 Even though the underlying ADC samplers advance on the identical $24.0\text{ MHz}$ clock edges, the operational startup times of the two data streams are non-deterministic. Variations in Linux kernel thread scheduling, USB host controller interrupt latency, device enumeration timings, and internal decimation filter flushing introduce an arbitrary delay:
@@ -32,7 +32,7 @@ $$
 
 
 
-### 1.2.2 Theoretical Necessity of Coarse Sample Synchronization
+### 2.2.2. 1.2.2 Theoretical Necessity of Coarse Sample Synchronization
 The complex cross-correlation function between the baseband analytical sequences $x_1[n]$ and $x_2[n]$ across a discrete lag parameter $k$ is defined as:
 
 $$
@@ -51,7 +51,7 @@ $$
 
 The cross-power expectation collapses entirely into uncorrelated baseline noise, completely extinguishing interferometric fringe formation. Therefore, coarse synchronization must deterministically align the two data queues to within $|k_\text{residual}| \le 1\text{ sample}$ ($100\text{ ns}$) before downstream cross-multiplication.
 
-### 1.2.3 Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
+### 2.2.3. 1.2.3 Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
 Attempting to measure $k_\text{offset}$ using single-tone continuous-wave (CW) test signals fails due to cyclic phase ambiguity. For a single sinusoidal carrier $s[n] = A e^{j(2\pi f_0 n T_s + \theta)}$, the cross-correlation function yields:
 
 $$
@@ -82,9 +82,9 @@ When routed symmetrically through a matched 1:2 RF power splitter, broadband noi
 
 ---
 
-## 1.3 Instrumental Differential Phase Calibration ($\Delta\phi_0(f)$ — Module 3)
+## 2.3. 1.3 Instrumental Differential Phase Calibration ($\Delta\phi_0(f)$ — Module 3)
 
-### 1.3.1 Physical Mechanisms Causing Phase Error
+### 2.3.1. 1.3.1 Physical Mechanisms Causing Phase Error
 Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
 
 $$
@@ -100,7 +100,7 @@ The instrumental differential phase error $\Delta\phi_0(f) = \phi_1(f) - \phi_2(
    $$\Delta\phi_\text{line}(f) = \frac{2\pi f}{v_p} \Delta l = 2\pi f \Delta\tau_\text{cable}$$
    Even a minor physical length discrepancy of $\Delta l = 10\text{ cm}$ on coaxial lines ($v_p \approx 0.66c$) produces a measurable phase rotation of $\approx 1.8^\circ$ across the $35\text{ MHz}$ center frequency.
 
-### 1.3.2 Frequency-Dependent Phase Extraction and Correction
+### 2.3.2. 1.3.2 Frequency-Dependent Phase Extraction and Correction
 Because $\Delta\phi_0(f)$ varies non-linearly across the instantaneous $10\text{ MHz}$ reception band, scalar phase offsets are insufficient. Injecting a common, coherent broadband noise signal into both receiver ports creates a zero-baseline benchmark ($\tau_g = 0$).
 
 The complex cross-spectral density computed across $N = 2048$ discrete FFT bins $m \in [0, N-1]$ directly samples the instrumental phase error matrix:
@@ -123,9 +123,9 @@ This neutralizes analog path deviations and flattens the instrumental phase resp
 
 ---
 
-## 1.4 Absolute Flux Scaling & Semiconductor Thermal Drift
+## 2.4. 1.4 Absolute Flux Scaling & Semiconductor Thermal Drift
 
-### 1.4.1 The Need for Absolute Radiometric Flux Calibration
+### 2.4.1. 1.4.1 The Need for Absolute Radiometric Flux Calibration
 Digital outputs produced by the internal 14-bit ADCs consist of dimensionless integer values (arbitrary digital counts). In solar radio physics, astronomical relevance requires converting these digital cross-power magnitudes into standardized physical metrics:
 * **Antenna Equivalent Temperature ($T_A$):** Expressed in Kelvin ($\text{K}$).
 * **Solar Spectral Flux Density ($S_\nu$):** Expressed in Solar Flux Units ($\text{SFU}$), where:
@@ -133,7 +133,7 @@ Digital outputs produced by the internal 14-bit ADCs consist of dimensionless in
 
 Without an absolute, traceable hot-load power standard, the measured visibilities remain purely qualitative, preventing cross-correlation with international solar radio observation networks (e.g., e-CALLISTO, Learmonth, or the GOES X-ray flux database).
 
-### 1.4.2 Semiconductor Physics of Thermal Gain Degradation
+### 2.4.2. 1.4.2 Semiconductor Physics of Thermal Gain Degradation
 During continuous decametric observation runs at $10\text{ MSPS}$, the active digital baseband processing and internal LNA/mixer circuitry dissipate sustained electrical power. Within the shielded die-cast aluminum enclosure of the RSPdx, internal board temperatures rise from ambient room temperature ($25^\circ\text{C}$) to a thermal equilibrium plateau between $50^\circ\text{C}$ and $60^\circ\text{C}$.
 
 In active silicon bipolar and field-effect transistors, the thermal voltage is governed by:
@@ -148,7 +148,7 @@ where $k_B$ is the Boltzmann constant, $q$ is the elementary charge, and $T$ is 
    $$g_m \approx \sqrt{2\mu C_{ox} \frac{W}{L} I_D}$$
 2. **Gain Drift:** The open-loop voltage gain of front-end Low-Noise Amplifiers (LNAs) and Programmable Gain Amplifiers (PGAs) drops proportionally ($G \propto g_m \cdot R_L$), manifesting as continuous thermal gain drift ($\approx -0.01\text{ to } -0.03\text{ dB/}^\circ\text{C}$).
 
-### 1.4.3 Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
+### 2.4.3. 1.4.3 Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
 Because the two RSPdx units are distinct physical enclosures with independent PCB assemblies, component-level manufacturing variations and subtle differences in localized convective cooling cause them to reach unequal equilibrium temperatures:
 
 $$
@@ -169,9 +169,9 @@ If Receiver 1 experiences a gain compression of $-0.6\text{ dB}$ while Receiver 
 
 ---
 
-## 1.5 The Broadband Noise Standard: In-Situ Solution and Thermal Compensation
+## 2.5. 1.5 The Broadband Noise Standard: In-Situ Solution and Thermal Compensation
 
-### 1.5.1 Avalanche Mechanism & Fixed Excess Noise Ratio (ENR)
+### 2.5.1. 1.5.1 Avalanche Mechanism & Fixed Excess Noise Ratio (ENR)
 To establish an immutable power reference, the internal calibrator exploits the reverse-biased avalanche breakdown of the base-emitter junction of a high-frequency silicon NPN transistor (2N2222). When biased past its breakdown voltage ($V_\text{BR} \approx 6.8\text{--}7.5\text{ V}$) by an external $+12\text{ V}$ regulated rail, charge carriers accelerated by the intense electric field liberate secondary electron-hole pairs through impact ionization.
 
 This breakdown occurs through localized, microscopic discharge channels known as microplasmas. The stochastic initiation and cessation of these microplasma states generate true Gaussian white noise characterized by a flat spectral response across $30.0\text{--}40.0\text{ MHz}$ and an immutable **Excess Noise Ratio (ENR)**, defined according to IEEE Standard 219:
@@ -183,7 +183,7 @@ $$
 
 where $T_0 = 290\text{ K}$ is the standard reference temperature, and $T_\text{hot}$ represents the equivalent noise temperature of the active source. Following amplification by a monolithic gain block (MMIC) and attenuation by a precision $10\text{ dB}$ pad, the calibration source delivers a known nominal power density of $-50\text{ dBm} / \text{MHz}$ into a matched $50\ \Omega$ load.
 
-### 1.5.2 Y-Factor Radiometric Calibration
+### 2.5.2. 1.5.2 Y-Factor Radiometric Calibration
 By controlling an RF switch network (HMC544AE), the system periodically alternates the receiver inputs between the sky antennas and the internal noise standard, performing an in-situ **Y-Factor measurement**:
 
 $$
@@ -216,7 +216,7 @@ $$
 
 
 
-### 1.5.3 Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
+### 2.5.3. 1.5.3 Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
 A critical engineering consideration is whether the calibration noise source itself suffers from thermal drift. While semiconductor avalanche noise does exhibit a minor positive temperature coefficient ($\approx +2\text{ to } +5\text{ mV/}^\circ\text{C}$ on $V_\text{BR}$, translating to an output power drift of $\approx -0.015\text{ dB/}^\circ\text{C}$), the operational duty cycles of the SDRs and the noise standard prevent systemic calibration errors:
 
 1. **Continuous Operation of SDRs:** The RSPdx receivers and host USB pipelines operate continuously 24 hours a day to capture stochastic solar flares, remaining in a steady-state thermal regime ($50^\circ\text{C}\text{--}60^\circ\text{C}$) where internal gain drift is persistent.
@@ -237,7 +237,7 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 <details>
 <summary>Hidden / unused section (click to view)</summary>
 
-### Physical Justification: BJT Avalanche vs. Zener Diode
+### 2.5.4. Physical Justification: BJT Avalanche vs. Zener Diode
 *   **Parasitic Junction Capacitance ($C_j$):** Standard Zener diodes exhibit high junction capacitance ($C_j \approx 30 - 100\text{ pF}$). At $35\text{ MHz}$, this capacitance presents a low reactance ($X_C \approx 91\ \Omega$), shunting high-frequency noise power directly to ground. Conversely, the Base–Emitter junction of an RF BJT (2N2222) features $C_j < 4\text{ pF}$ ($X_C > 1.1\text{ k}\Omega$), preserving spectral flatness into the VHF band.
 *   **Microplasma Generation:** Pure Zener tunneling ($< 5\text{V}$) is an orderly quantum process generating minimal RF excess noise. Operating the B-E junction in reverse avalanche breakdown ($> 6\text{V}$) creates violent impact ionization. Millions of microscopic plasma channels switch randomly at gigahertz rates, yielding a flat white noise floor across 30–40 MHz
 
@@ -245,11 +245,11 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 
 ---
 
-# 2. CHRONOLOGICAL LOG ENTRIES
+# 3. CHRONOLOGICAL LOG ENTRIES
 
-## LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
+## 3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
 
-### 1. Objective and Measurement Specifications
+### 3.1.1. Objective and Measurement Specifications
 
 * **Primary Objective:** Determine the precise reverse avalanche breakdown voltage ($V_{\text{BR}}$), dynamic junction resistance ($r_d$), and optimal noise-generation current of the through-hole (TO-92) NPN 2N2222 Base–Emitter (B-E) junction across the $30.0 - 40.0\text{ MHz}$ IF passband.
 
@@ -268,9 +268,9 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 
 ---
 
-## 2. Physical Principles & Mathematical ENR Derivation
+## 3.2. Physical Principles & Mathematical ENR Derivation
 
-### 2.1. McIntyre Impact Ionization & Microplasma Generation
+### 3.2.1. McIntyre Impact Ionization & Microplasma Generation
 
 When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is subjected to a strong reverse bias exceeding its critical breakdown field, free carriers acquire sufficient kinetic energy within the high-field space-charge region to liberate electron-hole pairs via impact ionization. At lower current densities ($1\text{ mA} - 3\text{ mA}$), this manifests as stochastic switching of microscopic conducting channels known as **microplasmas**.
 
@@ -291,7 +291,7 @@ where:
 
 Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF.
 
-### 2.2. Excess Noise Ratio (ENR) Calculation
+### 3.2.2. Excess Noise Ratio (ENR) Calculation
 
 Excess Noise Ratio (ENR) defines the generated noise power spectral density relative to the Johnson–Nyquist thermal noise floor of a matched load at standard reference temperature ($T_0 = 290\text{ K}$):
 
@@ -356,9 +356,9 @@ $$
 
 ---
 
-## 3. Hardware Testbench Configuration & Wiring
+## 3.3. Hardware Testbench Configuration & Wiring
 
-### 3.1. Interconnect Schematic Diagram
+### 3.3.1. Interconnect Schematic Diagram
 
 To eliminate lead contact resistance and maintain bias voltage readouts accurate to the millivolt level, the Chroma 58221-200-2 SMU is wired via 4-wire remote Kelvin sensing. The series $1.0\text{ nF}$ ceramic capacitor provides DC isolation ($V_{\text{BR}} \approx 9.2\text{ V}$), while the $10.0\text{ dB}$ coaxial attenuator forces source return loss beyond $22\text{ dB}$ ($50\ \Omega$ reference impedance).
 
@@ -403,7 +403,7 @@ To eliminate lead contact resistance and maintain bias voltage readouts accurate
                  +───────────────────────────+
 ```
 
-### 3.2. Physical Laboratory Testbench Setup
+### 3.3.2. Physical Laboratory Testbench Setup
 
 The hardware assembly below illustrates the physical wiring harness between the SMU Kelvin leads, the breadboard test fixture housing the 2N2222 DUT, the series DC blocking capacitor, the coaxial attenuator, and the CMU200 input interface.
 
@@ -412,7 +412,7 @@ The hardware assembly below illustrates the physical wiring harness between the 
 
 ---
 
-## 4. Experimental Spectrum Observation
+## 3.4. Experimental Spectrum Observation
 
 The captured spectrum analyzer trace verifies uniform, broadband avalanche noise across the designated operational bandwidth ($30.0\text{ MHz} - 40.0\text{ MHz}$). The RMS detector coupled with 20 trace averages smooths out stochastic microplasma burst noise, delineating the true underlying power spectral density.
 
@@ -421,7 +421,7 @@ The captured spectrum analyzer trace verifies uniform, broadband avalanche noise
 
 ---
 
-## 5. DC Parametric Sweep and Noise Survey ($1.0\text{ mA} - 10.0\text{ mA}$)
+## 3.5. DC Parametric Sweep and Noise Survey ($1.0\text{ mA} - 10.0\text{ mA}$)
 
 A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA}$ to $10.0\text{ mA}$ in steps of $1.0\text{ mA}$. At each bias step, the junction clamp potential ($V_{\text{BR}}$), measured output power ($P_{\text{meas}}$ in $1\text{ MHz}$ RBW), system ENR, intrinsic ENR, and qualitative trace behavior were cataloged:
 
@@ -439,7 +439,7 @@ A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA
 | **10.0** | 9.47 | -85.0 | +29.0  
 
 ---
-## 6. Engineering Conclusions & Design Next Steps
+## 3.6. Engineering Conclusions & Design Next Steps
 
 1. **Operating Point Selection:**
 
@@ -455,9 +455,9 @@ A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA
 
 ---
 
-# LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
+# 4. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
 
-## 1. Problem Statement & Quantitative Error Analysis
+## 4.1. Problem Statement & Quantitative Error Analysis
 
 Bench laboratory programmable DC supplies (such as the Chroma source) cannot be integrated onto the final embedded receiver shield in the field. An initial passive pull-up resistor topology powered from an unregulated or semi-regulated $+15\text{ V}$ DC supply rail leaves an extremely narrow operating voltage headroom:
 
@@ -500,14 +500,14 @@ $$
 
 ---
 
-## 2. Circuit Architecture
+## 4.2. Circuit Architecture
 
 To insulate the avalanche breakdown junction from supply line fluctuations, an active, discrete two-transistor constant current source was designed using two matched PNP BJTs (**2N2907**, designated $Q_{\text{pass}}$ and $Q_{\text{sense}}$).
 
 ![2-BJT PNP Active Current Source Schematic](../assets/photos/current_source_schematic.png)
 *Figure 1: Schematic diagram of the discrete 2-BJT PNP active current source delivering regulated bias to the avalanche junction.*
 
-### Feedback Regulation Mechanism
+### 4.2.1. Feedback Regulation Mechanism
 1. The load current flowing into the avalanche breakdown diode passes entirely through the sense resistor $R_{\text{sense}}$ positioned at the emitter of the series-pass transistor $Q_{\text{pass}}$.
 2. As the output current rises, the voltage drop across $R_{\text{sense}}$ increases:
 
@@ -521,9 +521,9 @@ $$
 
 ---
 
-## 3. Theoretical Formulation & Component Selection
+## 4.3. Theoretical Formulation & Component Selection
 
-### Current Sense Resistor ($R_{\text{sense}}$)
+### 4.3.1. Current Sense Resistor ($R_{\text{sense}}$)
 The nominal sensing resistance is calculated using the forward-bias threshold of $Q_{\text{sense}}$:
 
 $$
@@ -533,7 +533,7 @@ $$
 * **Selected Nominal Value:** The closest standard E24 resistor is $R_{\text{nominal}} = 330\ \Omega$.
 
 
-### Base Pull-Down Resistor ($R_{\text{pull}}$)
+### 4.3.2. Base Pull-Down Resistor ($R_{\text{pull}}$)
 A pull-down resistor $R_{\text{pull}} = 10\text{ k}\Omega$ ties the Base of $Q_{\text{pass}}$ to ground (GND), ensuring adequate base current to saturate or drive $Q_{\text{pass}}$ into its linear forward-active operating region across variations:
 
 $$
@@ -544,7 +544,7 @@ With $V_{\text{EC(pass)}} \approx 5.15\text{ V}$, the transistor operates deep w
 
 ---
 
-## 4. Hardware Implementation & Lab Bench Setup
+## 4.4. Hardware Implementation & Lab Bench Setup
 
 The circuit was prototyped on a low-parasitic copper clad board for zero-baseline laboratory validation prior to PCB integration.
 
@@ -552,9 +552,9 @@ The circuit was prototyped on a low-parasitic copper clad board for zero-baselin
 *Figure 2: Laboratory bench test setup showing the breadboard prototype of the 2-BJT current source driving the avalanche diode, monitored via digital multimeter and spectrum analyzer.*
 
 
-## 5. Validation Summary
+## 4.5. Validation Summary
 
-### 5.1. Empirical Test Data
+### 4.5.1. Empirical Test Data
 
 Laboratory validation of the active 2-BJT PNP current source over a wide supply rail sweep ($V_{\text{source}} = 14.0\text{ V} \to 16.0\text{ V}$, $\Delta V_{\text{source}} = 2.0\text{ V}$) driving the avalanche breakdown junction of a 2N2222 BJT ($V_{\text{out}} \approx 9.27\text{ V}$) with sense resistor $R_{\text{sense}} = 330\ \Omega$:
 
@@ -587,7 +587,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-### 5.2. Line Regulation & Dynamic Output Impedance
+### 4.5.2. Line Regulation & Dynamic Output Impedance
 
 * **Line Regulation Sensitivity ($S_I$):**  
   Over the full $\Delta V_{\text{source}} = 2.0\text{ V}$ span, $V_{\text{EB}}$ remains tightly clamped at $0.62\text{ V}$ with a single-digit measurement fluctuation bounded within $\Delta V_{\text{EB}} \le 0.01\text{ V}$ ($10\text{ mV}$, matching instrument resolution). The resulting maximum bias drift is:
@@ -611,7 +611,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-## LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of $R_{\text{bias}}$
+## 4.6. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of $R_{\text{bias}}$
 *   **Power Budget Target:** Deliver **$-40\text{ dBm}$ total power** across the $10\text{ MHz}$ bandwidth ($30 - 40\text{ MHz}$) to drive the RSPdx receivers at $-14\text{ dBFS} \dots -18\text{ dBFS}$ without ADC clipping. On the CMU200 with $\text{RBW} = 1\text{ MHz}$, this corresponds to:
     $$P_{\text{RBW}} = -40\text{ dBm} - 10\log_{10}\left(\frac{10\text{ MHz}}{1\text{ MHz}}\right) = -50\text{ dBm}$$
 
@@ -632,7 +632,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-## LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS & 2N2222) & Gate Divider Debugging
+## 4.7. LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS & 2N2222) & Gate Divider Debugging
 *   **Control Objective:** Gate the 15V supply via a 3.3V GPIO pin from a Raspberry Pi 5 to prevent thermal build-up and RF leakage during sky observations.
 *   **Switching Topology:** High-side P-channel MOSFET (**AO3401**, $V_{\text{DS,max}} = -30\text{V}$) driven by a 2N2222 NPN level-shifter.
 *   **Debugging Gate Biasing:**
@@ -646,7 +646,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-## LOG ENTRY #05: Prototyping & Altium Designer 2-Layer PCB Implementation
+## 4.8. LOG ENTRY #05: Prototyping & Altium Designer 2-Layer PCB Implementation
 *   **Handmade Prototype Evaluation:** Deadbug/perfboard wiring validated DC biasing, current clamping, and MMIC gain staging. However, long component leads induced parasitic inductance and lacked environmental shielding.
 *   **Altium Designer 2-Layer PCB Rules:**
     *   **Layer Stackup:** Standard FR-4, thickness $H = 1.6\text{ mm}$, copper weight $1\text{ oz}$ ($35\ \mu\text{m}$).
@@ -657,7 +657,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
     *   **RF Connector:** Board-edge SMA female receptacle (Edge-Mount) soldered across both top signal and bottom ground planes.
     *   **Via Stitching:** Array of ground vias placed at $[...]\text{ mm}$ pitch along the RF boundary to suppress ground loop impedance.
 
-### PCB Figures and Schematics
+### 4.8.1. PCB Figures and Schematics
 > *(Insert Altium Schematic Capture here)*  
 > **Figure 1:** Complete circuit schematic of the gated avalanche noise source.
 
@@ -672,7 +672,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-## LOG ENTRY #06: End-to-End System Integration & Correlator Validation
+## 4.9. LOG ENTRY #06: End-to-End System Integration & Correlator Validation
 *   **Test Topology:** The fabricated noise source was routed through a Mini-Circuits 1:2 symmetric splitter into Port C of both SDRplay RSPdx receivers. Both SDRs shared a common 24 MHz reference clock via REFin.
 *   **Execution:** Executed the real-time time-alignment pipeline (`alignment_test`) on Raspberry Pi 5:
 
@@ -691,7 +691,7 @@ INACTIVE/OFF (GPIO = LOW)          26.0 dB        Thermal / ADC quantization flo
 
 ---
 
-# 3. PARAMETRIC PERFORMANCE SUMMARY
+# 5. PARAMETRIC PERFORMANCE SUMMARY
 
 | Parameter | Design Target | Measured Value | Remarks |
 | :--- | :---: | :---: | :--- |
