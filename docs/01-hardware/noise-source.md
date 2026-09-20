@@ -11,7 +11,7 @@ Although both SDR receivers are disciplined by a shared external $24.0\text{ MHz
 
 ---
 
-### 1.2. USB Startup Sample Delay Alignment ($k_\text{offset}$ — Module 2)
+### 1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)
 
 #### 1.2.1. Root Cause of Startup Misalignment
 Operating system constraints dictate that the proprietary SDR hardware driver API (`sdrplay_api v3`) permits only a single active receiver instance per OS process. Consequently, a multi-process architecture is deployed wherein the parent process spawns two dedicated producer processes via `fork()`. Each child process independently issues `sdrplay_api_Open()`, executes hardware selection, and negotiates stream initializations via `sdrplay_api_Init()`.
@@ -82,8 +82,7 @@ When routed symmetrically through a matched 1:2 RF power splitter, broadband noi
 
 ---
 
-### 1.3. Instrumental Differential Phase Calibration ($\Delta\phi_0(f)$ — Module 3)
-
+### 1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)
 #### 1.3.1. Physical Mechanisms Causing Phase Error
 <!-- Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
 
@@ -421,7 +420,7 @@ The captured spectrum analyzer trace verifies uniform, broadband avalanche noise
 
 ---
 
-#### 3.1.5. DC Parametric Sweep and Noise Survey ($1.0\text{ mA} - 10.0\text{ mA}$)
+#### 3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA$)
 
 A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA}$ to $10.0\text{ mA}$ in steps of $1.0\text{ mA}$. At each bias step, the junction clamp potential ($V_{\text{BR}}$), measured output power ($P_{\text{meas}}$ in $1\text{ MHz}$ RBW), system ENR, intrinsic ENR, and qualitative trace behavior were cataloged:
 
@@ -523,7 +522,7 @@ $$
 
 #### 3.2.3. Theoretical Formulation & Component Selection
 
-##### 3.2.3.1. Current Sense Resistor ($R_{\text{sense}}$)
+##### 3.2.3.1. Current Sense Resistor (R_sense)
 The nominal sensing resistance is calculated using the forward-bias threshold of $Q_{\text{sense}}$:
 
 $$
@@ -533,7 +532,7 @@ $$
 * **Selected Nominal Value:** The closest standard E24 resistor is $R_{\text{nominal}} = 330\ \Omega$.
 
 
-##### 3.2.3.2. Base Pull-Down Resistor ($R_{\text{pull}}$)
+##### 3.2.3.2. Base Pull-Down Resistor (R_pull)
 A pull-down resistor $R_{\text{pull}} = 10\text{ k}\Omega$ ties the Base of $Q_{\text{pass}}$ to ground (GND), ensuring adequate base current to saturate or drive $Q_{\text{pass}}$ into its linear forward-active operating region across variations:
 
 $$
@@ -632,7 +631,7 @@ $$
 
 ---
 
-### 3.3. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of $R_{\text{bias}}$
+### 3.3. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of R_bias
 *   **Power Budget Target:** Deliver **$-40\text{ dBm}$ total power** across the $10\text{ MHz}$ bandwidth ($30 - 40\text{ MHz}$) to drive the RSPdx receivers at $-14\text{ dBFS} \dots -18\text{ dBFS}$ without ADC clipping. On the CMU200 with $\text{RBW} = 1\text{ MHz}$, this corresponds to:
     $$P_{\text{RBW}} = -40\text{ dBm} - 10\log_{10}\left(\frac{10\text{ MHz}}{1\text{ MHz}}\right) = -50\text{ dBm}$$
 
