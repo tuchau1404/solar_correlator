@@ -15,7 +15,7 @@ def fix_math_and_markdown(text: str) -> str:
   )
 
   # 3. Thu gọn các khoảng trống thừa (tối đa 1 dòng trống)
-  c = re.sub(r"\n{3,}", "\n\n", c)
+#   c = re.sub(r"\n{3,}", "\n\n", c)
   return c
 
 
