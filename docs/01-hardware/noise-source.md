@@ -245,16 +245,16 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 
 ---
 
-## 2. CHRONOLOGICAL LOG ENTRIES
+# 2. CHRONOLOGICAL LOG ENTRIES
 
-### LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
+## LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
 
-#### 1. Objective and Measurement Specifications
+### 1. Objective and Measurement Specifications
 
 * **Primary Objective:** Determine the precise reverse avalanche breakdown voltage ($V_{\text{BR}}$), dynamic junction resistance ($r_d$), and optimal noise-generation current of the through-hole (TO-92) NPN 2N2222 Base–Emitter (B-E) junction across the $30.0 - 40.0\text{ MHz}$ IF passband.
 
 * **Instrumentation & Test Equipment:**
-  * **Precision Source-Measure Unit (SMU):** Chroma 58221-200-2 (Configured in 4-Wire Constant Current [CC] mode; voltage compliance set to $12.0\text{ V}$).
+  * **Precision Source-Measure Unit (SMU):** Chroma 58221-200-2 (Configured in 4-Wire Constant Current [CC] mode; voltage compliance set to $15.0\text{ V}$).
   * **RF Spectrum Analyzer:** Rohde & Schwarz CMU200 (Selected receiver port: **RF4 IN** / High Sensitivity, input impedance $50\ \Omega$).
   * **Coupling & Matching Components:** $1.0\text{ nF}$ high-Q ceramic disc DC-blocking capacitor ($50\text{ V}$ rating, $X_C \approx 4.5\ \Omega$ at $35\text{ MHz}$); calibrated $10.0\text{ dB}$ coaxial $\Pi$-network attenuator ($50\ \Omega$, DC–3 GHz, $\text{VSWR} < 1.15$).
 
@@ -262,15 +262,15 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
   * **Center Frequency ($f_c$):** $35.0\text{ MHz}$
   * **Frequency Span ($\Delta f$):** $10.0\text{ MHz}$ (sweep interval: $30.0\text{ MHz} - 40.0\text{ MHz}$)
   * **Resolution Bandwidth (RBW):** $1.0\text{ MHz}$
-  * **Video Bandwidth (VBW):** $30.0\text{ kHz}$ (or set to auto-coupled mode for variance reduction)
+
   * **Detector Mode:** RMS / Power Average (linear power averaging across 20 consecutive traces to stabilize stochastic microplasma power fluctuations)
-  * **Reference Level ($P_{\text{ref}}$):** $-60.0\text{ dBm}$ (input RF attenuation set to $0\text{ dB}$ internal to leverage CMU200 low-noise front-end preamp)
+
 
 ---
 
-#### 2. Physical Principles & Mathematical ENR Derivation
+## 2. Physical Principles & Mathematical ENR Derivation
 
-##### 2.1. McIntyre Impact Ionization & Microplasma Generation
+### 2.1. McIntyre Impact Ionization & Microplasma Generation
 
 When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is subjected to a strong reverse bias exceeding its critical breakdown field, free carriers acquire sufficient kinetic energy within the high-field space-charge region to liberate electron-hole pairs via impact ionization. At lower current densities ($1\text{ mA} - 3\text{ mA}$), this manifests as stochastic switching of microscopic conducting channels known as **microplasmas**.
 
@@ -291,7 +291,7 @@ where:
 
 Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF.
 
-##### 2.2. Excess Noise Ratio (ENR) Calculation
+### 2.2. Excess Noise Ratio (ENR) Calculation
 
 Excess Noise Ratio (ENR) defines the generated noise power spectral density relative to the Johnson–Nyquist thermal noise floor of a matched load at standard reference temperature ($T_0 = 290\text{ K}$):
 
@@ -356,9 +356,9 @@ $$
 
 ---
 
-#### 3. Hardware Testbench Configuration & Wiring
+## 3. Hardware Testbench Configuration & Wiring
 
-##### 3.1. Interconnect Schematic Diagram
+### 3.1. Interconnect Schematic Diagram
 
 To eliminate lead contact resistance and maintain bias voltage readouts accurate to the millivolt level, the Chroma 58221-200-2 SMU is wired via 4-wire remote Kelvin sensing. The series $1.0\text{ nF}$ ceramic capacitor provides DC isolation ($V_{\text{BR}} \approx 9.2\text{ V}$), while the $10.0\text{ dB}$ coaxial attenuator forces source return loss beyond $22\text{ dB}$ ($50\ \Omega$ reference impedance).
 
@@ -403,7 +403,7 @@ To eliminate lead contact resistance and maintain bias voltage readouts accurate
                  +───────────────────────────+
 ```
 
-##### 3.2. Physical Laboratory Testbench Setup
+### 3.2. Physical Laboratory Testbench Setup
 
 The hardware assembly below illustrates the physical wiring harness between the SMU Kelvin leads, the breadboard test fixture housing the 2N2222 DUT, the series DC blocking capacitor, the coaxial attenuator, and the CMU200 input interface.
 
@@ -412,7 +412,7 @@ The hardware assembly below illustrates the physical wiring harness between the 
 
 ---
 
-#### 4. Experimental Spectrum Observation
+## 4. Experimental Spectrum Observation
 
 The captured spectrum analyzer trace verifies uniform, broadband avalanche noise across the designated operational bandwidth ($30.0\text{ MHz} - 40.0\text{ MHz}$). The RMS detector coupled with 20 trace averages smooths out stochastic microplasma burst noise, delineating the true underlying power spectral density.
 
@@ -421,7 +421,7 @@ The captured spectrum analyzer trace verifies uniform, broadband avalanche noise
 
 ---
 
-#### 5. DC Parametric Sweep and Noise Survey ($1.0\text{ mA} - 10.0\text{ mA}$)
+## 5. DC Parametric Sweep and Noise Survey ($1.0\text{ mA} - 10.0\text{ mA}$)
 
 A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA}$ to $10.0\text{ mA}$ in steps of $1.0\text{ mA}$. At each bias step, the junction clamp potential ($V_{\text{BR}}$), measured output power ($P_{\text{meas}}$ in $1\text{ MHz}$ RBW), system ENR, intrinsic ENR, and qualitative trace behavior were cataloged:
 
@@ -439,7 +439,7 @@ A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA
 | **10.0** | 9.47 | -85.0 | +29.0  
 
 ---
-#### 6. Engineering Conclusions & Design Next Steps
+## 6. Engineering Conclusions & Design Next Steps
 
 1. **Operating Point Selection:**
 
@@ -552,9 +552,9 @@ The circuit was prototyped on a low-parasitic copper clad board for zero-baselin
 *Figure 2: Laboratory bench test setup showing the breadboard prototype of the 2-BJT current source driving the avalanche diode, monitored via digital multimeter and spectrum analyzer.*
 
 
-## Validation Summary
+## 5. Validation Summary
 
-### 1. Empirical Test Data
+### 5.1. Empirical Test Data
 
 Laboratory validation of the active 2-BJT PNP current source over a wide supply rail sweep ($V_{\text{source}} = 14.0\text{ V} \to 16.0\text{ V}$, $\Delta V_{\text{source}} = 2.0\text{ V}$) driving the avalanche breakdown junction of a 2N2222 BJT ($V_{\text{out}} \approx 9.27\text{ V}$) with sense resistor $R_{\text{sense}} = 330\ \Omega$:
 
@@ -587,7 +587,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-### 2. Line Regulation & Dynamic Output Impedance
+### 5.2. Line Regulation & Dynamic Output Impedance
 
 * **Line Regulation Sensitivity ($S_I$):**  
   Over the full $\Delta V_{\text{source}} = 2.0\text{ V}$ span, $V_{\text{EB}}$ remains tightly clamped at $0.62\text{ V}$ with a single-digit measurement fluctuation bounded within $\Delta V_{\text{EB}} \le 0.01\text{ V}$ ($10\text{ mV}$, matching instrument resolution). The resulting maximum bias drift is:
@@ -611,53 +611,53 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-### LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of $R_{\text{bias}}$
-*   **Power Budget Target:** Deliver **$-40\text{ dBm}$ total power** across the $10\text{ MHz}$ bandwidth ($30 - 40\text{ MHz}$) to drive the RSPdx receivers at $-14\text{ dBFS} \dots -18\text{ dBFS}$ without ADC clipping[cite: 1, 2]. On the CMU200 with $\text{RBW} = 1\text{ MHz}$, this corresponds to:
+## LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) & Thermal Optimization of $R_{\text{bias}}$
+*   **Power Budget Target:** Deliver **$-40\text{ dBm}$ total power** across the $10\text{ MHz}$ bandwidth ($30 - 40\text{ MHz}$) to drive the RSPdx receivers at $-14\text{ dBFS} \dots -18\text{ dBFS}$ without ADC clipping. On the CMU200 with $\text{RBW} = 1\text{ MHz}$, this corresponds to:
     $$P_{\text{RBW}} = -40\text{ dBm} - 10\log_{10}\left(\frac{10\text{ MHz}}{1\text{ MHz}}\right) = -50\text{ dBm}$$
-[cite: 1]
-*   **MMIC Operating Point:** Mini-Circuits GALI-74 requires a device operating current $I_d \approx 80\text{ mA}$ at device voltage $V_d \approx 4.8\text{ V}$[cite: 1].
+
+*   **MMIC Operating Point:** Mini-Circuits GALI-74 requires a device operating current $I_d \approx 80\text{ mA}$ at device voltage $V_d \approx 4.8\text{ V}$.
 *   **Bias Resistance Calculation (from 15V Supply):**
     $$R_{\text{bias}} = \frac{V_{\text{CC}} - V_d}{I_d} = \frac{15.0\text{ V} - 4.8\text{ V}}{0.080\text{ A}} = \frac{10.2\text{ V}}{0.080\text{ A}} = 127.5\ \Omega$$
-[cite: 1]
+
     $$P_{\text{diss}} = I_d^2 \cdot R_{\text{bias}} = (0.08\text{ A})^2 \times 127.5\ \Omega \approx 0.816\text{ W} \approx 0.82\text{ W}$$
-[cite: 1]
+
 *   **Engineering Trade-off & Cost Optimization:**
-    *   *Issue:* A dedicated $127\ \Omega$, $>1\text{ W}$ precision resistor (2512 SMD or TO-220) is expensive and difficult to source locally[cite: 1].
-    *   *Implementation:* Paralleled **four $510\ \Omega$ SMD 1206 resistors** (standard E24 series)[cite: 1]:
-        *   **Equivalent Resistance:** $R_{\text{total}} = \frac{510\ \Omega}{4} = 127.5\ \Omega$ ($0.0\%$ error against target)[cite: 1].
-        *   **Power Capability:** Rated at $0.25\text{ W}$ each, four 1206 packages handle $P_{\text{rated}} = 4 \times 0.25\text{ W} = 1.0\text{ W} > 0.82\text{ W}$ ($22\%$ thermal margin)[cite: 1].
-        *   **Thermal Dissipation:** Distributes heat across 8 solder pads and copper planes, eliminating localized hot spots[cite: 1].
-*   **RF Output Coupling:** Choke inductor $\text{RFC} = [...]\ \mu\text{H}$ blocks RF from entering the DC rail[cite: 1]; $10\text{ nF}$ DC blocking capacitors are placed at the input and output[cite: 1].
-*   **Measurement:** Spectrum output on CMU200 matched **$-50.0\text{ dBm}$ at $\text{RBW} = 1\text{ MHz}$**, confirming an integrated $-40.0\text{ dBm}$ over $30 - 40\text{ MHz}$[cite: 1].
+    *   *Issue:* A dedicated $127\ \Omega$, $>1\text{ W}$ precision resistor (2512 SMD or TO-220) is expensive and difficult to source locally.
+    *   *Implementation:* Paralleled **four $510\ \Omega$ SMD 1206 resistors** (standard E24 series):
+        *   **Equivalent Resistance:** $R_{\text{total}} = \frac{510\ \Omega}{4} = 127.5\ \Omega$ ($0.0\%$ error against target).
+        *   **Power Capability:** Rated at $0.25\text{ W}$ each, four 1206 packages handle $P_{\text{rated}} = 4 \times 0.25\text{ W} = 1.0\text{ W} > 0.82\text{ W}$ ($22\%$ thermal margin).
+        *   **Thermal Dissipation:** Distributes heat across 8 solder pads and copper planes, eliminating localized hot spots.
+*   **RF Output Coupling:** Choke inductor $\text{RFC} = [...]\ \mu\text{H}$ blocks RF from entering the DC rail; $10\text{ nF}$ DC blocking capacitors are placed at the input and output.
+*   **Measurement:** Spectrum output on CMU200 matched **$-50.0\text{ dBm}$ at $\text{RBW} = 1\text{ MHz}$**, confirming an integrated $-40.0\text{ dBm}$ over $30 - 40\text{ MHz}$.
 
 ---
 
-### LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS & 2N2222) & Gate Divider Debugging
-*   **Control Objective:** Gate the 15V supply via a 3.3V GPIO pin from a Raspberry Pi 5 to prevent thermal build-up and RF leakage during sky observations[cite: 1, 2].
-*   **Switching Topology:** High-side P-channel MOSFET (**AO3401**, $V_{\text{DS,max}} = -30\text{V}$) driven by a 2N2222 NPN level-shifter[cite: 1].
+## LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS & 2N2222) & Gate Divider Debugging
+*   **Control Objective:** Gate the 15V supply via a 3.3V GPIO pin from a Raspberry Pi 5 to prevent thermal build-up and RF leakage during sky observations.
+*   **Switching Topology:** High-side P-channel MOSFET (**AO3401**, $V_{\text{DS,max}} = -30\text{V}$) driven by a 2N2222 NPN level-shifter.
 *   **Debugging Gate Biasing:**
-    *   *Initial Fault:* Initial breadboard test showed $V_{\text{Source}} = 15\text{V}$ but $V_{\text{Gate}} = 13\text{V}$ ($V_{\text{GS}} = -2\text{V}$), leaving the MOSFET in linear mode, generating high $R_{\text{DS(on)}}$ and thermal drop[cite: 1].
-    *   *Correction:* Configured a balanced $10\text{ k}\Omega - 10\text{ k}\Omega$ voltage divider between the 15V rail, AO3401 Gate, and 2N2222 Collector[cite: 1]:
-        *   When $\text{GPIO} = 0\text{V}$ (LOW): 2N2222 is cut off $\implies V_G = 15\text{V}, V_{\text{GS}} = 0\text{V}$ (AO3401 fully OFF)[cite: 1].
-        *   When $\text{GPIO} = 3.3\text{V}$ (HIGH): 2N2222 saturates, dividing the gate voltage[cite: 1]:
+    *   *Initial Fault:* Initial breadboard test showed $V_{\text{Source}} = 15\text{V}$ but $V_{\text{Gate}} = 13\text{V}$ ($V_{\text{GS}} = -2\text{V}$), leaving the MOSFET in linear mode, generating high $R_{\text{DS(on)}}$ and thermal drop.
+    *   *Correction:* Configured a balanced $10\text{ k}\Omega - 10\text{ k}\Omega$ voltage divider between the 15V rail, AO3401 Gate, and 2N2222 Collector:
+        *   When $\text{GPIO} = 0\text{V}$ (LOW): 2N2222 is cut off $\implies V_G = 15\text{V}, V_{\text{GS}} = 0\text{V}$ (AO3401 fully OFF).
+        *   When $\text{GPIO} = 3.3\text{V}$ (HIGH): 2N2222 saturates, dividing the gate voltage:
             $$V_G = 15\text{V} \times \frac{10\text{k}\Omega}{10\text{k}\Omega + 10\text{k}\Omega} = 7.5\text{V} \implies V_{\text{GS}} = 7.5\text{V} - 15\text{V} = -7.5\text{V}$$
-[cite: 1]
-        *   $V_{\text{GS}} = -7.5\text{V}$ guarantees deep saturation ($R_{\text{DS(on)}} < 0.05\ \Omega$) while staying safely within the absolute maximum gate limit ($V_{\text{GS,max}} = \pm 12\text{V}$) of the AO3401[cite: 1].
+
+        *   $V_{\text{GS}} = -7.5\text{V}$ guarantees deep saturation ($R_{\text{DS(on)}} < 0.05\ \Omega$) while staying safely within the absolute maximum gate limit ($V_{\text{GS,max}} = \pm 12\text{V}$) of the AO3401.
 
 ---
 
-### LOG ENTRY #05: Prototyping & Altium Designer 2-Layer PCB Implementation
-*   **Handmade Prototype Evaluation:** Deadbug/perfboard wiring validated DC biasing, current clamping, and MMIC gain staging[cite: 1]. However, long component leads induced parasitic inductance and lacked environmental shielding[cite: 1].
+## LOG ENTRY #05: Prototyping & Altium Designer 2-Layer PCB Implementation
+*   **Handmade Prototype Evaluation:** Deadbug/perfboard wiring validated DC biasing, current clamping, and MMIC gain staging. However, long component leads induced parasitic inductance and lacked environmental shielding.
 *   **Altium Designer 2-Layer PCB Rules:**
-    *   **Layer Stackup:** Standard FR-4, thickness $H = 1.6\text{ mm}$, copper weight $1\text{ oz}$ ($35\ \mu\text{m}$)[cite: 1].
-    *   **Continuous Ground Plane:** The Bottom Layer is reserved as a **$100\%$ solid, unbroken ground plane**[cite: 1, 2]. No signal traces cross the bottom layer beneath the GALI-74 or the RF path to preserve return current loops[cite: 1, 2].
+    *   **Layer Stackup:** Standard FR-4, thickness $H = 1.6\text{ mm}$, copper weight $1\text{ oz}$ ($35\ \mu\text{m}$).
+    *   **Continuous Ground Plane:** The Bottom Layer is reserved as a **$100\%$ solid, unbroken ground plane**. No signal traces cross the bottom layer beneath the GALI-74 or the RF path to preserve return current loops.
     *   **$50\ \Omega$ RF Transmission Line:** Calculated coplanar waveguide / microstrip geometry:
         *   Trace width ($W$): $[...]\text{ mm}$.
         *   Ground gap ($S$): $[...]\text{ mm}$.
-    *   **RF Connector:** Board-edge SMA female receptacle (Edge-Mount) soldered across both top signal and bottom ground planes[cite: 1].
-    *   **Via Stitching:** Array of ground vias placed at $[...]\text{ mm}$ pitch along the RF boundary to suppress ground loop impedance[cite: 1, 2].
+    *   **RF Connector:** Board-edge SMA female receptacle (Edge-Mount) soldered across both top signal and bottom ground planes.
+    *   **Via Stitching:** Array of ground vias placed at $[...]\text{ mm}$ pitch along the RF boundary to suppress ground loop impedance.
 
-#### PCB Figures and Schematics
+### PCB Figures and Schematics
 > *(Insert Altium Schematic Capture here)*  
 > **Figure 1:** Complete circuit schematic of the gated avalanche noise source.
 
@@ -672,9 +672,9 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 ---
 
-### LOG ENTRY #06: End-to-End System Integration & Correlator Validation
-*   **Test Topology:** The fabricated noise source was routed through a Mini-Circuits 1:2 symmetric splitter into Port C of both SDRplay RSPdx receivers[cite: 1, 3, 4]. Both SDRs shared a common 24 MHz reference clock via REFin[cite: 1, 2, 4].
-*   **Execution:** Executed the real-time time-alignment pipeline (`alignment_test`) on Raspberry Pi 5[cite: 1, 4]:
+## LOG ENTRY #06: End-to-End System Integration & Correlator Validation
+*   **Test Topology:** The fabricated noise source was routed through a Mini-Circuits 1:2 symmetric splitter into Port C of both SDRplay RSPdx receivers. Both SDRs shared a common 24 MHz reference clock via REFin.
+*   **Execution:** Executed the real-time time-alignment pipeline (`alignment_test`) on Raspberry Pi 5:
 
 ```text
 ====================================================================================
@@ -684,22 +684,22 @@ ACTIVE / ON  (GPIO = HIGH)         44.0 dB        Sharp Dirac delta spike; locks
 INACTIVE/OFF (GPIO = LOW)          26.0 dB        Thermal / ADC quantization floor
 ====================================================================================
 ```
-[cite: 1, 2]
 
-*   **State ON ($\text{PNR} = 44\text{ dB}$):** High correlated broadband power eliminates multi-peak ambiguities, enabling the $\arg\max$ algorithm to resolve $k_{\text{offset}}$ instantaneously with zero sample jitter[cite: 1, 2, 4].
-*   **State OFF ($\text{PNR} = 26\text{ dB}$):** The AO3401 P-MOS switch fully decouples the 15V supply, dropping inter-channel correlation to ambient background noise and proving adequate RF isolation[cite: 1, 2].
+
+*   **State ON ($\text{PNR} = 44\text{ dB}$):** High correlated broadband power eliminates multi-peak ambiguities, enabling the $\arg\max$ algorithm to resolve $k_{\text{offset}}$ instantaneously with zero sample jitter.
+*   **State OFF ($\text{PNR} = 26\text{ dB}$):** The AO3401 P-MOS switch fully decouples the 15V supply, dropping inter-channel correlation to ambient background noise and proving adequate RF isolation.
 
 ---
 
-## 3. PARAMETRIC PERFORMANCE SUMMARY
+# 3. PARAMETRIC PERFORMANCE SUMMARY
 
 | Parameter | Design Target | Measured Value | Remarks |
 | :--- | :---: | :---: | :--- |
-| Main Supply Voltage ($V_{\text{CC}}$) | $15.0\text{ V}$ | **$15.0\text{ V}$** | Supplies adequate headroom for current source[cite: 1] |
-| 2N2222 Breakdown Voltage ($V_{\text{BR}}$) | $6.5 - 9.5\text{ V}$ | **$9.2\text{ V}$** | Avalanche mode at $2.0\text{ mA}$ bias[cite: 1] |
-| PNP Current Source Output ($I_{\text{bias}}$) | $2.0\text{ mA}$ | **$2.0\text{ mA}$** | Stabilized by 2x 2N2907 pair[cite: 1] |
-| P-MOS Gate Drive Voltage ($V_{\text{GS}}$) | $-6.0 \dots -8.0\text{ V}$ | **$-7.5\text{ V}$** | Saturated via $10\text{ k}\Omega / 10\text{ k}\Omega$ divider[cite: 1] |
-| GALI-74 Bias Network ($R_{\text{bias}}$) | $127.5\ \Omega$ | **$127.5\ \Omega$** | Paralleled $4 \times 510\ \Omega$ 1206 ($1.0\text{ W}$ rating)[cite: 1] |
-| Spectral Power Density ($\text{RBW} = 1\text{ MHz}$) | $-50.0\text{ dBm}$ | **$-50.0\text{ dBm}$** | Measured directly on R&S CMU200[cite: 1] |
-| Integrated Bandwidth Power ($30 - 40\text{ MHz}$) | $-40.0\text{ dBm}$ | **$-40.0\text{ dBm}$** | Linear dynamic range for RSPdx ADCs[cite: 1, 2] |
-| Correlator PNR (ON State / OFF State) | $> 30\text{ dB} \ / \ < 30\text{ dB}$ | **$44\text{ dB} \ / \ 26\text{ dB}$** | Verified in Module 2 alignment pipeline[cite: 1, 2] |
+| Main Supply Voltage ($V_{\text{CC}}$) | $15.0\text{ V}$ | **$15.0\text{ V}$** | Supplies adequate headroom for current source |
+| 2N2222 Breakdown Voltage ($V_{\text{BR}}$) | $6.5 - 9.5\text{ V}$ | **$9.2\text{ V}$** | Avalanche mode at $2.0\text{ mA}$ bias |
+| PNP Current Source Output ($I_{\text{bias}}$) | $2.0\text{ mA}$ | **$2.0\text{ mA}$** | Stabilized by 2x 2N2907 pair |
+| P-MOS Gate Drive Voltage ($V_{\text{GS}}$) | $-6.0 \dots -8.0\text{ V}$ | **$-7.5\text{ V}$** | Saturated via $10\text{ k}\Omega / 10\text{ k}\Omega$ divider |
+| GALI-74 Bias Network ($R_{\text{bias}}$) | $127.5\ \Omega$ | **$127.5\ \Omega$** | Paralleled $4 \times 510\ \Omega$ 1206 ($1.0\text{ W}$ rating) |
+| Spectral Power Density ($\text{RBW} = 1\text{ MHz}$) | $-50.0\text{ dBm}$ | **$-50.0\text{ dBm}$** | Measured directly on R&S CMU200 |
+| Integrated Bandwidth Power ($30 - 40\text{ MHz}$) | $-40.0\text{ dBm}$ | **$-40.0\text{ dBm}$** | Linear dynamic range for RSPdx ADCs |
+| Correlator PNR (ON State / OFF State) | $> 30\text{ dB} \ / \ < 30\text{ dB}$ | **$44\text{ dB} \ / \ 26\text{ dB}$** | Verified in Module 2 alignment pipeline |
