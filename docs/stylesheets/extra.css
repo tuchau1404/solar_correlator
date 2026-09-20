@@ -1,10 +1,10 @@
 :root {
-  --md-grid-max-width: 92% !important;
+  --md-grid-max-width: 75% !important;
 }
 
 /* Ép khung lưới tổng thể bung rộng 92% chiều ngang màn hình */
 .md-grid {
-  max-width: 92% !important;
+  max-width: 75% !important;
 }
 
 /* Cho phép vùng nội dung đọc bài viết tự do co giãn */
