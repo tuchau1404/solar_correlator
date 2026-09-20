@@ -1,9 +1,18 @@
 :root {
-  /* Tăng độ rộng hiển thị toàn trang (mặc định là 61rem ~ 1220px) */
-  --md-grid-max-width: 88%; /* Hoặc đặt 1500px / 90rem tùy nhu cầu */
+  --md-grid-max-width: 92% !important;
 }
 
-/* Tùy chọn: Cho phép bảng số liệu co giãn theo khung nhìn rộng */
+/* Ép khung lưới tổng thể bung rộng 92% chiều ngang màn hình */
+.md-grid {
+  max-width: 92% !important;
+}
+
+/* Cho phép vùng nội dung đọc bài viết tự do co giãn */
+.md-content {
+  max-width: none !important;
+}
+
+/* Mở rộng bảng số liệu theo tỷ lệ khung hình */
 .md-typeset table:not([class]) {
   display: inline-table;
   width: 100%;
