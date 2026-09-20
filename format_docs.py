@@ -8,11 +8,11 @@ def fix_math_and_markdown(text: str) -> str:
 
   # 2. Chuẩn hóa display math dính dòng: chuyển thành khối có dòng trống độc lập
   # Chỉ khớp khi một dòng độc lập chứa duy nhất $$...$$
-  c = re.sub(
-      r"(?:(?<=\n)|(?<=\A))[ \t]*\$\$([^\n]+?)\$\$[ \t]*(?=\n|\Z)",
-      r"\n\n$$\n\1\n$$\n\n",
-      c,
-  )
+  # c = re.sub(
+  #     r"(?:(?<=\n)|(?<=\A))[ \t]*\$\$([^\n]+?)\$\$[ \t]*(?=\n|\Z)",
+  #     r"\n\n$$\n\1\n$$\n\n",
+  #     c,
+  # )
 
   # 3. Thu gọn các khoảng trống thừa (tối đa 1 dòng trống)
 #   c = re.sub(r"\n{3,}", "\n\n", c)
