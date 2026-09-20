@@ -642,7 +642,7 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
         *   When $\text{GPIO} = 3.3\text{V}$ (HIGH): 2N2222 saturates, dividing the gate voltage:
             $$V_G = 15\text{V} \times \frac{10\text{k}\Omega}{10\text{k}\Omega + 10\text{k}\Omega} = 7.5\text{V} \implies V_{\text{GS}} = 7.5\text{V} - 15\text{V} = -7.5\text{V}$$
 
-        *   $V_{\text{GS}} = -7.5\text{V}$ guarantees deep saturation ($R_{\text{DS(on)}} < 0.05\ \Omega$) while staying safely within the absolute maximum gate limit ($V_{\text{GS,max}} = \pm 12\text{V}$) of the AO3401.
+        * $V_{\text{GS}} = -7.5\text{V}$ guarantees deep saturation ($R_{\text{DS(on)}} < 0.05\ \Omega$) while staying safely within the absolute maximum gate limit ($V_{\text{GS,max}} = \pm 12\text{V}$) of the AO3401.
 
 ---
 
