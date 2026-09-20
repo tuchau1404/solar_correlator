@@ -1,32 +1,28 @@
 name: Deploy Documentation
+
 on:
   push:
     branches: [main]
+
 permissions:
   contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
-      - run: pip install mkdocs-material
 
-      # BƯỚC TỰ ĐỘNG CHUẨN HÓA CÔNG THỨC TOÁN TRƯỚC KHI BUILD
-      - name: Auto-format math blocks
-        run: |
-          python -c "
-          import re, glob
-          for path in glob.glob('docs/**/*.md', recursive=True):
-              with open(path, 'r', encoding='utf-8') as f:
-                  text = f.read()
-              # Tách khối $$...$$ dính dòng thành khối độc lập có dòng trống
-              fixed = re.sub(r'([^\n])\s*\n\$\$([^\n]+?)\$\$', r'\1\n\n$$\n\2\n$$\n\n', text)
-              if fixed != text:
-                  with open(path, 'w', encoding='utf-8') as f:
-                      f.write(fixed)
-          "
+      - name: Install MkDocs Material
+        run: pip install mkdocs-material
 
-      - run: mkdocs gh-deploy --force
+      # Tự động chạy script dọn dẹp và đồng bộ trước khi dựng trang web
+      - name: Auto-format documentation & sync README
+        run: python format_docs.py
+
+      - name: Deploy to GitHub Pages
+        run: mkdocs gh-deploy --force
