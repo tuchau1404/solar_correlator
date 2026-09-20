@@ -591,40 +591,40 @@ Laboratory validation of the active 2-BJT PNP current source over a wide supply 
 
 * **Line Regulation Sensitivity ($S_I$):**  
   Over the full $\Delta V_{\text{source}} = 2.0\text{ V}$ span, $V_{\text{EB}}$ remains tightly clamped at $0.62\text{ V}$ with a single-digit measurement fluctuation bounded within $\Delta V_{\text{EB}} \le 0.01\text{ V}$ ($10\text{ mV}$, matching instrument resolution). The resulting maximum bias drift is:
-  
-  $$
-  \Delta I_{\text{bias}} = 1.879\text{ mA} - 1.848\text{ mA} \approx 0.0303\text{ mA} \quad (30.3\ \mu\text{A})
-  $$
 
-  $$
-  S_{I} = \frac{\Delta I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{0.0303\text{ mA}}{2.0\text{ V}} \approx 0.0152\text{ mA/V} = 15.15\ \mu\text{A/V}
-  $$
+$$
+\Delta I_{\text{bias}} = 1.879\text{ mA} - 1.848\text{ mA} \approx 0.0303\text{ mA} \quad (30.3\ \mu\text{A})
+$$
+
+$$
+S_{I} = \frac{\Delta I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{0.0303\text{ mA}}{2.0\text{ V}} \approx 0.0152\text{ mA/V} = 15.15\ \mu\text{A/V}
+$$
   Expressed as relative sensitivity:
   
-  $$
-  \frac{\Delta I_{\text{bias}} / I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{1.61\%}{2.0\text{ V}} \approx 0.81\%/\text{V}
-  $$
+$$
+\frac{\Delta I_{\text{bias}} / I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{1.61\%}{2.0\text{ V}} \approx 0.81\%/\text{V}
+$$
 
 * **Dynamic Output Resistance ($r_{\text{out}}$):**  
   The small-signal dynamic impedance looking into the collector of the active pass transistor $Q_{\text{pass}}$ is:
   
-  $$
-  r_{\text{out}} = \frac{\Delta V_{\text{source}}}{\Delta I_{\text{bias}}} = \frac{2.0\text{ V}}{30.3\ \mu\text{A}} \approx 66.0\text{ k}\Omega
-  $$
+$$
+r_{\text{out}} = \frac{\Delta V_{\text{source}}}{\Delta I_{\text{bias}}} = \frac{2.0\text{ V}}{30.3\ \mu\text{A}} \approx 66.0\text{ k}\Omega
+$$
 
   Compared to a passive pull-up resistor ($R_{\text{passive}} = \frac{15.0\text{ V} - 9.27\text{ V}}{2.0\text{ mA}} \approx 2.87\text{ k}\Omega$), the active circuit increases dynamic source impedance by:
   
-  $$
-  \frac{r_{\text{out}}}{R_{\text{passive}}} = \frac{66.0\text{ k}\Omega}{2.87\text{ k}\Omega} \approx 23.0\times \quad (\mathbf{+27.2\text{ dB}}\text{ PSRR improvement})
-  $$
+$$
+\frac{r_{\text{out}}}{R_{\text{passive}}} = \frac{66.0\text{ k}\Omega}{2.87\text{ k}\Omega} \approx 23.0\times \quad (\mathbf{+27.2\text{ dB}}\text{ PSRR improvement})
+$$
 
 * **Base Current Divergence Analysis:**  
   While $I_{\text{bias}}$ remains constant at $1.88\text{ mA}$, the measured total current $I_{\text{source}}$ increases from $3.13\text{ mA}$ to $3.34\text{ mA}$ ($\Delta I_{\text{source}} = 0.21\text{ mA}$). This perfectly correlates with the static current drawn by the base pull-down resistor $R_{\text{pull}} = 10\text{ k}\Omega$ connected to ground:
   
-  $$
-  \Delta I_{\text{pull}} = \frac{\Delta V_{\text{pass,B}}}{R_{\text{pull}}} = \frac{14.75\text{ V} - 12.75\text{ V}}{10\text{ k}\Omega} = \frac{2.00\text{ V}}{10\text{ k}\Omega} = 0.20\text{ mA}
-  $$
-  
+$$
+\Delta I_{\text{pull}} = \frac{\Delta V_{\text{pass,B}}}{R_{\text{pull}}} = \frac{14.75\text{ V} - 12.75\text{ V}}{10\text{ k}\Omega} = \frac{2.00\text{ V}}{10\text{ k}\Omega} = 0.20\text{ mA}
+$$
+
   This confirms that excess line voltage is entirely dissipated across the passive biasing branch, while the core avalanche junction is decoupled and fed by a constant current.
 
 
