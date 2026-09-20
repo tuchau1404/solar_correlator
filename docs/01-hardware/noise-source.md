@@ -268,9 +268,9 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 
 ---
 
-#### 3.1.2 Physical Principles & Mathematical ENR Derivation
+#### 3.1.2. Physical Principles & Mathematical ENR Derivation
 
-##### 3.1.2.1 McIntyre Impact Ionization & Microplasma Generation
+##### 3.1.2.1. McIntyre Impact Ionization & Microplasma Generation
 
 When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is subjected to a strong reverse bias exceeding its critical breakdown field, free carriers acquire sufficient kinetic energy within the high-field space-charge region to liberate electron-hole pairs via impact ionization. At lower current densities ($1\text{ mA} - 3\text{ mA}$), this manifests as stochastic switching of microscopic conducting channels known as **microplasmas**.
 
@@ -291,7 +291,7 @@ where:
 
 Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF.
 
-##### 3.1.2.2 Excess Noise Ratio (ENR) Calculation
+##### 3.1.2.2. Excess Noise Ratio (ENR) Calculation
 
 Excess Noise Ratio (ENR) defines the generated noise power spectral density relative to the Johnson–Nyquist thermal noise floor of a matched load at standard reference temperature ($T_0 = 290\text{ K}$):
 
@@ -455,7 +455,7 @@ A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA
 
 ---
 
-### 3.2 LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
+### 3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
 
 #### 3.2.1. Problem Statement & Quantitative Error Analysis
 
@@ -500,7 +500,7 @@ $$
 
 ---
 
-#### 3.2.2, Circuit Architecture
+#### 3.2.2. Circuit Architecture
 
 To insulate the avalanche breakdown junction from supply line fluctuations, an active, discrete two-transistor constant current source was designed using two matched PNP BJTs (**2N2907**, designated $Q_{\text{pass}}$ and $Q_{\text{sense}}$).
 
@@ -523,7 +523,7 @@ $$
 
 #### 3.2.3. Theoretical Formulation & Component Selection
 
-##### 3.2.3.1, Current Sense Resistor ($R_{\text{sense}}$)
+##### 3.2.3.1. Current Sense Resistor ($R_{\text{sense}}$)
 The nominal sensing resistance is calculated using the forward-bias threshold of $Q_{\text{sense}}$:
 
 $$
