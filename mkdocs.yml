@@ -1,9 +1,24 @@
-site_name: Solar Radio Interferometer Docs
+site_name: Solar Interferometer Dev-Blog
+site_description: 30-40 MHz Real-Time Solar Correlator Engineering Log
+site_url: https://yourusername.github.io/solar_correlator/
+
 theme:
   name: material
-
-extra_css:
-  - stylesheets/extra.css
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.instant
+    - content.code.copy
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -18,6 +33,7 @@ markdown_extensions:
       generic: true
   - toc:
       permalink: true
+
 extra_javascript:
   - javascripts/mathjax.js
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js

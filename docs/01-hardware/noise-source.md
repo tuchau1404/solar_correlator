@@ -599,6 +599,7 @@ $$
 $$
 S_{I} = \frac{\Delta I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{0.0303\text{ mA}}{2.0\text{ V}} \approx 0.0152\text{ mA/V} = 15.15\ \mu\text{A/V}
 $$
+
   Expressed as relative sensitivity:
   
 $$
