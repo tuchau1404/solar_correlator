@@ -17,31 +17,66 @@ Although both SDR receivers are disciplined by a shared external $24.0\text{ MHz
 Operating system constraints dictate that the proprietary SDR hardware driver API (`sdrplay_api v3`) permits only a single active receiver instance per OS process. Consequently, a multi-process architecture is deployed wherein the parent process spawns two dedicated producer processes via `fork()`. Each child process independently issues `sdrplay_api_Open()`, executes hardware selection, and negotiates stream initializations via `sdrplay_api_Init()`.
 
 Even though the underlying ADC samplers advance on the identical $24.0\text{ MHz}$ clock edges, the operational startup times of the two data streams are non-deterministic. Variations in Linux kernel thread scheduling, USB host controller interrupt latency, device enumeration timings, and internal decimation filter flushing introduce an arbitrary delay:
-$$\Delta t_\text{startup} \in [10\text{ ms}, 50\text{ ms}]$$
+
+$$
+\Delta t_\text{startup} \in [10\text{ ms}, 50\text{ ms}]
+$$
+
+
 
 At a baseband sampling rate of $f_s = 10\text{ MSPS}$ (corresponding to a sample period of $T_s = 100\text{ ns}$), a temporal startup discrepancy of merely $30\text{ ms}$ yields an initial sample index offset of:
-$$k_\text{offset} = \Delta t_\text{startup} \cdot f_s \approx 300,000\text{ samples}$$
+
+$$
+k_\text{offset} = \Delta t_\text{startup} \cdot f_s \approx 300,000\text{ samples}
+$$
+
+
 
 ### 1.2.2 Theoretical Necessity of Coarse Sample Synchronization
 The complex cross-correlation function between the baseband analytical sequences $x_1[n]$ and $x_2[n]$ across a discrete lag parameter $k$ is defined as:
-$$R_{12}[k] = \sum_{n=0}^{N-1} x_1[n] \cdot x_2^*[n - k]$$
+
+$$
+R_{12}[k] = \sum_{n=0}^{N-1} x_1[n] \cdot x_2^*[n - k]
+$$
+
+
 
 In the correlator pipeline, spectral decomposition (the F-Engine) processes finite snapshot blocks of length $N = 2048$ (or $N = 65,536$ during calibration). If an uncompensated integer offset $k_\text{offset} \neq 0$ persists such that $|k_\text{offset}| \ge N$, the block extracted from Channel 1 represents an electromagnetic epoch that shares no temporal overlap with the block extracted from Channel 2. Under this condition:
-$$\mathbb{E}\{x_1[n] \cdot x_2^*[n - k_\text{offset}]\} = 0$$
+
+$$
+\mathbb{E}\{x_1[n] \cdot x_2^*[n - k_\text{offset}]\} = 0
+$$
+
+
 
 The cross-power expectation collapses entirely into uncorrelated baseline noise, completely extinguishing interferometric fringe formation. Therefore, coarse synchronization must deterministically align the two data queues to within $|k_\text{residual}| \le 1\text{ sample}$ ($100\text{ ns}$) before downstream cross-multiplication.
 
 ### 1.2.3 Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
 Attempting to measure $k_\text{offset}$ using single-tone continuous-wave (CW) test signals fails due to cyclic phase ambiguity. For a single sinusoidal carrier $s[n] = A e^{j(2\pi f_0 n T_s + \theta)}$, the cross-correlation function yields:
-$$R_{12}[k] = |A|^2 e^{j 2\pi f_0 k T_s} \sum_{n=0}^{N-1} 1 = N |A|^2 e^{j 2\pi f_0 k T_s}$$
+
+$$
+R_{12}[k] = |A|^2 e^{j 2\pi f_0 k T_s} \sum_{n=0}^{N-1} 1 = N |A|^2 e^{j 2\pi f_0 k T_s}
+$$
+
+
 
 The magnitude $|R_{12}[k]|$ remains constant across all lags, producing an infinite series of identical correlation peaks spaced at integer multiples of the carrier period:
-$$\Delta k_\text{period} = \frac{f_s}{f_0}$$
+
+$$
+\Delta k_\text{period} = \frac{f_s}{f_0}
+$$
+
+
 
 This cyclic ambiguity entraps the Peak-to-Noise Ratio (PNR) at a theoretical ceiling of $\text{PNR} \approx 3.92\text{ dB}$, preventing automated peak-detection algorithms from distinguishing the true hardware arrival epoch from harmonic sidelobes.
 
 Conversely, broadband Gaussian white noise $w[n] \sim \mathcal{CN}(0, \sigma_w^2)$ possesses a constant power spectral density across the Nyquist bandwidth $B$. According to the Wiener–Khinchin theorem, its auto-correlation function compresses into an isolated Dirac delta function:
-$$R_{ww}[k] = \sigma_w^2 \cdot \delta[k] = \begin{cases} \sigma_w^2, & k = 0 \\ 0, & k \neq 0 \end{cases}$$
+
+$$
+R_{ww}[k] = \sigma_w^2 \cdot \delta[k] = \begin{cases} \sigma_w^2, & k = 0 \\ 0, & k \neq 0 \end{cases}
+$$
+
+
 
 When routed symmetrically through a matched 1:2 RF power splitter, broadband noise generates a single, unambiguous correlation needle spike. Empirically, this elevates the Peak-to-Noise Ratio to $\text{PNR} > 30\text{--}44\text{ dB}$, enabling the software aligner to isolate the true lag $k_\text{offset} = \arg\max_k |R_{12}[k]|$ and discard leading samples via ring-buffer pointer adjustments (`skip(k_offset)`).
 
@@ -51,7 +86,12 @@ When routed symmetrically through a matched 1:2 RF power splitter, broadband noi
 
 ### 1.3.1 Physical Mechanisms Causing Phase Error
 Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
-$$\Phi_\text{meas}(f) = 2\pi f \tau_g + \Delta\phi_0(f)$$
+
+$$
+\Phi_\text{meas}(f) = 2\pi f \tau_g + \Delta\phi_0(f)
+$$
+
+
 
 The instrumental differential phase error $\Delta\phi_0(f) = \phi_1(f) - \phi_2(f)$ originates from hardware asymmetries along the analog signal conditioning paths of the two receivers:
 
@@ -64,10 +104,20 @@ The instrumental differential phase error $\Delta\phi_0(f) = \phi_1(f) - \phi_2(
 Because $\Delta\phi_0(f)$ varies non-linearly across the instantaneous $10\text{ MHz}$ reception band, scalar phase offsets are insufficient. Injecting a common, coherent broadband noise signal into both receiver ports creates a zero-baseline benchmark ($\tau_g = 0$).
 
 The complex cross-spectral density computed across $N = 2048$ discrete FFT bins $m \in [0, N-1]$ directly samples the instrumental phase error matrix:
-$$\Delta\phi_0[m] = \operatorname{atan2}\big(\operatorname{Im}\{S_{12,\text{cal}}[m]\}, \, \operatorname{Re}\{S_{12,\text{cal}}[m]\}\big)$$
+
+$$
+\Delta\phi_0[m] = \operatorname{atan2}\big(\operatorname{Im}\{S_{12,\text{cal}}[m]\}, \, \operatorname{Re}\{S_{12,\text{cal}}[m]\}\big)
+$$
+
+
 
 Prior to celestial integration, the cross-engine applies bin-by-bin complex conjugate phase rotation:
-$$S_{12,\text{calibrated}}[m] = S_{12,\text{sky}}[m] \cdot e^{-j \Delta\phi_0[m]}$$
+
+$$
+S_{12,\text{calibrated}}[m] = S_{12,\text{sky}}[m] \cdot e^{-j \Delta\phi_0[m]}
+$$
+
+
 
 This neutralizes analog path deviations and flattens the instrumental phase response to $0^\circ \pm 0.5^\circ$ across the entire $30.0\text{--}40.0\text{ MHz}$ bandwidth.
 
@@ -87,7 +137,12 @@ Without an absolute, traceable hot-load power standard, the measured visibilitie
 During continuous decametric observation runs at $10\text{ MSPS}$, the active digital baseband processing and internal LNA/mixer circuitry dissipate sustained electrical power. Within the shielded die-cast aluminum enclosure of the RSPdx, internal board temperatures rise from ambient room temperature ($25^\circ\text{C}$) to a thermal equilibrium plateau between $50^\circ\text{C}$ and $60^\circ\text{C}$.
 
 In active silicon bipolar and field-effect transistors, the thermal voltage is governed by:
-$$V_T = \frac{k_B T}{q}$$
+
+$$
+V_T = \frac{k_B T}{q}
+$$
+
+
 where $k_B$ is the Boltzmann constant, $q$ is the elementary charge, and $T$ is absolute temperature in Kelvin. As temperature increases:
 1. **Carrier Mobility Reduction:** Increased phonon scattering diminishes charge carrier mobility $\mu(T) \propto T^{-3/2}$, degrading the small-signal transconductance:
    $$g_m \approx \sqrt{2\mu C_{ox} \frac{W}{L} I_D}$$
@@ -95,10 +150,20 @@ where $k_B$ is the Boltzmann constant, $q$ is the elementary charge, and $T$ is 
 
 ### 1.4.3 Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
 Because the two RSPdx units are distinct physical enclosures with independent PCB assemblies, component-level manufacturing variations and subtle differences in localized convective cooling cause them to reach unequal equilibrium temperatures:
-$$T_{\text{SDR}_1} \neq T_{\text{SDR}_2} \implies G_1(t, T) \neq G_2(t, T)$$
+
+$$
+T_{\text{SDR}_1} \neq T_{\text{SDR}_2} \implies G_1(t, T) \neq G_2(t, T)
+$$
+
+
 
 The magnitude of the interferometric cross-power spectrum is proportional to the geometric mean of the channel gains:
-$$|S_{12}(f)| = \sqrt{G_1(f) \cdot G_2(f)} \cdot |S_\text{sky}(f)|$$
+
+$$
+|S_{12}(f)| = \sqrt{G_1(f) \cdot G_2(f)} \cdot |S_\text{sky}(f)|
+$$
+
+
 
 If Receiver 1 experiences a gain compression of $-0.6\text{ dB}$ while Receiver 2 experiences $-1.4\text{ dB}$ due to unequal thermal stabilization, the cross-correlation amplitude will drift dynamically over time. Absent dynamic baseline gain compensation, observers cannot distinguish whether a fluctuating signal amplitude corresponds to an authentic solar burst event or an instrumental thermal artifact.
 
@@ -110,21 +175,46 @@ If Receiver 1 experiences a gain compression of $-0.6\text{ dB}$ while Receiver 
 To establish an immutable power reference, the internal calibrator exploits the reverse-biased avalanche breakdown of the base-emitter junction of a high-frequency silicon NPN transistor (2N2222). When biased past its breakdown voltage ($V_\text{BR} \approx 6.8\text{--}7.5\text{ V}$) by an external $+12\text{ V}$ regulated rail, charge carriers accelerated by the intense electric field liberate secondary electron-hole pairs through impact ionization.
 
 This breakdown occurs through localized, microscopic discharge channels known as microplasmas. The stochastic initiation and cessation of these microplasma states generate true Gaussian white noise characterized by a flat spectral response across $30.0\text{--}40.0\text{ MHz}$ and an immutable **Excess Noise Ratio (ENR)**, defined according to IEEE Standard 219:
-$$\text{ENR} = 10 \log_{10}\left( \frac{T_\text{hot} - T_0}{T_0} \right) \quad [\text{dB}]$$
+
+$$
+\text{ENR} = 10 \log_{10}\left( \frac{T_\text{hot} - T_0}{T_0} \right) \quad [\text{dB}]
+$$
+
+
 where $T_0 = 290\text{ K}$ is the standard reference temperature, and $T_\text{hot}$ represents the equivalent noise temperature of the active source. Following amplification by a monolithic gain block (MMIC) and attenuation by a precision $10\text{ dB}$ pad, the calibration source delivers a known nominal power density of $-50\text{ dBm} / \text{MHz}$ into a matched $50\ \Omega$ load.
 
 ### 1.5.2 Y-Factor Radiometric Calibration
 By controlling an RF switch network (HMC544AE), the system periodically alternates the receiver inputs between the sky antennas and the internal noise standard, performing an in-situ **Y-Factor measurement**:
-$$Y = \frac{P_\text{hot}}{P_\text{cold}}$$
+
+$$
+Y = \frac{P_\text{hot}}{P_\text{cold}}
+$$
+
+
 where $P_\text{hot}$ is the digital power measured while connected to the active noise standard ($T_\text{hot}$), and $P_\text{cold}$ is the digital power measured when terminated into an ambient reference load or cold sky background ($T_\text{cold} \approx 290\text{ K}$).
 
 From this ratio, the receiver system noise temperature $T_\text{sys}$ is resolved independently of instantaneous receiver gain:
-$$T_\text{sys} = \frac{T_\text{hot} - Y T_\text{cold}}{Y - 1}$$
+
+$$
+T_\text{sys} = \frac{T_\text{hot} - Y T_\text{cold}}{Y - 1}
+$$
+
+
 
 With $T_\text{sys}$ resolved in physical units (Kelvin), the digital counts are assigned an exact scaling coefficient:
-$$K_\text{scale} = \frac{k_B T_\text{sys} B}{P_\text{cold}} \quad \left[\frac{\text{Watts}}{\text{ADC Unit}}\right]$$
+
+$$
+K_\text{scale} = \frac{k_B T_\text{sys} B}{P_\text{cold}} \quad \left[\frac{\text{Watts}}{\text{ADC Unit}}\right]
+$$
+
+
 which subsequently converts cross-power spectra to solar flux density through the effective aperture area of the antenna array ($A_\text{eff}$):
-$$S_\nu = \frac{2 k_B T_A}{A_\text{eff}} \cdot 10^{22} \quad [\text{SFU}]$$
+
+$$
+S_\nu = \frac{2 k_B T_A}{A_\text{eff}} \cdot 10^{22} \quad [\text{SFU}]
+$$
+
+
 
 ### 1.5.3 Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
 A critical engineering consideration is whether the calibration noise source itself suffers from thermal drift. While semiconductor avalanche noise does exhibit a minor positive temperature coefficient ($\approx +2\text{ to } +5\text{ mV/}^\circ\text{C}$ on $V_\text{BR}$, translating to an output power drift of $\approx -0.015\text{ dB/}^\circ\text{C}$), the operational duty cycles of the SDRs and the noise standard prevent systemic calibration errors:
@@ -135,7 +225,12 @@ A critical engineering consideration is whether the calibration noise source its
 3. **Suppression of Self-Heating:** With an operational duty cycle well below $0.1\%$, the 2N2222 transistor die experiences zero internal self-heating ($\Delta T_\text{junction} \approx 0$). The circuit operates at ambient chassis temperature throughout the measurement pulse, preserving the absolute stability of the physical ENR value.
 
 Furthermore, because the broadband noise signal is split symmetrically into both receiver channels via a 1:2 Wilkinson divider located in immediate physical proximity to the tuners, any common-mode phase or amplitude perturbations introduced by the calibration circuit affect both receivers equally, naturally canceling out in the differential phase matrix:
-$$\Delta\phi_\text{noise} = \arg(S_{12}) = \phi_\text{noise}(t) - \phi_\text{noise}(t) = 0^\circ$$
+
+$$
+\Delta\phi_\text{noise} = \arg(S_{12}) = \phi_\text{noise}(t) - \phi_\text{noise}(t) = 0^\circ
+$$
+
+
 
 This ensures that the hardware standard delivers an invariant zero-phase and fixed-power benchmark across the lifespan of the instrument.
 
@@ -181,7 +276,12 @@ When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is
 
 The total mean-square noise current density generated under avalanche multiplication is governed by McIntyre's model:
 
-$$\overline{i_n^2} = 2 q I_{\text{bias}} M^2 F(M) \Delta f$$
+
+$$
+\overline{i_n^2} = 2 q I_{\text{bias}} M^2 F(M) \Delta f
+$$
+
+
 
 where:
 * $q = 1.602 \times 10^{-19}\text{ C}$ is the elementary charge.
@@ -195,29 +295,64 @@ Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy 
 
 Excess Noise Ratio (ENR) defines the generated noise power spectral density relative to the Johnson–Nyquist thermal noise floor of a matched load at standard reference temperature ($T_0 = 290\text{ K}$):
 
-$$\text{ENR} = 10 \log_{10} \left( \frac{T_{\text{hot}} - T_0}{T_0} \right) = 10 \log_{10} \left( \frac{P_{\text{PSD}} - P_{0/\text{Hz}}}{P_{0/\text{Hz}}} \right)$$
+
+$$
+\text{ENR} = 10 \log_{10} \left( \frac{T_{\text{hot}} - T_0}{T_0} \right) = 10 \log_{10} \left( \frac{P_{\text{PSD}} - P_{0/\text{Hz}}}{P_{0/\text{Hz}}} \right)
+$$
+
+
 
 At $T_0 = 290\text{ K}$, the baseline thermal noise density is:
 
-$$P_{0/\text{Hz}} = k T_0 = -174.0\text{ dBm/Hz}$$
+
+$$
+P_{0/\text{Hz}} = k T_0 = -174.0\text{ dBm/Hz}
+$$
+
+
 
 When measuring on an analyzer configured with a resolution bandwidth of $\text{RBW} = 1.0\text{ MHz} = 10^6\text{ Hz}$, the baseline thermal noise floor within that filter window expands by:
 
-$$10 \log_{10}(10^6) = +60.0\text{ dB}$$
 
-$$P_{\text{floor, 1MHz}} = -174.0\text{ dBm/Hz} + 60.0\text{ dB} = -114.0\text{ dBm}$$
+$$
+10 \log_{10}(10^6) = +60.0\text{ dB}
+$$
+
+
+
+
+$$
+P_{\text{floor, 1MHz}} = -174.0\text{ dBm/Hz} + 60.0\text{ dB} = -114.0\text{ dBm}
+$$
+
+
 
 For a detected power level $P_{\text{meas}}$ (in $\text{dBm}$) measured by the CMU200 at the output of the $10\text{ dB}$ attenuator pad:
 
-$$\text{ENR}_{\text{sys}}\ (\text{dB}) = P_{\text{meas}}\ (\text{dBm}) - (-114.0\text{ dBm}) = P_{\text{meas}} + 114.0$$
+
+$$
+\text{ENR}_{\text{sys}}\ (\text{dB}) = P_{\text{meas}}\ (\text{dBm}) - (-114.0\text{ dBm}) = P_{\text{meas}} + 114.0
+$$
+
+
 
 Accounting for the insertion loss of the matching attenuator ($A_{\text{pad}} = 10.0\text{ dB}$), the intrinsic raw ENR generated directly across the BJT junction ($\text{ENR}_{\text{DUT}}$) is:
 
-$$\text{ENR}_{\text{DUT}}\ (\text{dB}) = \text{ENR}_{\text{sys}} + A_{\text{pad}} = P_{\text{meas}} + 124.0$$
+
+$$
+\text{ENR}_{\text{DUT}}\ (\text{dB}) = \text{ENR}_{\text{sys}} + A_{\text{pad}} = P_{\text{meas}} + 124.0
+$$
+
+
 
 The total integrated power delivered over the entire $10.0\text{ MHz}$ receiver passband ($B = 10\text{ MHz}$) is:
 
-$$P_{\text{total, 10MHz}} = P_{\text{meas}} + 10 \log_{10} \left( \frac{10\text{ MHz}}{1\text{ MHz}} \right) = P_{\text{meas}} + 10.0\text{ dB}$$
+
+$$
+P_{\text{total, 10MHz}} = P_{\text{meas}} + 10 \log_{10} \left( \frac{10\text{ MHz}}{1\text{ MHz}} \right) = P_{\text{meas}} + 10.0\text{ dB}
+$$
+
+
 
 ---
 
