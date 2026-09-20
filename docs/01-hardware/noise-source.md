@@ -52,7 +52,7 @@ $$
 The cross-power expectation collapses entirely into uncorrelated baseline noise, completely extinguishing interferometric fringe formation. Therefore, coarse synchronization must deterministically align the two data queues to within $|k_\text{residual}| \le 1\text{ sample}$ ($100\text{ ns}$) before downstream cross-multiplication.
 
 #### 1.2.3. Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
-Attempting to measure $k_\text{offset}$ using single-tone continuous-wave (CW) test signals fails due to cyclic phase ambiguity. For a single sinusoidal carrier $s[n] = A e^{j(2\pi f_0 n T_s + \theta)}$, the cross-correlation function yields:
+<!-- Attempting to measure $k_\text{offset}$ using single-tone continuous-wave (CW) test signals fails due to cyclic phase ambiguity. For a single sinusoidal carrier $s[n] = A e^{j(2\pi f_0 n T_s + \theta)}$, the cross-correlation function yields:
 
 $$
 R_{12}[k] = |A|^2 e^{j 2\pi f_0 k T_s} \sum_{n=0}^{N-1} 1 = N |A|^2 e^{j 2\pi f_0 k T_s}
@@ -78,14 +78,14 @@ $$
 
 
 
-When routed symmetrically through a matched 1:2 RF power splitter, broadband noise generates a single, unambiguous correlation needle spike. Empirically, this elevates the Peak-to-Noise Ratio to $\text{PNR} > 30\text{--}44\text{ dB}$, enabling the software aligner to isolate the true lag $k_\text{offset} = \arg\max_k |R_{12}[k]|$ and discard leading samples via ring-buffer pointer adjustments (`skip(k_offset)`).
+When routed symmetrically through a matched 1:2 RF power splitter, broadband noise generates a single, unambiguous correlation needle spike. Empirically, this elevates the Peak-to-Noise Ratio to $\text{PNR} > 30\text{--}44\text{ dB}$, enabling the software aligner to isolate the true lag $k_\text{offset} = \arg\max_k |R_{12}[k]|$ and discard leading samples via ring-buffer pointer adjustments (`skip(k_offset)`). -->
 
 ---
 
 ### 1.3. Instrumental Differential Phase Calibration ($\Delta\phi_0(f)$ — Module 3)
 
 #### 1.3.1. Physical Mechanisms Causing Phase Error
-Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
+<!-- Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
 
 $$
 \Phi_\text{meas}(f) = 2\pi f \tau_g + \Delta\phi_0(f)
@@ -98,10 +98,10 @@ The instrumental differential phase error $\Delta\phi_0(f) = \phi_1(f) - \phi_2(
 1. **Analog Intermediate-Frequency (IF) Filter Tolerances:** The analog baseband filters (e.g., the $8.0\text{ MHz}$ IF polyphase/LC filters inside the Mirics tuner architecture of the RSPdx) exhibit component tolerances of $\pm 1\%\text{--}5\%$. These component variations distort the complex transfer function $H_i(f) = |H_i(f)| e^{j\theta_i(f)}$, producing unequal non-linear group delay profiles $\tau_g(f) = -\frac{1}{2\pi}\frac{d\theta}{df}$ between Receiver 1 and Receiver 2.
 2. **Transmission Line Asymmetries:** Differential physical path lengths across internal PCB microstrip traces, SMA/BNC chassis connectors, and RF jumper cables introduce an electrical path difference $\Delta l = l_1 - l_2$. For a transmission medium with effective dielectric constant $\varepsilon_r$ and propagation velocity $v_p = \frac{c}{\sqrt{\varepsilon_r}}$, this introduces a linear phase dispersion:
    $$\Delta\phi_\text{line}(f) = \frac{2\pi f}{v_p} \Delta l = 2\pi f \Delta\tau_\text{cable}$$
-   Even a minor physical length discrepancy of $\Delta l = 10\text{ cm}$ on coaxial lines ($v_p \approx 0.66c$) produces a measurable phase rotation of $\approx 1.8^\circ$ across the $35\text{ MHz}$ center frequency.
+   Even a minor physical length discrepancy of $\Delta l = 10\text{ cm}$ on coaxial lines ($v_p \approx 0.66c$) produces a measurable phase rotation of $\approx 1.8^\circ$ across the $35\text{ MHz}$ center frequency. -->
 
 #### 1.3.2. Frequency-Dependent Phase Extraction and Correction
-Because $\Delta\phi_0(f)$ varies non-linearly across the instantaneous $10\text{ MHz}$ reception band, scalar phase offsets are insufficient. Injecting a common, coherent broadband noise signal into both receiver ports creates a zero-baseline benchmark ($\tau_g = 0$).
+<!-- Because $\Delta\phi_0(f)$ varies non-linearly across the instantaneous $10\text{ MHz}$ reception band, scalar phase offsets are insufficient. Injecting a common, coherent broadband noise signal into both receiver ports creates a zero-baseline benchmark ($\tau_g = 0$).
 
 The complex cross-spectral density computed across $N = 2048$ discrete FFT bins $m \in [0, N-1]$ directly samples the instrumental phase error matrix:
 
@@ -119,19 +119,19 @@ $$
 
 
 
-This neutralizes analog path deviations and flattens the instrumental phase response to $0^\circ \pm 0.5^\circ$ across the entire $30.0\text{--}40.0\text{ MHz}$ bandwidth.
+This neutralizes analog path deviations and flattens the instrumental phase response to $0^\circ \pm 0.5^\circ$ across the entire $30.0\text{--}40.0\text{ MHz}$ bandwidth. -->
 
 ---
 
 ### 1.4. Absolute Flux Scaling & Semiconductor Thermal Drift
 
 #### 1.4.1. The Need for Absolute Radiometric Flux Calibration
-Digital outputs produced by the internal 14-bit ADCs consist of dimensionless integer values (arbitrary digital counts). In solar radio physics, astronomical relevance requires converting these digital cross-power magnitudes into standardized physical metrics:
+<!-- Digital outputs produced by the internal 14-bit ADCs consist of dimensionless integer values (arbitrary digital counts). In solar radio physics, astronomical relevance requires converting these digital cross-power magnitudes into standardized physical metrics:
 * **Antenna Equivalent Temperature ($T_A$):** Expressed in Kelvin ($\text{K}$).
 * **Solar Spectral Flux Density ($S_\nu$):** Expressed in Solar Flux Units ($\text{SFU}$), where:
   $$1\text{ SFU} = 10^{-22}\text{ W}\cdot\text{m}^{-2}\cdot\text{Hz}^{-1} = 10^{-19}\text{ erg}\cdot\text{s}^{-1}\cdot\text{cm}^{-2}\cdot\text{Hz}^{-1}$$
 
-Without an absolute, traceable hot-load power standard, the measured visibilities remain purely qualitative, preventing cross-correlation with international solar radio observation networks (e.g., e-CALLISTO, Learmonth, or the GOES X-ray flux database).
+Without an absolute, traceable hot-load power standard, the measured visibilities remain purely qualitative, preventing cross-correlation with international solar radio observation networks (e.g., e-CALLISTO, Learmonth, or the GOES X-ray flux database). -->
 
 #### 1.4.2. Semiconductor Physics of Thermal Gain Degradation
 During continuous decametric observation runs at $10\text{ MSPS}$, the active digital baseband processing and internal LNA/mixer circuitry dissipate sustained electrical power. Within the shielded die-cast aluminum enclosure of the RSPdx, internal board temperatures rise from ambient room temperature ($25^\circ\text{C}$) to a thermal equilibrium plateau between $50^\circ\text{C}$ and $60^\circ\text{C}$.
@@ -172,7 +172,7 @@ If Receiver 1 experiences a gain compression of $-0.6\text{ dB}$ while Receiver 
 ### 1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation
 
 #### 1.5.1. Avalanche Mechanism & Fixed Excess Noise Ratio (ENR)
-To establish an immutable power reference, the internal calibrator exploits the reverse-biased avalanche breakdown of the base-emitter junction of a high-frequency silicon NPN transistor (2N2222). When biased past its breakdown voltage ($V_\text{BR} \approx 6.8\text{--}7.5\text{ V}$) by an external $+12\text{ V}$ regulated rail, charge carriers accelerated by the intense electric field liberate secondary electron-hole pairs through impact ionization.
+<!-- To establish an immutable power reference, the internal calibrator exploits the reverse-biased avalanche breakdown of the base-emitter junction of a high-frequency silicon NPN transistor (2N2222). When biased past its breakdown voltage ($V_\text{BR} \approx 6.8\text{--}7.5\text{ V}$) by an external $+12\text{ V}$ regulated rail, charge carriers accelerated by the intense electric field liberate secondary electron-hole pairs through impact ionization.
 
 This breakdown occurs through localized, microscopic discharge channels known as microplasmas. The stochastic initiation and cessation of these microplasma states generate true Gaussian white noise characterized by a flat spectral response across $30.0\text{--}40.0\text{ MHz}$ and an immutable **Excess Noise Ratio (ENR)**, defined according to IEEE Standard 219:
 
@@ -181,10 +181,10 @@ $$
 $$
 
 
-where $T_0 = 290\text{ K}$ is the standard reference temperature, and $T_\text{hot}$ represents the equivalent noise temperature of the active source. Following amplification by a monolithic gain block (MMIC) and attenuation by a precision $10\text{ dB}$ pad, the calibration source delivers a known nominal power density of $-50\text{ dBm} / \text{MHz}$ into a matched $50\ \Omega$ load.
+where $T_0 = 290\text{ K}$ is the standard reference temperature, and $T_\text{hot}$ represents the equivalent noise temperature of the active source. Following amplification by a monolithic gain block (MMIC) and attenuation by a precision $10\text{ dB}$ pad, the calibration source delivers a known nominal power density of $-50\text{ dBm} / \text{MHz}$ into a matched $50\ \Omega$ load. -->
 
 #### 1.5.2. Y-Factor Radiometric Calibration
-By controlling an RF switch network (HMC544AE), the system periodically alternates the receiver inputs between the sky antennas and the internal noise standard, performing an in-situ **Y-Factor measurement**:
+<!-- By controlling an RF switch network (HMC544AE), the system periodically alternates the receiver inputs between the sky antennas and the internal noise standard, performing an in-situ **Y-Factor measurement**:
 
 $$
 Y = \frac{P_\text{hot}}{P_\text{cold}}
@@ -213,7 +213,7 @@ which subsequently converts cross-power spectra to solar flux density through th
 $$
 S_\nu = \frac{2 k_B T_A}{A_\text{eff}} \cdot 10^{22} \quad [\text{SFU}]
 $$
-
+ -->
 
 
 #### 1.5.3. Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
@@ -271,7 +271,7 @@ This ensures that the hardware standard delivers an invariant zero-phase and fix
 #### 3.1.2. Physical Principles & Mathematical ENR Derivation
 
 ##### 3.1.2.1. McIntyre Impact Ionization & Microplasma Generation
-
+<!-- 
 When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is subjected to a strong reverse bias exceeding its critical breakdown field, free carriers acquire sufficient kinetic energy within the high-field space-charge region to liberate electron-hole pairs via impact ionization. At lower current densities ($1\text{ mA} - 3\text{ mA}$), this manifests as stochastic switching of microscopic conducting channels known as **microplasmas**.
 
 The total mean-square noise current density generated under avalanche multiplication is governed by McIntyre's model:
@@ -289,7 +289,7 @@ where:
 * $M$ is the mean avalanche multiplication factor ($M \gg 1$).
 * $F(M) \approx k_{\text{eff}} M + (1 - k_{\text{eff}})\left(2 - \frac{1}{M}\right)$ represents the excess noise factor.
 
-Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF.
+Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF. -->
 
 ##### 3.1.2.2. Excess Noise Ratio (ENR) Calculation
 
