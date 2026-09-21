@@ -19,7 +19,7 @@ Performing calibration by manually reconnecting coaxial cables introduces mechan
 
 ### 1.2. Key Electrical and System Specifications (30.0 – 40.0 MHz)
 
-#### 1.2.1. System Characteristic Impedance ($50\ \Omega$)
+#### 1.2.1. System Characteristic Impedance (50Ω)
 All input and output ports, coplanar waveguide transmission lines, and the integrated calibration splitter network are designed for a standard $50\ \Omega$ characteristic impedance ($Z_0 = 50\ \Omega$) to match the antennas, coaxial feeds, and RSPdx Port C BNC inputs.
 
 #### 1.2.2. Insertion Loss and Signal Integrity Targets
@@ -45,6 +45,7 @@ The primary routing elements consist of two HMC544A GaAs MMIC Single-Pole Double
 #### 2.1.2. Direct 3.3V GPIO Logic Interfacing from Raspberry Pi 5
 The HMC544A requires complementary control logic ($V_1, V_2$) to establish RF conduction paths:
 * State 0 ($V_1 = 0\text{V},\ V_2 = 3.3\text{V}$): RFC connected to RF1 (Sky Antenna Input).
+
 * State 1 ($V_1 = 3.3\text{V},\ V_2 = 0\text{V}$): RFC connected to RF2 (Calibration Splitter Input).
 
 To switch both channels synchronously using a single GPIO line from the Raspberry Pi 5, an on-board single-gate inverter (74LVC1G04) generates the complementary logic drive, guaranteeing synchronized channel reconfiguration.
@@ -53,14 +54,14 @@ To switch both channels synchronously using a single GPIO line from the Raspberr
 
 ### 2.2. Resistive Power Splitter Network
 
-#### 2.2.1. 3-Resistor Delta ($\Delta$) Configuration Using $50\ \Omega$ Standard Resistors
+#### 2.2.1. 3-Resistor Delta (Δ) Configuration Using 50Ω Standard Resistors
 The calibration reference port (CAL IN) distributes incoming noise power symmetrically to the RF2 ports of Switch A and Switch B through an on-board 3-resistor Delta ($\Delta$) network. The network utilizes three standard $50\ \Omega$ SMD resistors ($1\%$ tolerance) connected in a closed delta topology between the input port and the two switch branches. This configuration provides wideband phase linearity and group delay stability across 30.0 – 40.0 MHz without reactive components, maintaining identical phase delivery to both receiver branches.
 
 ---
 
 ### 2.3. AC Coupling and DC Blocking Network
 
-#### 2.3.1. DC Blocking Capacitor Sizing ($1\text{ nF}$ SMD Ceramic Capacitors)
+#### 2.3.1. DC Blocking Capacitor Sizing (1nF SMD Ceramic Capacitors)
 Because the internal GaAs FET channels of the HMC544A operate at specific internal DC bias potentials, DC blocking capacitors are placed in series on all RF ports (RFC, RF1, and RF2). Ceramic surface-mount capacitors ($1\text{ nF}$, 0603, C0G/NP0 dielectric) are implemented. At $35.0\text{ MHz}$, a $1\text{ nF}$ capacitance exhibits a reactance of $X_C \approx 4.55\ \Omega$, yielding a high-pass cutoff frequency of $f_c \approx 3.18\text{ MHz}$ into a $50\ \Omega$ termination, well below the 30.0 – 40.0 MHz band of interest.
 
 ---
@@ -88,7 +89,7 @@ The electrical schematic was designed in Altium Designer, capturing the RF switc
 The board is laid out on a standard 2-layer FR-4 substrate ($1.6\text{ mm}$ thickness) with $50\ \Omega$ Coplanar Waveguides with Ground (CPW-G). Channel traces from the Delta splitter to both switches and from the switches to the output SMA connectors are geometrically length-matched ($\Delta L < 0.2\text{ mm}$) to preserve phase balance.
 
 ![Figure 3.2: Top Layer Routing and Component Footprints](../assets/photos/rf_switch_top_layer.jpg)
-*Figure 3.2: Top Layer Routing and Component Footprints *
+*Figure 3.2: Top Layer Routing and Component Footprints*
 
 #### 3.2.2. Bottom Layer Ground Plane Structure
 The bottom layer serves as an uninterrupted ground reference plane, reinforced with perimeter via stitching along all RF tracks to suppress parasitic resonances and provide low-impedance return paths.
@@ -193,7 +194,8 @@ The RF Switching Matrix operates in tandem with the active power gate of the ava
 ![Figure 5.1: Dual-state control sequence and signal timing diagram](../assets/photos/observation_cabliration_diagram.svg)
 *Figure 5.1: Dual-state control sequence and signal timing diagram*
 
-Cutting DC power to the noise source during observation guarantees that no broadband noise leaks into the receiver front-ends, validating the relaxed switch isolation strategy[.
+Cutting DC power to the noise source during observation guarantees that no broadband noise leaks into the receiver front-ends, validating the relaxed switch isolation strategy.
+
 ---
 
 ### 5.2. Digital Backend Delay Alignment Verification ($k=0$ Lock)
