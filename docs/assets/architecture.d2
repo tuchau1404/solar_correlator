@@ -1,8 +1,3 @@
-
-
-direction: down
-
-# ... tiếp tục các khối và kết nối bên dưới ...
 direction: down
 
 classes: {
@@ -90,10 +85,10 @@ rf_frontend: "RF Front-End: Antennas, LNAs & Bias-Tee Unit" {
   }
 
   ant1: "Antenna 1\n(Sky Signal)" {class: rf_node}
-  fee1: "FEE 1: LNA" {class: rf_node}
+  fee1: "FEE 1: LNA\n(+20 dB / NF < 1.2 dB)" {class: rf_node}
 
   ant2: "Antenna 2\n(Sky Signal)" {class: rf_node}
-  fee2: "FEE 2: LNA" {class: rf_node}
+  fee2: "FEE 2: LNA\n(+20 dB / NF < 1.2 dB)" {class: rf_node}
 
   pwr_18v: "External Power Supply\n(18V DC SMPS)" {class: pwr_node}
   bias_tee: "Dual Bias-Tee Unit\n(Integrated 18V-to-15V LDO Regulators)" {class: rf_node}
@@ -125,7 +120,7 @@ cal_and_clock: "Calibration Source & Reference Clock Generation" {
     border-radius: 12
   }
 
-  noise_src: "Avalanche Noise Source" {class: cal_node}
+  noise_src: "Avalanche Noise Source\n(2N2222 / Single Output -50 dBm)" {class: cal_node}
 
   gpsdo: "GPSDO Clock\n(10 MHz Reference)" {class: clk_node}
   pll_synth: "10-to-24 MHz PLL Multiplier\n(Integrated 1:2 Clock Splitter)" {class: clk_node}
@@ -145,7 +140,7 @@ sdr_stage: "RF Switching, Filtering & Receivers" {
     border-radius: 12
   }
 
-  rf_switch: "RF Switch Matrix & Cal Splitter\n(Integrated 1:2 Wye Splitter + Dual HMC544A)" {
+  rf_switch: "RF Switch Matrix\n0: Sky RF → Out\n1: Noise → Out" {
     shape: rectangle
     class: rf_node
   }
@@ -164,11 +159,11 @@ sdr_stage: "RF Switching, Filtering & Receivers" {
 }
 
 # Định tuyến từ Tầng 1 & Tầng 2 vào Switch và Bộ thu
-rf_frontend.bias_tee -> sdr_stage.rf_switch: "Sky Ch 1 (RF Only)" {
+rf_frontend.bias_tee -> sdr_stage.rf_switch: "Sky Ch 1 (RF In)" {
   style.stroke: "#0284C7"
   style.stroke-width: 2
 }
-rf_frontend.bias_tee -> sdr_stage.rf_switch: "Sky Ch 2 (RF Only)" {
+rf_frontend.bias_tee -> sdr_stage.rf_switch: "Sky Ch 2 (RF In)" {
   style.stroke: "#0284C7"
   style.stroke-width: 2
 }
@@ -219,11 +214,11 @@ sdr_stage.rsp2 -> rpi5.shm2: "USB 3.0\n40 MB/s" {
   style.stroke-width: 3
 }
 
-rpi5.gpio -> sdr_stage.rf_switch: "Switch Control: Sky / Cal" {
+rpi5.gpio -> sdr_stage.rf_switch: "Switch Control:\n0: RF In → RF Out\n1: Noise Source → RF Out" {
   style.stroke: "#DC2626"
   style.stroke-dash: 3
 }
-rpi5.gpio -> cal_and_clock.noise_src: "Power Gating Enable" {
+rpi5.gpio -> cal_and_clock.noise_src: "Power Gating Enable\n(Active HIGH: 1 = ON)" {
   style.stroke: "#DC2626"
   style.stroke-dash: 3
 }
