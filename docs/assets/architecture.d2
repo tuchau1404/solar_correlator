@@ -85,10 +85,10 @@ rf_frontend: "RF Front-End: Antennas, LNAs & Bias-Tee Unit" {
   }
 
   ant1: "Antenna 1\n(Sky Signal)" {class: rf_node}
-  fee1: "FEE 1: LNA\n(+20 dB / NF < 1.2 dB)" {class: rf_node}
+  fee1: "Front End Electronic 1 \n(Intergrated LNA and RFI filtter)" {class: rf_node}
 
   ant2: "Antenna 2\n(Sky Signal)" {class: rf_node}
-  fee2: "FEE 2: LNA\n(+20 dB / NF < 1.2 dB)" {class: rf_node}
+  fee2: "Front End Electronic \n(Intergrated LNA and RFI filtter)" {class: rf_node}
 
   pwr_18v: "External Power Supply\n(18V DC SMPS)" {class: pwr_node}
   bias_tee: "Dual Bias-Tee Unit\n(Integrated 18V-to-15V LDO Regulators)" {class: rf_node}
@@ -120,7 +120,7 @@ cal_and_clock: "Calibration Source & Reference Clock Generation" {
     border-radius: 12
   }
 
-  noise_src: "Avalanche Noise Source\n(2N2222 / Single Output -50 dBm)" {class: cal_node}
+  noise_src: "Avalanche Noise Source\n(ENR 34dB, 25db Amplifier) " {class: cal_node}
 
   gpsdo: "GPSDO Clock\n(10 MHz Reference)" {class: clk_node}
   pll_synth: "10-to-24 MHz PLL Multiplier\n(Integrated 1:2 Clock Splitter)" {class: clk_node}
