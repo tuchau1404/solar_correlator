@@ -4,33 +4,13 @@ A real-time, dual-channel coherent radio interferometer designed for decametric 
 
 ---
 
+
+
 ## 1. System Overview & Architecture
 
 The instrumentation is structured across two physical nodes: an **Embedded Edge DSP Node** (Raspberry Pi 5) responsible for high-throughput USB 3.0 ingestion, sample-accurate alignment, and FX correlation; and a **Host Visualization Node** (PC) providing real-time GPU-accelerated waterfall rendering and scientific archiving.
 
-```mermaid
-graph TD
-    subgraph Lab_RF ["RF & Synchronization Front-End"]
-        SRC["RF Signal / Noise Source"] -->|Coaxial Feeds| SPLIT["1:2 RF Power Splitter"]
-        CLK["24 MHz Reference Clock"] -->|Sync Clock| REFIN["REFin Ports (Dual RSPdx)"]
-        SPLIT -->|Equal-Length Coax| RSP1["RSPdx Channel 1 (Port C BNC)"]
-        SPLIT -->|Equal-Length Coax| RSP2["RSPdx Channel 2 (Port C BNC)"]
-        REFIN -.-> RSP1
-        REFIN -.-> RSP2
-    end
-
-    subgraph Pi5_Edge ["Raspberry Pi 5 (Edge DSP Backend)"]
-        RSP1 -->|USB 3.0 / 40 MB/s| SHM1["POSIX Shared Memory Ring Buffer 1"]
-        RSP2 -->|USB 3.0 / 40 MB/s| SHM2["POSIX Shared Memory Ring Buffer 2"]
-        SHM1 & SHM2 --> ALIGN["Module 2: Time Alignment Engine (FFTW3 k=0 Lock)"]
-        ALIGN --> FX["Module 3: FX Correlator Engine (FFTW3 NEON + Welch)"]
-        FX --> UDP_TX["Module 4: Non-blocking UDP Telemetry Streamer"]
-    end
-
-    subgraph Host_GUI ["Host PC (Frontend Visualization)"]
-        UDP_TX -->|Flat Binary Stream / LAN Port 9999| GUI["PyQtGraph Live Spectrum & Waterfall Viewer"]
-    end
-```
+![System Architecture](docs/assets/architecture.svg)
 
 ---
 ## 2. Key Engineering Challenges & Design Rationale
