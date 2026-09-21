@@ -42,9 +42,9 @@ Building a coherent radio interferometer with low-cost commercial SDRs presents 
 
 * **Broadband Noise Standard for Multi-Tier Calibration:**  
   Rather than relying on single-tone CW signals—which introduce periodic phase ambiguity and low correlation contrast—the system integrates a broadband avalanche noise source as an absolute physical calibration standard. This hardware reference fulfills three critical calibration functions:
-  1. *Coarse Delay Synchronization:* Exploits high random entropy across 10 MHz to compress cross-correlation into an isolated Dirac delta ($\delta[k]$), driving Peak-to-Noise Ratio (PNR) above 30 dB for deterministic $k=0$ sample locking.
-  2. *Instrumental Phase & Gain Equalization:* Directly measures the static inter-channel transfer function $\Delta\phi_0(f)$ across all 2048 FFT bins, establishing the phase calibration matrix to neutralize internal analog filter and path discrepancies.
-  3. *Radiometric Flux Scaling ($T_{\text{sys}}$):* Serves as a calibrated hot/cold standard for Y-factor measurements, mapping arbitrary ADC digital units to physical brightness temperature (Kelvin) and Solar Flux Units (SFU) while tracking receiver thermal gain drift.  
+    1. *Coarse Delay Synchronization:* Exploits high random entropy across 10 MHz to compress cross-correlation into an isolated Dirac delta ($\delta[k]$), driving Peak-to-Noise Ratio (PNR) above 30 dB for deterministic $k=0$ sample locking.
+    2. *Instrumental Phase & Gain Equalization:* Directly measures the static inter-channel transfer function $\Delta\phi_0(f)$ across all 2048 FFT bins, establishing the phase calibration matrix to neutralize internal analog filter and path discrepancies.
+    3. *Radiometric Flux Scaling ($T_{\text{sys}}$):* Serves as a calibrated hot/cold standard for Y-factor measurements, mapping arbitrary ADC digital units to physical brightness temperature (Kelvin) and Solar Flux Units (SFU) while tracking receiver thermal gain drift.  
 * **Multi-Process USB Jitter Elimination:**  
   API initialization jitter between separate child processes introduces up to $\sim 30\text{ ms}$ ($\sim 300,000\text{ samples}$ at 10 MSPS) of startup skew—far exceeding the $N = 65,536$ FFT snapshot window. A shared-memory barrier gate synchronizes the write-pointers at a common microsecond epoch prior to correlation.
 
