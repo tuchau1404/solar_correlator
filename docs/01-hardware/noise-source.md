@@ -144,7 +144,11 @@ $$
 
 where $k_B$ is the Boltzmann constant, $q$ is the elementary charge, and $T$ is absolute temperature in Kelvin. As temperature increases:
 1. **Carrier Mobility Reduction:** Increased phonon scattering diminishes charge carrier mobility $\mu(T) \propto T^{-3/2}$, degrading the small-signal transconductance:
-   $$g_m \approx \sqrt{2\mu C_{ox} \frac{W}{L} I_D}$$
+   
+$$
+g_m \approx \sqrt{2\mu C_{ox} \frac{W}{L} I_D}
+$$
+
 2. **Gain Drift:** The open-loop voltage gain of front-end Low-Noise Amplifiers (LNAs) and Programmable Gain Amplifiers (PGAs) drops proportionally ($G \propto g_m \cdot R_L$), manifesting as continuous thermal gain drift ($\approx -0.01\text{ to } -0.03\text{ dB/}^\circ\text{C}$).
 
 #### 1.4.3. Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
@@ -220,7 +224,11 @@ A critical engineering consideration is whether the calibration noise source its
 
 1. **Continuous Operation of SDRs:** The RSPdx receivers and host USB pipelines operate continuously 24 hours a day to capture stochastic solar flares, remaining in a steady-state thermal regime ($50^\circ\text{C}\text{--}60^\circ\text{C}$) where internal gain drift is persistent.
 2. **Pulsed Operation of the Noise Source:** The avalanche noise source is not powered continuously. Instead, it is gated via an isolated GPIO line on the Raspberry Pi 5. The source is energized only during dedicated calibration sweeps lasting $300\text{ ms} \text{ to } 1000\text{ ms}$ at periodic intervals (e.g., once every 30 minutes or prior to observation runs), resulting in a duty cycle of:
-   $$\text{Duty Cycle} = \frac{\tau_\text{on}}{\tau_\text{period}} \le \frac{1.0\text{ s}}{1800\text{ s}} \approx 0.056\%$$
+   
+$$
+\text{Duty Cycle} = \frac{\tau_\text{on}}{\tau_\text{period}} \le \frac{1.0\text{ s}}{1800\text{ s}} \approx 0.056\%
+$$
+
 3. **Suppression of Self-Heating:** With an operational duty cycle well below $0.1\%$, the 2N2222 transistor die experiences zero internal self-heating ($\Delta T_\text{junction} \approx 0$). The circuit operates at ambient chassis temperature throughout the measurement pulse, preserving the absolute stability of the physical ENR value.
 
 Furthermore, because the broadband noise signal is split symmetrically into both receiver channels via a 1:2 Wilkinson divider located in immediate physical proximity to the tuners, any common-mode phase or amplitude perturbations introduced by the calibration circuit affect both receivers equally, naturally canceling out in the differential phase matrix:
@@ -420,7 +428,7 @@ The captured spectrum analyzer trace verifies uniform, broadband avalanche noise
 
 ---
 
-#### 3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA$)
+#### 3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA)
 
 A parametric current sweep was conducted using the Chroma SMU from $1.0\text{ mA}$ to $10.0\text{ mA}$ in steps of $1.0\text{ mA}$. At each bias step, the junction clamp potential ($V_{\text{BR}}$), measured output power ($P_{\text{meas}}$ in $1\text{ MHz}$ RBW), system ENR, intrinsic ENR, and qualitative trace behavior were cataloged:
 
