@@ -6,7 +6,9 @@ Module 1 establishes the physical and driver-level ingestion layer of the 2-elem
 
 The primary validation milestones are:
 * **High-Throughput Ingestion:** Sustain an aggregate data throughput of $80\text{ MB/s}$ ($640\text{ Mbps}$) across two USB 3.0 buses without packet loss ($10.0\text{ MSPS} \times 4\text{ bytes [int16 I/Q]} \times 2\text{ channels}$).
+  
 * **Driver Stability & Low Overhead:** Maintain zero driver-level buffer resets (`reset = 0`) over continuous streaming runs in a headless Linux environment.
+  
 * **Physical Hardware Interface:** Validate direct USB 3.0 bus connectivity between the Raspberry Pi 5 RP1 southbridge controller and the two RSPdx receivers.
 
 ---
