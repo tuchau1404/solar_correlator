@@ -60,12 +60,12 @@ void run_device_process(int dev_index, const std::string &target_serno) {
     auto *chParams = deviceParams->rxChannelA;
     chParams->tunerParams.rfFreq.rfHz = 35000000.0;                 // 35 MHz
     chParams->tunerParams.bwType = sdrplay_api_BW_8_000;            // 8 MHz BW
-    chParams->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;      // Tat AGC[cite: 1]
-    chParams->tunerParams.gain.gRdB = 30;                           // Manual Gain 30 dB[cite: 1]
+    chParams->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;      // Tat AGC
+    chParams->tunerParams.gain.gRdB = 30;                           // Manual Gain 30 dB
 
     // Cau hinh 10 MSPS, Cong C BNC
-    deviceParams->devParams->fsFreq.fsHz = 10000000.0;              // 10 MSPS[cite: 1]
-    deviceParams->devParams->rspDxParams.antennaSel = sdrplay_api_RspDx_ANTENNA_C; // Cong C BNC[cite: 1]
+    deviceParams->devParams->fsFreq.fsHz = 10000000.0;              // 10 MSPS
+    deviceParams->devParams->rspDxParams.antennaSel = sdrplay_api_RspDx_ANTENNA_C; // Cong C BNC
 
     sdrplay_api_CallbackFnsT cbFns{};
     cbFns.StreamACbFn = StreamCallback;
