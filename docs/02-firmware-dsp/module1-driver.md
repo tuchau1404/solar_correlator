@@ -5,6 +5,7 @@
 Module 1 establishes the physical and driver-level ingestion layer of the 2-element solar radio interferometer. The core objective is to verify that a Raspberry Pi 5 can reliably ingest concurrent, continuous high-throughput baseband data from two SDRplay RSPdx receivers over independent USB 3.0 links without buffer overflows, dropped packets, or kernel DMA stalls.
 
 The primary validation milestones are:
+
 * **High-Throughput Ingestion:** Sustain an aggregate data throughput of $80\text{ MB/s}$ ($640\text{ Mbps}$) across two USB 3.0 buses without packet loss ($10.0\text{ MSPS} \times 4\text{ bytes [int16 I/Q]} \times 2\text{ channels}$).
   
 * **Driver Stability & Low Overhead:** Maintain zero driver-level buffer resets (`reset = 0`) over continuous streaming runs in a headless Linux environment.
@@ -64,8 +65,11 @@ sudo systemctl restart sdrplay
 ## 4. Software Architecture & Ingestion Implementation
 >  **Design Retrospective: Multi-Threading Failure (`std::thread`)**
 > An initial design attempt evaluated an in-process multi-threaded architecture using `std::thread` to handle each RSPdx device on dedicated thread loops. This approach failed due to internal constraints of the proprietary `libsdrplay_api.so` runtime:
+
 > * **Single-Device Process Bound:** The API runtime relies on unexposed process-wide global state variables and static event callbacks, restricting each Unix process space (PID) to a single active hardware instance.
+
 > * **Hardware Selection Conflict:** Calling `sdrplay_api_SelectDevice()` concurrently from secondary threads caused subsequent initialization calls to return `sdrplay_api_Fail`, while bypassing thread safety led to race conditions and memory segmentation faults.
+
 > 
 > Consequently, multi-threading was deprecated in favor of a multi-process architecture (`fork()`), providing strict virtual memory isolation for each receiver instance.
 
