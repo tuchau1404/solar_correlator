@@ -3,7 +3,8 @@
 
 
 
-> **Weekly Report:** Week 3 (21.09.2026 – 27.09.2026) 
+> **Weekly Report:** Week 3 (21.09.2026 – 27.09.2026)
+> 
 > **Current Focus:** RF Switch Matrix VNA Validation & Backend Integration [Jump to Weekly Log](#weekly-log)
 
 ---
