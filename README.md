@@ -63,13 +63,13 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 *   **Hardware & RF Front-End (`docs/01-hardware/`):**
     *   [RF Front-End & Antennas](docs/01-hardware/rf-frontend.md) `[Work in Progress]`: Antenna geometry, coaxial impedance matching, and BNC Port C termination.
     *   [24 MHz Clock Distribution](docs/01-hardware/clock-sync.md) `[Work in Progress]`: Reference oscillator splitting, phase locking, and `REFin` port distribution.
-    *   [Avalanche Noise Source](docs/01-hardware/noise-source.md) `[Work in Progress - Updated 21-09-2026]`: 2N2222 B-E junction avalanche core, active current mirror biasing, MMIC buffer stage, 10 dB Pi-attenuator matching (-50 dBm output), and GPIO power gating.
-    *   [RF Switching & Routing](docs/01-hardware/rf-switching.md) `[Complete - 22-09-2026]`: Dual SPDT switches (HMC544AE), symmetric 1:2 resistive Wye splitter, GPIO state control, and port isolation.
+    *   [Avalanche Noise Source](docs/01-hardware/noise-source.md) `[Work in Progress - Updated 21.09.2026]`: 2N2222 B-E junction avalanche core, active current mirror biasing, MMIC buffer stage, 10 dB Pi-attenuator matching (-50 dBm output), and GPIO power gating.
+    *   [RF Switching & Routing](docs/01-hardware/rf-switching.md) `[Complete - 22.09.2026]`: Dual SPDT switches (HMC544AE), symmetric 1:2 resistive Wye splitter, GPIO state control, and port isolation.
     *   [Host Interconnect & Power](docs/01-hardware/host-interconnect.md) `[Planned]`: Raspberry Pi 5 USB 3.0 throughput constraints, power budgeting, and isolation.
 
 *   **Firmware & DSP Pipeline (`docs/02-firmware-dsp/`):**
     *   [IPC Architecture](docs/02-firmware-dsp/architecture.md): Multi-process fork() model, zero-copy POSIX shared memory, and lock-free atomic barriers.
-    *   [Module 1 - SDR Ingestion Driver](docs/02-firmware-dsp/module1-driver.md)`[Complete - 2026-09-23]`: SDRplay API v3 integration and continuous 10 MSPS dual streaming.
+    *   [Module 1 - SDR Ingestion Driver](docs/02-firmware-dsp/module1-driver.md)`[Complete - 23.09.2026]`: SDRplay API v3 integration and continuous 10 MSPS dual streaming.
     *   [Module 2 - Real-Time Time Alignment](docs/02-firmware-dsp/module2-time-align.md) `[Work in Progress]`: Initial USB startup delay compensation, flush barriers, and sample-level locking ($k = 0$).
     *   [Module 3 - FX Correlator](docs/02-firmware-dsp/module3-fx-correlator.md) `[Work in Progress]`: 50% overlap F-Engine, ARM NEON vectorization, Hanning power correction, and Welch integration.
     *   [Module 4 - UDP Telemetry & Viewer](docs/02-firmware-dsp/module4-telemetry.md) `[Work in Progress]`: Binary socket protocol and GPU-accelerated PyQtGraph waterfall visualization.
@@ -98,10 +98,10 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
   * [`module1-driver.md`](docs/02-firmware-dsp/module1-driver.md) `[Complete]`: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.
   * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
 
-<details>
+<details markdown="1">
 <summary><b>View Archived Progress (Week 0 – Week 2)</b></summary>
 
-<br>
+
 
 #### Week 2 (14.09.2026 – 20.09.2026)
 
