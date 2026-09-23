@@ -14,15 +14,15 @@ The primary validation milestones are:
 
 ---
 
-### 2.1. Physical Interconnect Topology
+## 2. Physical Interconnect Topology
 The physical hardware layer interfaces the Raspberry Pi 5 host directly with the two SDRplay RSPdx receiver units to validate concurrent, high-throughput baseband data ingestion across independent USB buses. The physical topology and signal routing are represented by the logical architecture diagram (Figure 2.1) and its physical laboratory benchtop implementation (Figure 2.2):
 
-#### A. Logical Interconnect Architecture
+### A. Logical Interconnect Architecture
 ![Physical Interconnect Topology](../assets/photos/module1_hardware_interconnect.svg)
 
 *Figure 2.1: Logical bus topology connecting dual SDRplay RSPdx units directly to the Raspberry Pi 5 host controller over dedicated USB 3.0 links.*
 
-#### B. Laboratory Benchtop Implementation
+### B. Laboratory Benchtop Implementation
 ![Physical Benchtop Hardware Setup](../assets/photos/module1_bench_setup.jpg)
 
 *Figure 2.2: Benchtop validation setup illustrating the physical arrangement of the Raspberry Pi 5 host and dual SDRplay RSPdx receivers during ingestion testing.*
