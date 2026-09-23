@@ -90,13 +90,13 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 #### Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
 
 * **RF Switching Matrix Hardware:**
-  * Assembled and hand-soldered the dual-channel RF switch prototype PCB.
-  * Performed laboratory two-port VNA characterization across the target band to evaluate insertion loss, port matching, and off-state isolation.
+    * Assembled and hand-soldered the dual-channel RF switch prototype PCB.
+    * Performed laboratory two-port VNA characterization across the target band to evaluate insertion loss, port matching, and off-state isolation.
 
 * **Technical Documentation Deliverables:**
-  * [`rf-switching.md`](docs/01-hardware/rf-switching.md) `[Complete]`: Documented circuit schematics, layout implementation, and laboratory VNA measurement records.
-  * [`module1-driver.md`](docs/02-firmware-dsp/module1-driver.md) `[Complete]`: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.
-  * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
+    * [`rf-switching.md`](docs/01-hardware/rf-switching.md) `[Complete]`: Documented circuit schematics, layout implementation, and laboratory VNA measurement records.
+    * [`module1-driver.md`](docs/02-firmware-dsp/module1-driver.md) `[Complete]`: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.
+    * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
 
 <details markdown="1">
 <summary><b>View Archived Progress (Week 0 – Week 2)</b></summary>
@@ -138,7 +138,7 @@ All hardware-level synchronization, real-time shared-memory pipelines, and DSP c
 * **Continuous Dual Ingestion:** Multi-process POSIX Shared Memory architecture sustains an aggregate 80 MB/s raw I/Q throughput with zero dropped buffers.
 * **Coarse Delay Alignment (Module 2):** Automated cross-correlation identifies non-deterministic USB startup offsets and drains buffer lead, locking synchronization to $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$) with $\text{PNR} > 15\text{ dB}$.
 * **FX Correlation Core (Module 3):** Pre-allocated, zero-heap FFTW3 transformation with 50% overlap and Welch integration verified against synthetic and CW bench tones.
-* **Real-Time Telemetry & GUI (Module 4):** Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.
+*   **Real-Time Telemetry & GUI (Module 4):** Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.
 
 
 ### 5.2.2 Future Roadmap: Phase 2 — Field Deployment & Science Archiving
