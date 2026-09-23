@@ -143,6 +143,7 @@ A via fence was generated along both sides of each RF route (*Via Shielding to N
 | **Row Setup** | `Rows` / `Row spacing` | $1$ / $0.025\text{ mm}$ | Single shielding fence per trace side |
 
 ![Figure 3.3: Altium Designer via shielding configuration and routing interface](../assets/photos/rf_switch_shielding_net.jpg)
+
 *Figure 3.3: Altium Designer via shielding configuration and routing interface*
 ### 3.2. PCB Footprint and Physical Layout
 
@@ -164,6 +165,7 @@ The bottom layer serves as an uninterrupted ground reference plane, reinforced w
 The 3D CAD assembly integrates edge-mount SMA female connectors, discrete SMD passives, and active IC packages to ensure clearance and mechanical compatibility.
 
 ![Figure 3.6: 3D Isometric Board Visualization](../assets/photos/rf_switch_3d_render.jpg)
+
 *Figure 3.6: 3D Isometric Board Visualization*
 
 ### 3.4. Fabricated Board & Assembly Verification
@@ -171,6 +173,7 @@ Following the layout phase, the switching matrix prototype was fabricated on a s
 
 Pre-power continuity checks confirmed no solder bridges across the fine-pitch SOT-23 leads, proper ground bonding across all SMA outer shells, and high impedance between the +3.3V power rail and ground. This assembled prototype serves as the Device Under Test (DUT) for the laboratory Vector Network Analyzer (VNA) characterization presented in Section 4.
 ![Figure 3.7: Assembled Dual-Channel RF Switching Matrix Prototype](../assets/photos/rf_switch_pcb_assembled.jpg)
+
 *Figure 3.7: Assembled Dual-Channel RF Switching Matrix Prototype*
 
 ---
@@ -182,6 +185,7 @@ To validate the high-frequency performance and port tracking of the fabricated R
 The assembled board (DUT) was powered with a 3.3V DC supply, and the RF routing state was set via the control pin. During each two-port transmission ($S_{21}$) and reflection ($S_{11}$) measurement sweep, all unused/idle RF ports were terminated with precision $50\ \Omega$ broadband dummy loads to prevent parasitic reflections and preserve system impedance matching.
 
 ![Figure 4.1: Laboratory measurement setup connecting the Device Under Test (DUT) to the Vector Network Analyzer](../assets/photos/rf_switch_vna_test_setup.jpg)
+
 *Figure 4.1: Laboratory measurement setup connecting the Device Under Test (DUT) to the Vector Network Analyzer*
 
 ---
@@ -291,6 +295,7 @@ The RF Switching Matrix operates in tandem with the active power gate of the ava
 | **Calibration** | `HIGH` (3.3V) | `HIGH` (3.3V) | Noise Splitter → Receiver OUT | `ON` (+15V, Active) | Delay & Phase Locking (Module 2) |
 
 ![Figure 5.1: Dual-state control sequence and signal timing diagram](../assets/photos/observation_cabliration_diagram.svg)
+
 *Figure 5.1: Dual-state control sequence and signal timing diagram*
 
 Cutting DC power to the noise source during observation guarantees that no broadband noise leaks into the receiver front-ends, validating the relaxed switch isolation strategy.

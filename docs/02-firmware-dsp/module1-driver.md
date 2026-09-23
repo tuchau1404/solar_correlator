@@ -164,6 +164,7 @@ waitpid(p2, &status, 0);
 To validate the throughput, zero-packet-drop integrity, and driver isolation under high data rates, a 10-second simultaneous streaming benchmark was conducted on Raspberry Pi 5 using two RSPdx devices at 10.0 MSPS (80 MB/s aggregated raw I/Q throughput).
 
 ![Figure 5.1: Dual 10 MSPS Streaming Benchmark Terminal Output](../assets/photos/module1_result.jpg)
+
 *Figure 5.1: Simultaneous dual-channel benchmark output verifying sustained 80 MB/s ingestion without runtime buffer drops*
 
 ### 5.1. Log Analysis & Performance Evaluation
