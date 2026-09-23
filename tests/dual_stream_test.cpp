@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -10,21 +11,23 @@
 std::atomic<uint64_t> total_samples(0);
 std::atomic<uint32_t> reset_count(0);
 
-// Callback nhan luong I/Q
-void StreamCallback(short *xi, short *xq, sdrplay_api_StreamCbParamsT *params, 
-                    unsigned int numSamples, unsigned int reset, void *cbContext) {
-    if (reset) reset_count.fetch_add(1, std::memory_order_relaxed);
+// Callback to receive I/Q stream
+void StreamCallback(short *, short *, sdrplay_api_StreamCbParamsT *, 
+                    unsigned int numSamples, unsigned int reset, void *) {
+    if (reset) {
+        reset_count.fetch_add(1, std::memory_order_relaxed);
+    }
     total_samples.fetch_add(numSamples, std::memory_order_relaxed);
 }
 
-void DummyEventCallback(sdrplay_api_EventT eventId, sdrplay_api_TunerSelectT tuner, 
-                        sdrplay_api_EventParamsT *params, void *cbContext) {}
+void DummyEventCallback(sdrplay_api_EventT, sdrplay_api_TunerSelectT, 
+                        sdrplay_api_EventParamsT *, void *) {}
 
-// Ham chay doc lap cho tung thiet bi tren 1 tien trinh rieng
+// Independent routine for each device running in an isolated process
 void run_device_process(int dev_index, const std::string &target_serno) {
     sdrplay_api_ErrT err = sdrplay_api_Open();
     if (err != sdrplay_api_Success) {
-        std::cerr << "[Tien trinh " << dev_index << "] Loi Open API: " << sdrplay_api_GetErrorString(err) << "\n";
+        std::cerr << "[Process " << dev_index << "] Open API Error: " << sdrplay_api_GetErrorString(err) << "\n";
         _exit(1);
     }
 
@@ -41,14 +44,14 @@ void run_device_process(int dev_index, const std::string &target_serno) {
     }
 
     if (selected_idx == -1) {
-        std::cerr << "[Tien trinh " << dev_index << "] Khong tim thay Serial " << target_serno << "\n";
+        std::cerr << "[Process " << dev_index << "] Device with Serial " << target_serno << " not found\n";
         sdrplay_api_Close();
         _exit(1);
     }
 
     err = sdrplay_api_SelectDevice(&devs[selected_idx]);
     if (err != sdrplay_api_Success) {
-        std::cerr << "[Tien trinh " << dev_index << "] Loi SelectDevice: " << sdrplay_api_GetErrorString(err) << "\n";
+        std::cerr << "[Process " << dev_index << "] SelectDevice Error: " << sdrplay_api_GetErrorString(err) << "\n";
         sdrplay_api_Close();
         _exit(1);
     }
@@ -56,16 +59,16 @@ void run_device_process(int dev_index, const std::string &target_serno) {
     sdrplay_api_DeviceParamsT *deviceParams = nullptr;
     sdrplay_api_GetDeviceParams(devs[selected_idx].dev, &deviceParams);
 
-    // Cau hinh Tuner 35 MHz, loc 8 MHz
+    // RF Tuner configuration: 35 MHz Center, 8 MHz Analog Filter
     auto *chParams = deviceParams->rxChannelA;
     chParams->tunerParams.rfFreq.rfHz = 35000000.0;                 // 35 MHz
     chParams->tunerParams.bwType = sdrplay_api_BW_8_000;            // 8 MHz BW
-    chParams->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;      // Tat AGC
+    chParams->ctrlParams.agc.enable = sdrplay_api_AGC_DISABLE;      // Disable AGC
     chParams->tunerParams.gain.gRdB = 30;                           // Manual Gain 30 dB
 
-    // Cau hinh 10 MSPS, Cong C BNC
+    // Hardware parameters: 10 MSPS, Antenna Port C (BNC)
     deviceParams->devParams->fsFreq.fsHz = 10000000.0;              // 10 MSPS
-    deviceParams->devParams->rspDxParams.antennaSel = sdrplay_api_RspDx_ANTENNA_C; // Cong C BNC
+    deviceParams->devParams->rspDxParams.antennaSel = sdrplay_api_RspDx_ANTENNA_C;
 
     sdrplay_api_CallbackFnsT cbFns{};
     cbFns.StreamACbFn = StreamCallback;
@@ -73,19 +76,22 @@ void run_device_process(int dev_index, const std::string &target_serno) {
 
     err = sdrplay_api_Init(devs[selected_idx].dev, &cbFns, nullptr);
     if (err != sdrplay_api_Success) {
-        std::cerr << "[Tien trinh " << dev_index << "] Loi Init: " << sdrplay_api_GetErrorString(err) << "\n";
+        std::cerr << "[Process " << dev_index << "] Init Error: " << sdrplay_api_GetErrorString(err) << "\n";
         sdrplay_api_ReleaseDevice(&devs[selected_idx]);
         sdrplay_api_Close();
         _exit(1);
     }
 
-    // Stream trong 10 giay
+    // Stream acquisition for 10 seconds
     std::this_thread::sleep_for(std::chrono::seconds(10));
 
-    double actual_rate = (total_samples.load() / 10.0) / 1e6;
-    std::cout << "-> Ket qua Thiet bi [" << dev_index << "] (Serial " << target_serno << "):\n"
-              << "   + Toc do lay mau: " << actual_rate << " MSPS\n"
-              << "   + So lan Buffer Reset/Drop: " << reset_count.load() << "\n";
+    uint64_t total = total_samples.load(std::memory_order_relaxed);
+    double actual_rate = (static_cast<double>(total) / 10.0) / 1e6;
+
+    std::cout << "-> Device [" << dev_index << "] Results (Serial " << target_serno << "):\n"
+              << "   + Total samples acquired : " << total << "\n"
+              << "   + Actual sample rate     : " << std::fixed << std::setprecision(5) << actual_rate << " MSPS\n"
+              << "   + Buffer Reset/Drop count: " << reset_count.load(std::memory_order_relaxed) << "\n";
 
     sdrplay_api_Uninit(devs[selected_idx].dev);
     sdrplay_api_ReleaseDevice(&devs[selected_idx]);
@@ -94,9 +100,9 @@ void run_device_process(int dev_index, const std::string &target_serno) {
 }
 
 int main() {
-    // 1. Quet danh sach Serial cua ca 2 thiet bi truoc khi Fork
+    // 1. Scan serial numbers of both devices prior to fork
     if (sdrplay_api_Open() != sdrplay_api_Success) {
-        std::cerr << "Loi: Khong the ket noi API Service!\n";
+        std::cerr << "[Error] Failed to connect to SDRplay API service!\n";
         return -1;
     }
 
@@ -105,19 +111,19 @@ int main() {
     sdrplay_api_GetDevices(devs, &numDevs, SDRPLAY_MAX_DEVICES);
 
     if (numDevs < 2) {
-        std::cerr << "Loi: Can 2 thiet bi RSPdx! Tim thay: " << numDevs << "\n";
+        std::cerr << "[Error] At least 2 RSPdx devices required! Found: " << numDevs << "\n";
         sdrplay_api_Close();
         return -1;
     }
 
     std::string ser0 = devs[0].SerNo;
     std::string ser1 = devs[1].SerNo;
-    std::cout << "Phat hien 2 thiet bi: " << ser0 << " va " << ser1 << "\n";
-    sdrplay_api_Close(); // Dong lai de tien trinh con mo ket noi rieng
+    std::cout << "[Hardware] Detected 2 devices: " << ser0 << " and " << ser1 << "\n";
+    sdrplay_api_Close(); // Close API handle before spawning child processes
 
-    std::cout << ">>> Bat dau chay thu nghiem dong thoi 2 luong 10 MSPS (80 MB/s) trong 10s...\n\n";
+    std::cout << ">>> Starting simultaneous dual-stream test: 10 MSPS (80 MB/s) for 10s...\n\n";
 
-    // 2. Tao 2 tien trinh con chay song song
+    // 2. Fork into two parallel worker processes
     pid_t p1 = fork();
     if (p1 == 0) {
         run_device_process(0, ser0);
@@ -128,11 +134,11 @@ int main() {
         run_device_process(1, ser1);
     }
 
-    // 3. Cho ca 2 tien trinh hoan tat
+    // 3. Await completion of both child processes
     int status;
     waitpid(p1, &status, 0);
     waitpid(p2, &status, 0);
 
-    std::cout << "\n>>> Hoan tat kiem tra 2 thiet bi dong thoi.\n";
+    std::cout << "\n>>> Simultaneous dual-device test completed successfully.\n";
     return 0;
 }
