@@ -3,8 +3,8 @@
 
 
 
-> **Weekly Report:** Week 3 (21-09-2026 – 27-09-2026) 
-> **Current Focus:** RF Switch Matrix VNA Validation & Backend Integration [Jump to Weekly Log](#51-weekly-progress--deliverables)
+> **Weekly Report:** Week 3 (21.09.2026 – 27.09.2026) 
+> **Current Focus:** RF Switch Matrix VNA Validation & Backend Integration [Jump to Weekly Log](#weekly-log)
 
 ---
 
@@ -85,7 +85,7 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 
 ## 5. Project Status & Roadmap
 
-### 5.1. Weekly Progress & Deliverables
+### 5.1. Weekly Progress & Deliverables <a id="weekly-log"></a>
 
 #### Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
 
@@ -99,7 +99,7 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
   * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
 
 <details>
-<summary><b>View Archived Progress (Week 1 – Week 2)</b></summary>
+<summary><b>View Archived Progress (Week 0 – Week 2)</b></summary>
 
 <br>
 
