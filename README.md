@@ -106,23 +106,21 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 #### Week 2 (14.09.2026 – 20.09.2026)
 
 * **Firmware & Real-Time DSP Pipeline:**
-  * Implemented lock-free Single-Producer Single-Consumer (SPSC) circular ring buffers in POSIX Shared Memory (`/dev/shm`).
-  * Developed and verified the automated FFT cross-correlation time alignment algorithm to compensate for initial USB startup delays.
+    * Implemented lock-free Single-Producer Single-Consumer (SPSC) circular ring buffers in POSIX Shared Memory (`/dev/shm`).
+    * Developed and verified the automated FFT cross-correlation time alignment algorithm to compensate for initial USB startup delays.
 
 * **Hardware & Noise Source Prototyping:**
-  * Assembled and tested the avalanche noise core on a breadboard to verify breakdown behavior and DC biasing.
-  * Completed the schematic and 2-layer PCB layout in Altium Designer, then officially placed the board fabrication order.
+    * Assembled and tested the avalanche noise core on a breadboard to verify breakdown behavior and DC biasing.
+    * Completed the schematic and 2-layer PCB layout in Altium Designer, then officially placed the board fabrication order.
 
 
 #### Week 1 (08.09.2026 – 15.09.2026)
 
-* **Master Clock Synchronization:**
-  * Tracked and verified the delivery status of the GPSDO reference unit ordered from Taobao.
-  
+* **Master Clock Synchronization:** Tracked and verified the delivery status of the GPSDO reference unit ordered from Taobao. 
 * **10 MHz to 24 MHz PLL Frequency Synthesizer:**
-  * Designed the circuit schematic and PCB implementation for the 10-to-24 MHz PLL clock multiplier in Altium Designer.
-  * Simulated the PLL loop filter transient response, lock range, and stability in LTspice.
-  * Finalized the Bill of Materials (BOM) and placed procurement orders for all prototype components.
+    * Designed the circuit schematic and PCB implementation for the 10-to-24 MHz PLL clock multiplier in Altium Designer.
+    * Simulated the PLL loop filter transient response, lock range, and stability in LTspice.
+    * Finalized the Bill of Materials (BOM) and placed procurement orders for all prototype components.
 
 #### Week 0 (31.08.2026 – 07.09.2026)
 
@@ -135,11 +133,12 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 
 ### 5.2.1. Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)
 All hardware-level synchronization, real-time shared-memory pipelines, and DSP correlation modules have been validated on the test bench:
-*   **Clock Phase Coherence:** External 24 MHz reference clock distribution verified across both RSPdx ADCs with zero relative sampling drift over 60-second continuous runs.
-*   **Continuous Dual Ingestion:** Multi-process POSIX Shared Memory architecture sustains an aggregate 80 MB/s raw I/Q throughput with zero dropped buffers.
-*   **Coarse Delay Alignment (Module 2):** Automated cross-correlation identifies non-deterministic USB startup offsets and drains buffer lead, locking synchronization to $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$) with $\text{PNR} > 15\text{ dB}$.
-*   **FX Correlation Core (Module 3):** Pre-allocated, zero-heap FFTW3 transformation with 50% overlap and Welch integration verified against synthetic and CW bench tones.
-*   **Real-Time Telemetry & GUI (Module 4):** Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.
+
+* **Clock Phase Coherence:** External 24 MHz reference clock distribution verified across both RSPdx ADCs with zero relative sampling drift over 60-second continuous runs.
+* **Continuous Dual Ingestion:** Multi-process POSIX Shared Memory architecture sustains an aggregate 80 MB/s raw I/Q throughput with zero dropped buffers.
+* **Coarse Delay Alignment (Module 2):** Automated cross-correlation identifies non-deterministic USB startup offsets and drains buffer lead, locking synchronization to $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$) with $\text{PNR} > 15\text{ dB}$.
+* **FX Correlation Core (Module 3):** Pre-allocated, zero-heap FFTW3 transformation with 50% overlap and Welch integration verified against synthetic and CW bench tones.
+* **Real-Time Telemetry & GUI (Module 4):** Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.
 
 
 ### 5.2.2 Future Roadmap: Phase 2 — Field Deployment & Science Archiving
