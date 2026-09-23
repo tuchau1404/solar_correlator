@@ -118,6 +118,7 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 
 * **Master Clock Synchronization:**
   * Tracked and verified the delivery status of the GPSDO reference unit ordered from Taobao.
+  
 * **10 MHz to 24 MHz PLL Frequency Synthesizer:**
   * Designed the circuit schematic and PCB implementation for the 10-to-24 MHz PLL clock multiplier in Altium Designer.
   * Simulated the PLL loop filter transient response, lock range, and stability in LTspice.
