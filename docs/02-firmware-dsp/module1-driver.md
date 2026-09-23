@@ -76,7 +76,7 @@ sudo systemctl restart sdrplay
 
 ![Multi-Process Driver Lifecycle Flow](../assets/photos/module1_code_diagram.svg)
 
-#### Multi-Process Execution Walkthrough
+#### 4.1.1 Multi-Process Execution Walkthrough
 The driver lifecycle executes across isolated Unix process spaces to prevent thread deadlocks and guarantee deterministic streaming:
 
 1. **Hardware Discovery & Handle Release (Parent Process):**  

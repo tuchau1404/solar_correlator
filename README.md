@@ -1,5 +1,13 @@
 # Decametric Solar Radio Interferometer (30.0 – 40.0 MHz)
 
+
+
+
+> **Weekly Report:** Week 3 (21-09-2026 – 27-09-2026) 
+> **Current Focus:** RF Switch Matrix VNA Validation & Backend Integration [Jump to Weekly Log](#51-weekly-progress--deliverables)
+
+---
+
 A real-time, dual-channel coherent radio interferometer designed for decametric solar radio burst observation (Solar Type II and Type III events). The system couples two SDRplay RSPdx software-defined radio receivers synchronized via an external 24 MHz reference clock to a Raspberry Pi 5 edge compute node running a multi-process C++17 FX correlator pipeline, streaming real-time visibilities via UDP to a host visualization workstation.
 
 ---
@@ -48,34 +56,83 @@ Building a coherent radio interferometer with low-cost commercial SDRs presents 
 
 ## 4. Documentation Map
 
+>  *Note: Hardware and firmware implementations are continuously evolving in the lab. Documentation status is tracked below.*
+
 Detailed technical documentation, mathematical derivations, schematics, and lab test reports are maintained in the [`docs/`](docs/) directory:
 
 *   **Hardware & RF Front-End (`docs/01-hardware/`):**
-    *   [RF Front-End & Antennas](docs/01-hardware/rf-frontend.md): Antenna geometry, coaxial impedance matching, and BNC Port C termination.
-    *   [24 MHz Clock Distribution](docs/01-hardware/clock-sync.md): Reference oscillator splitting, phase locking, and `REFin` port distribution.
-    *   [Avalanche Noise Source](docs/01-hardware/noise-source.md): 2N2222 B-E junction avalanche core, active current mirror biasing, MMIC buffer stage, 10 dB Pi-attenuator matching (-50 dBm output), and GPIO power gating.
-    *   [RF Switching & Routing](docs/01-hardware/rf-switching.md): Dual SPDT switches (HMC544AE), symmetric 1:2 resistive Wye splitter, GPIO state control, and port isolation.
-    *   [Host Interconnect & Power](docs/01-hardware/host-interconnect.md): Raspberry Pi 5 USB 3.0 throughput constraints, power budgeting, and isolation.
+    *   [RF Front-End & Antennas](docs/01-hardware/rf-frontend.md) `[Work in Progress]`: Antenna geometry, coaxial impedance matching, and BNC Port C termination.
+    *   [24 MHz Clock Distribution](docs/01-hardware/clock-sync.md) `[Work in Progress]`: Reference oscillator splitting, phase locking, and `REFin` port distribution.
+    *   [Avalanche Noise Source](docs/01-hardware/noise-source.md) `[Work in Progress - Updated 21-09-2026]`: 2N2222 B-E junction avalanche core, active current mirror biasing, MMIC buffer stage, 10 dB Pi-attenuator matching (-50 dBm output), and GPIO power gating.
+    *   [RF Switching & Routing](docs/01-hardware/rf-switching.md) `[Complete - 22-09-2026]`: Dual SPDT switches (HMC544AE), symmetric 1:2 resistive Wye splitter, GPIO state control, and port isolation.
+    *   [Host Interconnect & Power](docs/01-hardware/host-interconnect.md) `[Planned]`: Raspberry Pi 5 USB 3.0 throughput constraints, power budgeting, and isolation.
 
 *   **Firmware & DSP Pipeline (`docs/02-firmware-dsp/`):**
-    *   [IPC Architecture](docs/02-firmware-dsp/architecture.md): Multi-process `fork()` model, zero-copy POSIX shared memory, and lock-free atomic barriers.
-    *   [Module 1 - SDR Ingestion Driver](docs/02-firmware-dsp/module1-driver.md): SDRplay API v3 integration and continuous 10 MSPS dual streaming.
-    *   [Module 2 - Real-Time Time Alignment](docs/02-firmware-dsp/module2-time-align.md): Initial USB startup delay compensation, flush barriers, and sample-level locking ($k = 0$).
-    *   [Module 3 - FX Correlator](docs/02-firmware-dsp/module3-fx-correlator.md): 50% overlap F-Engine, ARM NEON vectorization, Hanning power correction, and Welch integration.
-    *   [Module 4 - UDP Telemetry & Viewer](docs/02-firmware-dsp/module4-telemetry.md): Binary socket protocol and GPU-accelerated PyQtGraph waterfall visualization.
+    *   [IPC Architecture](docs/02-firmware-dsp/architecture.md): Multi-process fork() model, zero-copy POSIX shared memory, and lock-free atomic barriers.
+    *   [Module 1 - SDR Ingestion Driver](docs/02-firmware-dsp/module1-driver.md)`[Complete - 2026-09-23]`: SDRplay API v3 integration and continuous 10 MSPS dual streaming.
+    *   [Module 2 - Real-Time Time Alignment](docs/02-firmware-dsp/module2-time-align.md) `[Work in Progress]`: Initial USB startup delay compensation, flush barriers, and sample-level locking ($k = 0$).
+    *   [Module 3 - FX Correlator](docs/02-firmware-dsp/module3-fx-correlator.md) `[Work in Progress]`: 50% overlap F-Engine, ARM NEON vectorization, Hanning power correction, and Welch integration.
+    *   [Module 4 - UDP Telemetry & Viewer](docs/02-firmware-dsp/module4-telemetry.md) `[Work in Progress]`: Binary socket protocol and GPU-accelerated PyQtGraph waterfall visualization.
 *   **Verification & Calibration (`docs/03-calibration-tests/`):**
-    *   [Zero-Baseline Lab Bench Verification](docs/03-calibration-tests/lab-bench-test.md): CW tone and wideband noise bench tests with peak-to-noise ratio analysis.
-    *   [Debug Chronicles](docs/03-calibration-tests/debug-chronicles.md): Engineering logbook covering buffer wrap-around, race conditions, and synchronization fixes.
-    *   [Field Deployment](docs/03-calibration-tests/field-deployment.md): Site noise surveys, antenna array erection, and observational campaigns.
+    *   [Zero-Baseline Lab Bench Verification](docs/03-calibration-tests/lab-bench-test.md) `[Work in Progress]` : CW tone and wideband noise bench tests with peak-to-noise ratio analysis.
+    *   [Debug Chronicles](docs/03-calibration-tests/debug-chronicles.md) `[Planned]`: Engineering logbook covering buffer wrap-around, race conditions, and synchronization fixes.
+    *   [Field Deployment](docs/03-calibration-tests/field-deployment.md) `[Planned]`: Site noise surveys, antenna array erection, and observational campaigns.
 *   **Deployment Guides (`docs/04-deployment-guide/`):**
-    *   [Raspberry Pi 5 OS Setup](docs/04-deployment-guide/pi5-setup.md): Headless Linux tuning, CPU governor optimization, and driver installation.
-    *   [Systemd Daemonization](docs/04-deployment-guide/systemd-daemon.md): Automated boot management, watchdog recovery, and operational scripts.
+    *   [Raspberry Pi 5 OS Setup](docs/04-deployment-guide/pi5-setup.md) `[Planned]`: Headless Linux tuning, CPU governor optimization, and driver installation.
+    *   [Systemd Daemonization](docs/04-deployment-guide/systemd-daemon.md) `[Planned]` Automated boot management, watchdog recovery, and operational scripts.
 
 ---
 
 ## 5. Project Status & Roadmap
 
-### Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)
+### 5.1. Weekly Progress & Deliverables
+
+#### Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
+
+* **RF Switching Matrix Hardware:**
+  * Assembled and hand-soldered the dual-channel RF switch prototype PCB.
+  * Performed laboratory two-port VNA characterization across the target band to evaluate insertion loss, port matching, and off-state isolation.
+
+* **Technical Documentation Deliverables:**
+  * [`rf-switching.md`](docs/01-hardware/rf-switching.md) `[Complete]`: Documented circuit schematics, layout implementation, and laboratory VNA measurement records.
+  * [`module1-driver.md`](docs/02-firmware-dsp/module1-driver.md) `[Complete]`: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.
+  * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
+
+<details>
+<summary><b>View Archived Progress (Week 1 – Week 2)</b></summary>
+
+<br>
+
+#### Week 2 (14.09.2026 – 20.09.2026)
+
+* **Firmware & Real-Time DSP Pipeline:**
+  * Implemented lock-free Single-Producer Single-Consumer (SPSC) circular ring buffers in POSIX Shared Memory (`/dev/shm`).
+  * Developed and verified the automated FFT cross-correlation time alignment algorithm to compensate for initial USB startup delays.
+
+* **Hardware & Noise Source Prototyping:**
+  * Assembled and tested the avalanche noise core on a breadboard to verify breakdown behavior and DC biasing.
+  * Completed the schematic and 2-layer PCB layout in Altium Designer, then officially placed the board fabrication order.
+
+
+#### Week 1 (08.09.2026 – 15.09.2026)
+
+* **Master Clock Synchronization:**
+  * Tracked and verified the delivery status of the GPSDO reference unit ordered from Taobao.
+* **10 MHz to 24 MHz PLL Frequency Synthesizer:**
+  * Designed the circuit schematic and PCB implementation for the 10-to-24 MHz PLL clock multiplier in Altium Designer.
+  * Simulated the PLL loop filter transient response, lock range, and stability in LTspice.
+  * Finalized the Bill of Materials (BOM) and placed procurement orders for all prototype components.
+
+#### Week 0 (31.08.2026 – 07.09.2026)
+
+* Configured the headless Linux environment and runtime dependencies on the host processor.
+* Connected and verified the external reference clock distribution to lock receiver ADCs and local oscillators.
+* Validated continuous dual-channel raw baseband streaming over independent USB buses without buffer drops.
+
+</details>
+
+
+### 5.2.1. Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)
 All hardware-level synchronization, real-time shared-memory pipelines, and DSP correlation modules have been validated on the test bench:
 *   **Clock Phase Coherence:** External 24 MHz reference clock distribution verified across both RSPdx ADCs with zero relative sampling drift over 60-second continuous runs.
 *   **Continuous Dual Ingestion:** Multi-process POSIX Shared Memory architecture sustains an aggregate 80 MB/s raw I/Q throughput with zero dropped buffers.
@@ -83,7 +140,8 @@ All hardware-level synchronization, real-time shared-memory pipelines, and DSP c
 *   **FX Correlation Core (Module 3):** Pre-allocated, zero-heap FFTW3 transformation with 50% overlap and Welch integration verified against synthetic and CW bench tones.
 *   **Real-Time Telemetry & GUI (Module 4):** Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.
 
-### Future Roadmap: Phase 2 — Field Deployment & Science Archiving
+
+### 5.2.2 Future Roadmap: Phase 2 — Field Deployment & Science Archiving
 *   **Automated Calibration Switching:** Implement GPIO-driven RF switches to toggle between zero-baseline noise calibration and outdoor antennas.
 *   **Antenna Field Array:** Deploy dual East-West baseline wire dipoles optimized for the 30.0 – 40.0 MHz decametric observation window.
 *   **Fringe Stopping:** Implement continuous sub-sample geometric delay phase rotation ($e^{-j 2\pi f \tau_g(t)}$) in the F-Engine.
