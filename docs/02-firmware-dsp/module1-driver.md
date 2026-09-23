@@ -22,7 +22,7 @@ The physical hardware layer interfaces the Raspberry Pi 5 host directly with the
 *Figure 2.1: Logical bus topology connecting dual SDRplay RSPdx units directly to the Raspberry Pi 5 host controller over dedicated USB 3.0 links.*
 
 #### B. Laboratory Benchtop Implementation
-![Physical Benchtop Hardware Setup](../assets/photos/module1_hardware_interconnect.svg)
+![Physical Benchtop Hardware Setup](../assets/photos/module1_bench_setup.jpg)
 *Figure 2.2: Benchtop validation setup illustrating the physical arrangement of the Raspberry Pi 5 host and dual SDRplay RSPdx receivers during ingestion testing.*
 
 ---
@@ -65,11 +65,10 @@ sudo systemctl restart sdrplay
 ## 4. Software Architecture & Ingestion Implementation
 >  **Design Retrospective: Multi-Threading Failure (`std::thread`)**
 > An initial design attempt evaluated an in-process multi-threaded architecture using `std::thread` to handle each RSPdx device on dedicated thread loops. This approach failed due to internal constraints of the proprietary `libsdrplay_api.so` runtime:
-
+>
 > * **Single-Device Process Bound:** The API runtime relies on unexposed process-wide global state variables and static event callbacks, restricting each Unix process space (PID) to a single active hardware instance.
-
+>
 > * **Hardware Selection Conflict:** Calling `sdrplay_api_SelectDevice()` concurrently from secondary threads caused subsequent initialization calls to return `sdrplay_api_Fail`, while bypassing thread safety led to race conditions and memory segmentation faults.
-
 > 
 > Consequently, multi-threading was deprecated in favor of a multi-process architecture (`fork()`), providing strict virtual memory isolation for each receiver instance.
 
@@ -158,3 +157,19 @@ if (p2 == 0) run_device_process(1, ser1);
 waitpid(p1, &status, 0);
 waitpid(p2, &status, 0);
 ```
+
+
+## 5. Experimental Verification & Ingestion Benchmark
+
+To validate the throughput, zero-packet-drop integrity, and driver isolation under high data rates, a 10-second simultaneous streaming benchmark was conducted on Raspberry Pi 5 using two RSPdx devices at 10.0 MSPS (80 MB/s aggregated raw I/Q throughput).
+
+![Figure 5.1: Dual 10 MSPS Streaming Benchmark Terminal Output](../assets/photos/module1_result.jpg)
+*Figure 5.1: Simultaneous dual-channel benchmark output verifying sustained 80 MB/s ingestion without runtime buffer drops*
+
+### 5.1. Log Analysis & Performance Evaluation
+
+* **Actual Sample Rate (9.98646 MSPS):** Both devices achieved $\approx 99.86\%$ of the nominal 10.0 MSPS target. The fractional deficit ($\approx 135,400$ samples out of 100 million) accounts for an initial handshake and USB DMA startup latency of approximately $13.5\text{ ms}$ during API initialization.
+  
+* **Buffer Stability & Zero Drop (Reset/Drop = 1):** The count of 1 corresponds strictly to the mandatory hardware flush flag dispatched on the very first USB packet during driver startup. Over the entire subsequent 10-second run, this counter remained unchanged, proving zero runtime buffer overflows and zero packet loss at 80 MB/s.
+  
+* **Channel Symmetry:** Identical metrics across both channels confirm that the multi-process (`fork()`) architecture completely decouples hardware driver instances across the dual USB 3.0 buses on Raspberry Pi 5.
