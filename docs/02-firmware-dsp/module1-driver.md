@@ -6,7 +6,7 @@ Module 1 establishes the physical and driver-level ingestion layer of the 2-elem
 
 The primary validation milestones are:
 
-* **High-Throughput Ingestion:** Sustain an aggregate data throughput of $80\text{ MB/s}$ ($640\text{ Mbps}$) across two USB 3.0 buses without packet loss ($10.0\text{ MSPS} \times 4\text{ bytes [int16 I/Q]} \times 2\text{ channels}$).
+* **High-Throughput Ingestion:** Sustain an aggregate data throughput of 80 MB/s (640 Mbps) across two USB 3.0 buses without packet loss (10.0 MSPS  $\times$ 4 bytes [int16 I/Q] $\times$ 2 channels).
   
 * **Driver Stability & Low Overhead:** Maintain zero driver-level buffer resets (`reset = 0`) over continuous streaming runs in a headless Linux environment.
   
@@ -106,7 +106,7 @@ Both receivers are configured with identical hardware register settings to ensur
 
 ### 4.3. Key Code Implementations
 
-> **Source Reference:** Full production driver implementation is available at [`tests/dual_stream_test.cpp`](../../tests/dual_stream_test.cpp).
+> **Source Reference:** Full production driver implementation is available at [`tests/dual_stream_test.cpp`](https://github.com/tuchau1404/solar_correlator/blob/main/tests/dual_stream_test.cpp).
 
 #### A. Lock-Free Atomic Callback
 The driver delivers I/Q blocks asynchronously via kernel threads. To avoid DMA latency stalls, the callback uses lock-free atomic counters with relaxed memory order instead of mutex locks:
