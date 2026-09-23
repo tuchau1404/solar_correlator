@@ -107,6 +107,7 @@ The physical implementation of the Dual-Channel RF Switching Matrix utilizes sta
 The electrical schematic was designed in Altium Designer, capturing the RF switches, logic inverter, $50\ \Omega$ Delta splitter, $1\text{ nF}$ DC blocking capacitors, power supply decoupling, and input ESD protection diodes.
 
 ![Figure 3.1: Complete Schematic Capture](../assets/schematics/rf_switch.svg)
+
 *Figure 3.1: Complete Schematic Capture*
 
 ---
@@ -130,6 +131,7 @@ A Coplanar Waveguide with Ground (CPW-G) geometry was synthesized on a standard 
 | **Characteristic Impedance** | $Z_0$ | **$50.41$** | $\Omega$ | Error $< 0.82\%$ ($S_{11} < -47\text{ dB}$, $\text{VSWR} \approx 1.01:1$) |
 
 ![Figure 3.2: Coplanar Waveguide impedance calculation in Saturn PCB Toolkit](../assets/photos/rf_switch_saturn.jpg)
+
 *Figure 3.2: Coplanar Waveguide impedance calculation in Saturn PCB Toolkit*
 
 ##### 2. Ground Via Shielding (Altium Designer Implementation)
@@ -151,12 +153,14 @@ A via fence was generated along both sides of each RF route (*Via Shielding to N
 The board is laid out on a standard 2-layer FR-4 substrate ($1.6\text{ mm}$ thickness) with $50\ \Omega$ Coplanar Waveguides with Ground (CPW-G). Channel traces from the Delta splitter to both switches and from the switches to the output SMA connectors are geometrically length-matched ($\Delta L < 0.2\text{ mm}$) to preserve phase balance.
 
 ![Figure 3.4: Top Layer Routing and Component Footprints](../assets/photos/rf_switch_top_layer.jpg)
+
 *Figure 3.4: Top Layer Routing and Component Footprints*
 
 #### 3.2.2. Bottom Layer Ground Plane Structure
 The bottom layer serves as an uninterrupted ground reference plane, reinforced with perimeter via stitching along all RF tracks to suppress parasitic resonances and provide low-impedance return paths.
 
 ![Figure 3.5: Bottom Layer Ground Plane](../assets/photos/rf_switch_bottom_layer.jpg)
+
 *Figure 3.5: Bottom Layer Ground Plane*
 
 ---
@@ -196,24 +200,28 @@ The assembled board (DUT) was powered with a 3.3V DC supply, and the RF routing 
 Measurement of the primary sky path from Antenna A (RF IN A) to Receiver OUT A with the switch engaged (Observation Mode).
 
 ![Figure 4.2: Antenna A to OUT A (ON State)](../assets/plots/rf_switch/in_out_A_on.png)
+
 *Figure 4.2: Antenna A to OUT A (ON State)*
 
 #### 4.2.2. Antenna A to OUT A — State: OFF
 Measurement of isolation along the Antenna A path to Receiver OUT A when switched to calibration (Calibration Mode).
 
 ![Figure 4.3: Antenna A to OUT A (OFF State)](../assets/plots/rf_switch/in_out_A_off.png)
+
 *Figure 4.3: Antenna A to OUT A (OFF State)*
 
 #### 4.2.3. Noise Source to OUT A — State: ON
 Measurement of transmission from the Noise Source port through the Delta power splitter to Receiver OUT A (Calibration Mode).
 
 ![Figure 4.4: Noise Source to OUT A (ON State)](../assets/plots/rf_switch/ns_out_A_on.png)
+
 *Figure 4.4: Noise Source to OUT A (ON State)*
 
 #### 4.2.4. Noise Source to OUT A — State: OFF
 Measurement of calibration reference isolation to Receiver OUT A while the switch is routed to the antenna (Observation Mode).
 
 ![Figure 4.5: Noise Source to OUT A (OFF State)](../assets/plots/rf_switch/ns_out_A_off.png)
+
 *Figure 4.5: Noise Source to OUT A (OFF State)*
 
 ---
@@ -224,24 +232,28 @@ Measurement of calibration reference isolation to Receiver OUT A while the switc
 Measurement of transmission from the Noise Source port through the Delta power splitter to Receiver OUT B (Calibration Mode).
 
 ![Figure 4.6: Noise Source to OUT B (ON State)](../assets/plots/rf_switch/ns_out_B_on.png)
+
 *Figure 4.6: Noise Source to OUT B (ON State)*
 
 #### 4.3.2. Noise Source to OUT B — State: OFF
 Measurement of calibration reference isolation to Receiver OUT B while the switch is routed to the antenna (Observation Mode).
 
 ![Figure 4.7: Noise Source to OUT B (OFF State)](../assets/plots/rf_switch/ns_out_B_off.png)
+
 *Figure 4.7: Noise Source to OUT B (OFF State)*
 
 #### 4.3.3. Antenna B to OUT B — State: ON
 Measurement of the primary sky path from Antenna B (RF IN B) to Receiver OUT B with the switch engaged (Observation Mode).
 
 ![Figure 4.8: Antenna B to OUT B (ON State)](../assets/plots/rf_switch/in_out_B_on.png)
+
 *Figure 4.8: Antenna B to OUT B (ON State)*
 
 #### 4.3.4. Antenna B to OUT B — State: OFF
 Measurement of isolation along the Antenna B path to Receiver OUT B when switched to calibration (Calibration Mode).
 
 ![Figure 4.9: Antenna B to OUT B (OFF State)](../assets/plots/rf_switch/in_out_B_off.png)
+
 *Figure 4.9: Antenna B to OUT B (OFF State)*
 
 ---
