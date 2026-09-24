@@ -1,0 +1,3261 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/01-hardware/noise-source/">
+      
+      
+        <link rel="prev" href="../host-interconnect/">
+      
+      
+        <link rel="next" href="../rf-frontend/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Avalanche Noise Source - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#avalanche-noise-source" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Avalanche Noise Source
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-context-physical-problem-formulation-in-radio-interferometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Context &amp; Physical Problem Formulation in Radio Interferometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Context &amp; Physical Problem Formulation in Radio Interferometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-overview-and-system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Overview and System Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-usb-startup-sample-delay-alignment-k_offset-module-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121-root-cause-of-startup-misalignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.1. Root Cause of Startup Misalignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-theoretical-necessity-of-coarse-sample-synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.2. Theoretical Necessity of Coarse Sample Synchronization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123-broadband-gaussian-noise-vs-continuous-wave-cw-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.3. Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-instrumental-differential-phase-calibration-0f-module-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131-physical-mechanisms-causing-phase-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3.1. Physical Mechanisms Causing Phase Error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-frequency-dependent-phase-extraction-and-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3.2. Frequency-Dependent Phase Extraction and Correction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-absolute-flux-scaling-semiconductor-thermal-drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4. Absolute Flux Scaling &amp; Semiconductor Thermal Drift
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4. Absolute Flux Scaling &amp; Semiconductor Thermal Drift">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-the-need-for-absolute-radiometric-flux-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.1. The Need for Absolute Radiometric Flux Calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-semiconductor-physics-of-thermal-gain-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.2. Semiconductor Physics of Thermal Gain Degradation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-inter-receiver-gain-asymmetry-and-cross-correlation-distortion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.3. Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-the-broadband-noise-standard-in-situ-solution-and-thermal-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-avalanche-mechanism-fixed-excess-noise-ratio-enr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.1. Avalanche Mechanism &amp; Fixed Excess Noise Ratio (ENR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-y-factor-radiometric-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.2. Y-Factor Radiometric Calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#153-resolving-calibration-drift-pulsed-gating-vs-continuous-receiver-dissipation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.3. Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-chronological-log-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. CHRONOLOGICAL LOG ENTRIES
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. CHRONOLOGICAL LOG ENTRIES">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-log-entry-01-bench-characterization-of-bjt-2n2222-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#311-objective-and-measurement-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.1. Objective and Measurement Specifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#312-physical-principles-mathematical-enr-derivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2. Physical Principles &amp; Mathematical ENR Derivation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1.2. Physical Principles &amp; Mathematical ENR Derivation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3121-mcintyre-impact-ionization-microplasma-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2.1. McIntyre Impact Ionization &amp; Microplasma Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3122-excess-noise-ratio-enr-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2.2. Excess Noise Ratio (ENR) Calculation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#313-hardware-testbench-configuration-wiring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3. Hardware Testbench Configuration &amp; Wiring
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1.3. Hardware Testbench Configuration &amp; Wiring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3131-interconnect-schematic-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3.1. Interconnect Schematic Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3132-physical-laboratory-testbench-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3.2. Physical Laboratory Testbench Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#314-experimental-spectrum-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.4. Experimental Spectrum Observation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#315-dc-parametric-sweep-and-noise-survey-10-ma-100-ma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#316-engineering-conclusions-design-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.6. Engineering Conclusions &amp; Design Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-log-entry-02-discrete-active-current-source-implementation-2-bjt-pnp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-problem-statement-quantitative-error-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. Problem Statement &amp; Quantitative Error Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#322-circuit-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2. Circuit Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.2. Circuit Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3221-feedback-regulation-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2.1. Feedback Regulation Mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#323-theoretical-formulation-component-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3. Theoretical Formulation &amp; Component Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.3. Theoretical Formulation &amp; Component Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3231-current-sense-resistor-r_sense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3.1. Current Sense Resistor (R_sense)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3232-base-pull-down-resistor-r_pull" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3.2. Base Pull-Down Resistor (R_pull)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#324-hardware-implementation-lab-bench-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.4. Hardware Implementation &amp; Lab Bench Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#325-validation-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.5. Validation Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.5. Validation Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3251-empirical-test-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.5.1. Empirical Test Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#326-line-regulation-dynamic-output-impedance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.6. Line Regulation &amp; Dynamic Output Impedance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-log-entry-03-mmic-buffer-amplifier-gali-74-thermal-optimization-of-r_bias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) &amp; Thermal Optimization of R_bias
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-log-entry-04-high-side-power-switch-ao3401-p-mos-2n2222-gate-divider-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS &amp; 2N2222) &amp; Gate Divider Debugging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-log-entry-05-prototyping-altium-designer-2-layer-pcb-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5. LOG ENTRY #05: Prototyping &amp; Altium Designer 2-Layer PCB Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.5. LOG ENTRY #05: Prototyping &amp; Altium Designer 2-Layer PCB Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#351-pcb-figures-and-schematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5.1. PCB Figures and Schematics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-log-entry-06-end-to-end-system-integration-correlator-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6. LOG ENTRY #06: End-to-End System Integration &amp; Correlator Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-parametric-performance-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. PARAMETRIC PERFORMANCE SUMMARY
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-context-physical-problem-formulation-in-radio-interferometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Context &amp; Physical Problem Formulation in Radio Interferometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Context &amp; Physical Problem Formulation in Radio Interferometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-overview-and-system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Overview and System Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-usb-startup-sample-delay-alignment-k_offset-module-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121-root-cause-of-startup-misalignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.1. Root Cause of Startup Misalignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-theoretical-necessity-of-coarse-sample-synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.2. Theoretical Necessity of Coarse Sample Synchronization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123-broadband-gaussian-noise-vs-continuous-wave-cw-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.3. Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-instrumental-differential-phase-calibration-0f-module-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131-physical-mechanisms-causing-phase-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3.1. Physical Mechanisms Causing Phase Error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-frequency-dependent-phase-extraction-and-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3.2. Frequency-Dependent Phase Extraction and Correction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-absolute-flux-scaling-semiconductor-thermal-drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4. Absolute Flux Scaling &amp; Semiconductor Thermal Drift
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4. Absolute Flux Scaling &amp; Semiconductor Thermal Drift">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-the-need-for-absolute-radiometric-flux-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.1. The Need for Absolute Radiometric Flux Calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-semiconductor-physics-of-thermal-gain-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.2. Semiconductor Physics of Thermal Gain Degradation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-inter-receiver-gain-asymmetry-and-cross-correlation-distortion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4.3. Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-the-broadband-noise-standard-in-situ-solution-and-thermal-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-avalanche-mechanism-fixed-excess-noise-ratio-enr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.1. Avalanche Mechanism &amp; Fixed Excess Noise Ratio (ENR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-y-factor-radiometric-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.2. Y-Factor Radiometric Calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#153-resolving-calibration-drift-pulsed-gating-vs-continuous-receiver-dissipation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5.3. Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-chronological-log-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. CHRONOLOGICAL LOG ENTRIES
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. CHRONOLOGICAL LOG ENTRIES">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-log-entry-01-bench-characterization-of-bjt-2n2222-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#311-objective-and-measurement-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.1. Objective and Measurement Specifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#312-physical-principles-mathematical-enr-derivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2. Physical Principles &amp; Mathematical ENR Derivation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1.2. Physical Principles &amp; Mathematical ENR Derivation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3121-mcintyre-impact-ionization-microplasma-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2.1. McIntyre Impact Ionization &amp; Microplasma Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3122-excess-noise-ratio-enr-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.2.2. Excess Noise Ratio (ENR) Calculation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#313-hardware-testbench-configuration-wiring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3. Hardware Testbench Configuration &amp; Wiring
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1.3. Hardware Testbench Configuration &amp; Wiring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3131-interconnect-schematic-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3.1. Interconnect Schematic Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3132-physical-laboratory-testbench-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.3.2. Physical Laboratory Testbench Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#314-experimental-spectrum-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.4. Experimental Spectrum Observation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#315-dc-parametric-sweep-and-noise-survey-10-ma-100-ma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#316-engineering-conclusions-design-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1.6. Engineering Conclusions &amp; Design Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-log-entry-02-discrete-active-current-source-implementation-2-bjt-pnp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-problem-statement-quantitative-error-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. Problem Statement &amp; Quantitative Error Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#322-circuit-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2. Circuit Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.2. Circuit Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3221-feedback-regulation-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2.1. Feedback Regulation Mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#323-theoretical-formulation-component-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3. Theoretical Formulation &amp; Component Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.3. Theoretical Formulation &amp; Component Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3231-current-sense-resistor-r_sense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3.1. Current Sense Resistor (R_sense)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3232-base-pull-down-resistor-r_pull" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.3.2. Base Pull-Down Resistor (R_pull)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#324-hardware-implementation-lab-bench-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.4. Hardware Implementation &amp; Lab Bench Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#325-validation-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.5. Validation Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.5. Validation Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3251-empirical-test-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.5.1. Empirical Test Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#326-line-regulation-dynamic-output-impedance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.6. Line Regulation &amp; Dynamic Output Impedance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-log-entry-03-mmic-buffer-amplifier-gali-74-thermal-optimization-of-r_bias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) &amp; Thermal Optimization of R_bias
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-log-entry-04-high-side-power-switch-ao3401-p-mos-2n2222-gate-divider-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS &amp; 2N2222) &amp; Gate Divider Debugging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-log-entry-05-prototyping-altium-designer-2-layer-pcb-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5. LOG ENTRY #05: Prototyping &amp; Altium Designer 2-Layer PCB Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.5. LOG ENTRY #05: Prototyping &amp; Altium Designer 2-Layer PCB Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#351-pcb-figures-and-schematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5.1. PCB Figures and Schematics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-log-entry-06-end-to-end-system-integration-correlator-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6. LOG ENTRY #06: End-to-End System Integration &amp; Correlator Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-parametric-performance-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. PARAMETRIC PERFORMANCE SUMMARY
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="avalanche-noise-source">Avalanche Noise Source<a class="headerlink" href="#avalanche-noise-source" title="Permanent link">&para;</a></h1>
+<hr />
+<h2 id="1-system-context-physical-problem-formulation-in-radio-interferometry">1. System Context &amp; Physical Problem Formulation in Radio Interferometry<a class="headerlink" href="#1-system-context-physical-problem-formulation-in-radio-interferometry" title="Permanent link">&para;</a></h2>
+<h3 id="11-overview-and-system-architecture">1.1. Overview and System Architecture<a class="headerlink" href="#11-overview-and-system-architecture" title="Permanent link">&para;</a></h3>
+<p>In a dual-channel decametric radio interferometer operating across the <span class="arithmatex">\(30.0\text{--}40.0\text{ MHz}\)</span> frequency band, two independent Software-Defined Radio (SDR) receivers (SDRplay RSPdx) act as spatial sensing nodes. To detect and characterize transient solar radio emissions (such as Type II and Type III solar bursts) and resolve their spatial-temporal dynamics, the system processes raw digitized baseband signals using a distributed FX correlator architecture hosted on an embedded platform (Raspberry Pi 5).</p>
+<p>Although both SDR receivers are disciplined by a shared external <span class="arithmatex">\(24.0\text{ MHz}\)</span> reference clock fed into their respective <code>REFin</code> ports to ensure strictly identical analog-to-digital conversion sampling frequencies (<span class="arithmatex">\(f_{s1} = f_{s2} = 10.0\text{ MSPS}\)</span>), hardware-level clock synchronization alone does not resolve startup time offsets, internal analog phase dispersions, or dynamic gain drifts. An internal broadband avalanche noise source serves as an <strong>in-situ hardware calibration standard</strong>, providing the entropy and radiometric reference required to address four core physical and digital signal processing challenges prior to celestial observation.</p>
+<hr />
+<h3 id="12-usb-startup-sample-delay-alignment-k_offset-module-2">1.2. USB Startup Sample Delay Alignment (k_offset — Module 2)<a class="headerlink" href="#12-usb-startup-sample-delay-alignment-k_offset-module-2" title="Permanent link">&para;</a></h3>
+<h4 id="121-root-cause-of-startup-misalignment">1.2.1. Root Cause of Startup Misalignment<a class="headerlink" href="#121-root-cause-of-startup-misalignment" title="Permanent link">&para;</a></h4>
+<p>Operating system constraints dictate that the proprietary SDR hardware driver API (<code>sdrplay_api v3</code>) permits only a single active receiver instance per OS process. Consequently, a multi-process architecture is deployed wherein the parent process spawns two dedicated producer processes via <code>fork()</code>. Each child process independently issues <code>sdrplay_api_Open()</code>, executes hardware selection, and negotiates stream initializations via <code>sdrplay_api_Init()</code>.</p>
+<p>Even though the underlying ADC samplers advance on the identical <span class="arithmatex">\(24.0\text{ MHz}\)</span> clock edges, the operational startup times of the two data streams are non-deterministic. Variations in Linux kernel thread scheduling, USB host controller interrupt latency, device enumeration timings, and internal decimation filter flushing introduce an arbitrary delay:</p>
+<div class="arithmatex">\[
+\Delta t_\text{startup} \in [10\text{ ms}, 50\text{ ms}]
+\]</div>
+<p>At a baseband sampling rate of <span class="arithmatex">\(f_s = 10\text{ MSPS}\)</span> (corresponding to a sample period of <span class="arithmatex">\(T_s = 100\text{ ns}\)</span>), a temporal startup discrepancy of merely <span class="arithmatex">\(30\text{ ms}\)</span> yields an initial sample index offset of:</p>
+<div class="arithmatex">\[
+k_\text{offset} = \Delta t_\text{startup} \cdot f_s \approx 300,000\text{ samples}
+\]</div>
+<h4 id="122-theoretical-necessity-of-coarse-sample-synchronization">1.2.2. Theoretical Necessity of Coarse Sample Synchronization<a class="headerlink" href="#122-theoretical-necessity-of-coarse-sample-synchronization" title="Permanent link">&para;</a></h4>
+<p>The complex cross-correlation function between the baseband analytical sequences <span class="arithmatex">\(x_1[n]\)</span> and <span class="arithmatex">\(x_2[n]\)</span> across a discrete lag parameter <span class="arithmatex">\(k\)</span> is defined as:</p>
+<div class="arithmatex">\[
+R_{12}[k] = \sum_{n=0}^{N-1} x_1[n] \cdot x_2^*[n - k]
+\]</div>
+<p>In the correlator pipeline, spectral decomposition (the F-Engine) processes finite snapshot blocks of length <span class="arithmatex">\(N = 2048\)</span> (or <span class="arithmatex">\(N = 65,536\)</span> during calibration). If an uncompensated integer offset <span class="arithmatex">\(k_\text{offset} \neq 0\)</span> persists such that <span class="arithmatex">\(|k_\text{offset}| \ge N\)</span>, the block extracted from Channel 1 represents an electromagnetic epoch that shares no temporal overlap with the block extracted from Channel 2. Under this condition:</p>
+<div class="arithmatex">\[
+\mathbb{E}\{x_1[n] \cdot x_2^*[n - k_\text{offset}]\} = 0
+\]</div>
+<p>The cross-power expectation collapses entirely into uncorrelated baseline noise, completely extinguishing interferometric fringe formation. Therefore, coarse synchronization must deterministically align the two data queues to within <span class="arithmatex">\(|k_\text{residual}| \le 1\text{ sample}\)</span> (<span class="arithmatex">\(100\text{ ns}\)</span>) before downstream cross-multiplication.</p>
+<h4 id="123-broadband-gaussian-noise-vs-continuous-wave-cw-signals">1.2.3. Broadband Gaussian Noise vs. Continuous-Wave (CW) Signals<a class="headerlink" href="#123-broadband-gaussian-noise-vs-continuous-wave-cw-signals" title="Permanent link">&para;</a></h4>
+<!-- Attempting to measure $k_\text{offset}$ using single-tone continuous-wave (CW) test signals fails due to cyclic phase ambiguity. For a single sinusoidal carrier $s[n] = A e^{j(2\pi f_0 n T_s + \theta)}$, the cross-correlation function yields:
+
+$$
+R_{12}[k] = |A|^2 e^{j 2\pi f_0 k T_s} \sum_{n=0}^{N-1} 1 = N |A|^2 e^{j 2\pi f_0 k T_s}
+$$
+
+
+
+The magnitude $|R_{12}[k]|$ remains constant across all lags, producing an infinite series of identical correlation peaks spaced at integer multiples of the carrier period:
+
+$$
+\Delta k_\text{period} = \frac{f_s}{f_0}
+$$
+
+
+
+This cyclic ambiguity entraps the Peak-to-Noise Ratio (PNR) at a theoretical ceiling of $\text{PNR} \approx 3.92\text{ dB}$, preventing automated peak-detection algorithms from distinguishing the true hardware arrival epoch from harmonic sidelobes.
+
+Conversely, broadband Gaussian white noise $w[n] \sim \mathcal{CN}(0, \sigma_w^2)$ possesses a constant power spectral density across the Nyquist bandwidth $B$. According to the Wiener–Khinchin theorem, its auto-correlation function compresses into an isolated Dirac delta function:
+
+$$
+R_{ww}[k] = \sigma_w^2 \cdot \delta[k] = \begin{cases} \sigma_w^2, & k = 0 \\ 0, & k \neq 0 \end{cases}
+$$
+
+
+
+When routed symmetrically through a matched 1:2 RF power splitter, broadband noise generates a single, unambiguous correlation needle spike. Empirically, this elevates the Peak-to-Noise Ratio to $\text{PNR} > 30\text{--}44\text{ dB}$, enabling the software aligner to isolate the true lag $k_\text{offset} = \arg\max_k |R_{12}[k]|$ and discard leading samples via ring-buffer pointer adjustments (`skip(k_offset)`). -->
+
+<hr />
+<h3 id="13-instrumental-differential-phase-calibration-0f-module-3">1.3. Instrumental Differential Phase Calibration (Δϕ₀(f) — Module 3)<a class="headerlink" href="#13-instrumental-differential-phase-calibration-0f-module-3" title="Permanent link">&para;</a></h3>
+<h4 id="131-physical-mechanisms-causing-phase-error">1.3.1. Physical Mechanisms Causing Phase Error<a class="headerlink" href="#131-physical-mechanisms-causing-phase-error" title="Permanent link">&para;</a></h4>
+<!-- Interferometric imaging and direction finding depend on measuring the geometric phase delay $\tau_g = \frac{B \sin\theta}{c}$ of an incoming celestial wavefront across baseline $B$. However, the raw measured phase $\Phi_\text{meas}(f)$ incorporates both geometric and hardware-induced instrumental errors:
+
+$$
+\Phi_\text{meas}(f) = 2\pi f \tau_g + \Delta\phi_0(f)
+$$
+
+
+
+The instrumental differential phase error $\Delta\phi_0(f) = \phi_1(f) - \phi_2(f)$ originates from hardware asymmetries along the analog signal conditioning paths of the two receivers:
+
+1. **Analog Intermediate-Frequency (IF) Filter Tolerances:** The analog baseband filters (e.g., the $8.0\text{ MHz}$ IF polyphase/LC filters inside the Mirics tuner architecture of the RSPdx) exhibit component tolerances of $\pm 1\%\text{--}5\%$. These component variations distort the complex transfer function $H_i(f) = |H_i(f)| e^{j\theta_i(f)}$, producing unequal non-linear group delay profiles $\tau_g(f) = -\frac{1}{2\pi}\frac{d\theta}{df}$ between Receiver 1 and Receiver 2.
+2. **Transmission Line Asymmetries:** Differential physical path lengths across internal PCB microstrip traces, SMA/BNC chassis connectors, and RF jumper cables introduce an electrical path difference $\Delta l = l_1 - l_2$. For a transmission medium with effective dielectric constant $\varepsilon_r$ and propagation velocity $v_p = \frac{c}{\sqrt{\varepsilon_r}}$, this introduces a linear phase dispersion:
+   $$\Delta\phi_\text{line}(f) = \frac{2\pi f}{v_p} \Delta l = 2\pi f \Delta\tau_\text{cable}$$
+   Even a minor physical length discrepancy of $\Delta l = 10\text{ cm}$ on coaxial lines ($v_p \approx 0.66c$) produces a measurable phase rotation of $\approx 1.8^\circ$ across the $35\text{ MHz}$ center frequency. -->
+
+<h4 id="132-frequency-dependent-phase-extraction-and-correction">1.3.2. Frequency-Dependent Phase Extraction and Correction<a class="headerlink" href="#132-frequency-dependent-phase-extraction-and-correction" title="Permanent link">&para;</a></h4>
+<!-- Because $\Delta\phi_0(f)$ varies non-linearly across the instantaneous $10\text{ MHz}$ reception band, scalar phase offsets are insufficient. Injecting a common, coherent broadband noise signal into both receiver ports creates a zero-baseline benchmark ($\tau_g = 0$).
+
+The complex cross-spectral density computed across $N = 2048$ discrete FFT bins $m \in [0, N-1]$ directly samples the instrumental phase error matrix:
+
+$$
+\Delta\phi_0[m] = \operatorname{atan2}\big(\operatorname{Im}\{S_{12,\text{cal}}[m]\}, \, \operatorname{Re}\{S_{12,\text{cal}}[m]\}\big)
+$$
+
+
+
+Prior to celestial integration, the cross-engine applies bin-by-bin complex conjugate phase rotation:
+
+$$
+S_{12,\text{calibrated}}[m] = S_{12,\text{sky}}[m] \cdot e^{-j \Delta\phi_0[m]}
+$$
+
+
+
+This neutralizes analog path deviations and flattens the instrumental phase response to $0^\circ \pm 0.5^\circ$ across the entire $30.0\text{--}40.0\text{ MHz}$ bandwidth. -->
+
+<hr />
+<h3 id="14-absolute-flux-scaling-semiconductor-thermal-drift">1.4. Absolute Flux Scaling &amp; Semiconductor Thermal Drift<a class="headerlink" href="#14-absolute-flux-scaling-semiconductor-thermal-drift" title="Permanent link">&para;</a></h3>
+<h4 id="141-the-need-for-absolute-radiometric-flux-calibration">1.4.1. The Need for Absolute Radiometric Flux Calibration<a class="headerlink" href="#141-the-need-for-absolute-radiometric-flux-calibration" title="Permanent link">&para;</a></h4>
+<!-- Digital outputs produced by the internal 14-bit ADCs consist of dimensionless integer values (arbitrary digital counts). In solar radio physics, astronomical relevance requires converting these digital cross-power magnitudes into standardized physical metrics:
+* **Antenna Equivalent Temperature ($T_A$):** Expressed in Kelvin ($\text{K}$).
+* **Solar Spectral Flux Density ($S_\nu$):** Expressed in Solar Flux Units ($\text{SFU}$), where:
+  $$1\text{ SFU} = 10^{-22}\text{ W}\cdot\text{m}^{-2}\cdot\text{Hz}^{-1} = 10^{-19}\text{ erg}\cdot\text{s}^{-1}\cdot\text{cm}^{-2}\cdot\text{Hz}^{-1}$$
+
+Without an absolute, traceable hot-load power standard, the measured visibilities remain purely qualitative, preventing cross-correlation with international solar radio observation networks (e.g., e-CALLISTO, Learmonth, or the GOES X-ray flux database). -->
+
+<h4 id="142-semiconductor-physics-of-thermal-gain-degradation">1.4.2. Semiconductor Physics of Thermal Gain Degradation<a class="headerlink" href="#142-semiconductor-physics-of-thermal-gain-degradation" title="Permanent link">&para;</a></h4>
+<p>During continuous decametric observation runs at <span class="arithmatex">\(10\text{ MSPS}\)</span>, the active digital baseband processing and internal LNA/mixer circuitry dissipate sustained electrical power. Within the shielded die-cast aluminum enclosure of the RSPdx, internal board temperatures rise from ambient room temperature (<span class="arithmatex">\(25^\circ\text{C}\)</span>) to a thermal equilibrium plateau between <span class="arithmatex">\(50^\circ\text{C}\)</span> and <span class="arithmatex">\(60^\circ\text{C}\)</span>.</p>
+<p>In active silicon bipolar and field-effect transistors, the thermal voltage is governed by:</p>
+<div class="arithmatex">\[
+V_T = \frac{k_B T}{q}
+\]</div>
+<p>where <span class="arithmatex">\(k_B\)</span> is the Boltzmann constant, <span class="arithmatex">\(q\)</span> is the elementary charge, and <span class="arithmatex">\(T\)</span> is absolute temperature in Kelvin. As temperature increases:
+1. <strong>Carrier Mobility Reduction:</strong> Increased phonon scattering diminishes charge carrier mobility <span class="arithmatex">\(\mu(T) \propto T^{-3/2}\)</span>, degrading the small-signal transconductance:</p>
+<div class="arithmatex">\[
+g_m \approx \sqrt{2\mu C_{ox} \frac{W}{L} I_D}
+\]</div>
+<ol>
+<li><strong>Gain Drift:</strong> The open-loop voltage gain of front-end Low-Noise Amplifiers (LNAs) and Programmable Gain Amplifiers (PGAs) drops proportionally (<span class="arithmatex">\(G \propto g_m \cdot R_L\)</span>), manifesting as continuous thermal gain drift (<span class="arithmatex">\(\approx -0.01\text{ to } -0.03\text{ dB/}^\circ\text{C}\)</span>).</li>
+</ol>
+<h4 id="143-inter-receiver-gain-asymmetry-and-cross-correlation-distortion">1.4.3. Inter-Receiver Gain Asymmetry and Cross-Correlation Distortion<a class="headerlink" href="#143-inter-receiver-gain-asymmetry-and-cross-correlation-distortion" title="Permanent link">&para;</a></h4>
+<p>Because the two RSPdx units are distinct physical enclosures with independent PCB assemblies, component-level manufacturing variations and subtle differences in localized convective cooling cause them to reach unequal equilibrium temperatures:</p>
+<div class="arithmatex">\[
+T_{\text{SDR}_1} \neq T_{\text{SDR}_2} \implies G_1(t, T) \neq G_2(t, T)
+\]</div>
+<p>The magnitude of the interferometric cross-power spectrum is proportional to the geometric mean of the channel gains:</p>
+<div class="arithmatex">\[
+|S_{12}(f)| = \sqrt{G_1(f) \cdot G_2(f)} \cdot |S_\text{sky}(f)|
+\]</div>
+<p>If Receiver 1 experiences a gain compression of <span class="arithmatex">\(-0.6\text{ dB}\)</span> while Receiver 2 experiences <span class="arithmatex">\(-1.4\text{ dB}\)</span> due to unequal thermal stabilization, the cross-correlation amplitude will drift dynamically over time. Absent dynamic baseline gain compensation, observers cannot distinguish whether a fluctuating signal amplitude corresponds to an authentic solar burst event or an instrumental thermal artifact.</p>
+<hr />
+<h3 id="15-the-broadband-noise-standard-in-situ-solution-and-thermal-compensation">1.5. The Broadband Noise Standard: In-Situ Solution and Thermal Compensation<a class="headerlink" href="#15-the-broadband-noise-standard-in-situ-solution-and-thermal-compensation" title="Permanent link">&para;</a></h3>
+<h4 id="151-avalanche-mechanism-fixed-excess-noise-ratio-enr">1.5.1. Avalanche Mechanism &amp; Fixed Excess Noise Ratio (ENR)<a class="headerlink" href="#151-avalanche-mechanism-fixed-excess-noise-ratio-enr" title="Permanent link">&para;</a></h4>
+<!-- To establish an immutable power reference, the internal calibrator exploits the reverse-biased avalanche breakdown of the base-emitter junction of a high-frequency silicon NPN transistor (2N2222). When biased past its breakdown voltage ($V_\text{BR} \approx 6.8\text{--}7.5\text{ V}$) by an external $+12\text{ V}$ regulated rail, charge carriers accelerated by the intense electric field liberate secondary electron-hole pairs through impact ionization.
+
+This breakdown occurs through localized, microscopic discharge channels known as microplasmas. The stochastic initiation and cessation of these microplasma states generate true Gaussian white noise characterized by a flat spectral response across $30.0\text{--}40.0\text{ MHz}$ and an immutable **Excess Noise Ratio (ENR)**, defined according to IEEE Standard 219:
+
+$$
+\text{ENR} = 10 \log_{10}\left( \frac{T_\text{hot} - T_0}{T_0} \right) \quad [\text{dB}]
+$$
+
+
+where $T_0 = 290\text{ K}$ is the standard reference temperature, and $T_\text{hot}$ represents the equivalent noise temperature of the active source. Following amplification by a monolithic gain block (MMIC) and attenuation by a precision $10\text{ dB}$ pad, the calibration source delivers a known nominal power density of $-50\text{ dBm} / \text{MHz}$ into a matched $50\ \Omega$ load. -->
+
+<h4 id="152-y-factor-radiometric-calibration">1.5.2. Y-Factor Radiometric Calibration<a class="headerlink" href="#152-y-factor-radiometric-calibration" title="Permanent link">&para;</a></h4>
+<!-- By controlling an RF switch network (HMC544AE), the system periodically alternates the receiver inputs between the sky antennas and the internal noise standard, performing an in-situ **Y-Factor measurement**:
+
+$$
+Y = \frac{P_\text{hot}}{P_\text{cold}}
+$$
+
+
+where $P_\text{hot}$ is the digital power measured while connected to the active noise standard ($T_\text{hot}$), and $P_\text{cold}$ is the digital power measured when terminated into an ambient reference load or cold sky background ($T_\text{cold} \approx 290\text{ K}$).
+
+From this ratio, the receiver system noise temperature $T_\text{sys}$ is resolved independently of instantaneous receiver gain:
+
+$$
+T_\text{sys} = \frac{T_\text{hot} - Y T_\text{cold}}{Y - 1}
+$$
+
+
+
+With $T_\text{sys}$ resolved in physical units (Kelvin), the digital counts are assigned an exact scaling coefficient:
+
+$$
+K_\text{scale} = \frac{k_B T_\text{sys} B}{P_\text{cold}} \quad \left[\frac{\text{Watts}}{\text{ADC Unit}}\right]
+$$
+
+
+which subsequently converts cross-power spectra to solar flux density through the effective aperture area of the antenna array ($A_\text{eff}$):
+
+$$
+S_\nu = \frac{2 k_B T_A}{A_\text{eff}} \cdot 10^{22} \quad [\text{SFU}]
+$$
+ -->
+
+<h4 id="153-resolving-calibration-drift-pulsed-gating-vs-continuous-receiver-dissipation">1.5.3. Resolving Calibration Drift: Pulsed Gating vs. Continuous Receiver Dissipation<a class="headerlink" href="#153-resolving-calibration-drift-pulsed-gating-vs-continuous-receiver-dissipation" title="Permanent link">&para;</a></h4>
+<p>A critical engineering consideration is whether the calibration noise source itself suffers from thermal drift. While semiconductor avalanche noise does exhibit a minor positive temperature coefficient (<span class="arithmatex">\(\approx +2\text{ to } +5\text{ mV/}^\circ\text{C}\)</span> on <span class="arithmatex">\(V_\text{BR}\)</span>, translating to an output power drift of <span class="arithmatex">\(\approx -0.015\text{ dB/}^\circ\text{C}\)</span>), the operational duty cycles of the SDRs and the noise standard prevent systemic calibration errors:</p>
+<ol>
+<li><strong>Continuous Operation of SDRs:</strong> The RSPdx receivers and host USB pipelines operate continuously 24 hours a day to capture stochastic solar flares, remaining in a steady-state thermal regime (<span class="arithmatex">\(50^\circ\text{C}\text{--}60^\circ\text{C}\)</span>) where internal gain drift is persistent.</li>
+<li><strong>Pulsed Operation of the Noise Source:</strong> The avalanche noise source is not powered continuously. Instead, it is gated via an isolated GPIO line on the Raspberry Pi 5. The source is energized only during dedicated calibration sweeps lasting <span class="arithmatex">\(300\text{ ms} \text{ to } 1000\text{ ms}\)</span> at periodic intervals (e.g., once every 30 minutes or prior to observation runs), resulting in a duty cycle of:</li>
+</ol>
+<div class="arithmatex">\[
+\text{Duty Cycle} = \frac{\tau_\text{on}}{\tau_\text{period}} \le \frac{1.0\text{ s}}{1800\text{ s}} \approx 0.056\%
+\]</div>
+<ol>
+<li><strong>Suppression of Self-Heating:</strong> With an operational duty cycle well below <span class="arithmatex">\(0.1\%\)</span>, the 2N2222 transistor die experiences zero internal self-heating (<span class="arithmatex">\(\Delta T_\text{junction} \approx 0\)</span>). The circuit operates at ambient chassis temperature throughout the measurement pulse, preserving the absolute stability of the physical ENR value.</li>
+</ol>
+<p>Furthermore, because the broadband noise signal is split symmetrically into both receiver channels via a 1:2 Wilkinson divider located in immediate physical proximity to the tuners, any common-mode phase or amplitude perturbations introduced by the calibration circuit affect both receivers equally, naturally canceling out in the differential phase matrix:</p>
+<div class="arithmatex">\[
+\Delta\phi_\text{noise} = \arg(S_{12}) = \phi_\text{noise}(t) - \phi_\text{noise}(t) = 0^\circ
+\]</div>
+<p>This ensures that the hardware standard delivers an invariant zero-phase and fixed-power benchmark across the lifespan of the instrument.</p>
+<!-- 
+<details>
+<summary>Hidden / unused section (click to view)</summary>
+
+#### 1.5.4. Physical Justification: BJT Avalanche vs. Zener Diode
+*   **Parasitic Junction Capacitance ($C_j$):** Standard Zener diodes exhibit high junction capacitance ($C_j \approx 30 - 100\text{ pF}$). At $35\text{ MHz}$, this capacitance presents a low reactance ($X_C \approx 91\ \Omega$), shunting high-frequency noise power directly to ground. Conversely, the Base–Emitter junction of an RF BJT (2N2222) features $C_j < 4\text{ pF}$ ($X_C > 1.1\text{ k}\Omega$), preserving spectral flatness into the VHF band.
+*   **Microplasma Generation:** Pure Zener tunneling ($< 5\text{V}$) is an orderly quantum process generating minimal RF excess noise. Operating the B-E junction in reverse avalanche breakdown ($> 6\text{V}$) creates violent impact ionization. Millions of microscopic plasma channels switch randomly at gigahertz rates, yielding a flat white noise floor across 30–40 MHz
+
+</details> -->
+
+<hr />
+<h2 id="3-chronological-log-entries">3. CHRONOLOGICAL LOG ENTRIES<a class="headerlink" href="#3-chronological-log-entries" title="Permanent link">&para;</a></h2>
+<h3 id="31-log-entry-01-bench-characterization-of-bjt-2n2222-breakdown">3.1. LOG ENTRY #01: Bench Characterization of BJT 2N2222 Breakdown<a class="headerlink" href="#31-log-entry-01-bench-characterization-of-bjt-2n2222-breakdown" title="Permanent link">&para;</a></h3>
+<h4 id="311-objective-and-measurement-specifications">3.1.1. Objective and Measurement Specifications<a class="headerlink" href="#311-objective-and-measurement-specifications" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p><strong>Primary Objective:</strong> Determine the precise reverse avalanche breakdown voltage (<span class="arithmatex">\(V_{\text{BR}}\)</span>), dynamic junction resistance (<span class="arithmatex">\(r_d\)</span>), and optimal noise-generation current of the through-hole (TO-92) NPN 2N2222 Base–Emitter (B-E) junction across the <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span> IF passband.</p>
+</li>
+<li>
+<p><strong>Instrumentation &amp; Test Equipment:</strong></p>
+</li>
+<li><strong>Precision Source-Measure Unit (SMU):</strong> Chroma 58221-200-2 (Configured in 4-Wire Constant Current [CC] mode; voltage compliance set to <span class="arithmatex">\(15.0\text{ V}\)</span>).</li>
+<li><strong>RF Spectrum Analyzer:</strong> Rohde &amp; Schwarz CMU200 (Selected receiver port: <strong>RF4 IN</strong> / High Sensitivity, input impedance <span class="arithmatex">\(50\ \Omega\)</span>).</li>
+<li>
+<p><strong>Coupling &amp; Matching Components:</strong> <span class="arithmatex">\(1.0\text{ nF}\)</span> high-Q ceramic disc DC-blocking capacitor (<span class="arithmatex">\(50\text{ V}\)</span> rating, <span class="arithmatex">\(X_C \approx 4.5\ \Omega\)</span> at <span class="arithmatex">\(35\text{ MHz}\)</span>); calibrated <span class="arithmatex">\(10.0\text{ dB}\)</span> coaxial <span class="arithmatex">\(\Pi\)</span>-network attenuator (<span class="arithmatex">\(50\ \Omega\)</span>, DC–3 GHz, <span class="arithmatex">\(\text{VSWR} &lt; 1.15\)</span>).</p>
+</li>
+<li>
+<p><strong>Analyzer Instrument Setup:</strong></p>
+</li>
+<li><strong>Center Frequency (<span class="arithmatex">\(f_c\)</span>):</strong> <span class="arithmatex">\(35.0\text{ MHz}\)</span></li>
+<li><strong>Frequency Span (<span class="arithmatex">\(\Delta f\)</span>):</strong> <span class="arithmatex">\(10.0\text{ MHz}\)</span> (sweep interval: <span class="arithmatex">\(30.0\text{ MHz} - 40.0\text{ MHz}\)</span>)</li>
+<li>
+<p><strong>Resolution Bandwidth (RBW):</strong> <span class="arithmatex">\(1.0\text{ MHz}\)</span></p>
+</li>
+<li>
+<p><strong>Detector Mode:</strong> RMS / Power Average (linear power averaging across 20 consecutive traces to stabilize stochastic microplasma power fluctuations)</p>
+</li>
+</ul>
+<hr />
+<h4 id="312-physical-principles-mathematical-enr-derivation">3.1.2. Physical Principles &amp; Mathematical ENR Derivation<a class="headerlink" href="#312-physical-principles-mathematical-enr-derivation" title="Permanent link">&para;</a></h4>
+<h5 id="3121-mcintyre-impact-ionization-microplasma-generation">3.1.2.1. McIntyre Impact Ionization &amp; Microplasma Generation<a class="headerlink" href="#3121-mcintyre-impact-ionization-microplasma-generation" title="Permanent link">&para;</a></h5>
+<!-- 
+When the Base–Emitter junction of a silicon planar BJT (such as the 2N2222) is subjected to a strong reverse bias exceeding its critical breakdown field, free carriers acquire sufficient kinetic energy within the high-field space-charge region to liberate electron-hole pairs via impact ionization. At lower current densities ($1\text{ mA} - 3\text{ mA}$), this manifests as stochastic switching of microscopic conducting channels known as **microplasmas**.
+
+The total mean-square noise current density generated under avalanche multiplication is governed by McIntyre's model:
+
+
+$$
+\overline{i_n^2} = 2 q I_{\text{bias}} M^2 F(M) \Delta f
+$$
+
+
+
+where:
+* $q = 1.602 \times 10^{-19}\text{ C}$ is the elementary charge.
+* $I_{\text{bias}}$ is the injected DC avalanche current.
+* $M$ is the mean avalanche multiplication factor ($M \gg 1$).
+* $F(M) \approx k_{\text{eff}} M + (1 - k_{\text{eff}})\left(2 - \frac{1}{M}\right)$ represents the excess noise factor.
+
+Because $M^2 F(M)$ reaches values of $10^3 - 10^4$ in silicon, the noise energy exceeds classical shot noise by over $30\text{ dB}$, producing an exceptionally flat Gaussian white noise spectrum from low frequencies up to VHF. -->
+
+<h5 id="3122-excess-noise-ratio-enr-calculation">3.1.2.2. Excess Noise Ratio (ENR) Calculation<a class="headerlink" href="#3122-excess-noise-ratio-enr-calculation" title="Permanent link">&para;</a></h5>
+<p>Excess Noise Ratio (ENR) defines the generated noise power spectral density relative to the Johnson–Nyquist thermal noise floor of a matched load at standard reference temperature (<span class="arithmatex">\(T_0 = 290\text{ K}\)</span>):</p>
+<div class="arithmatex">\[
+\text{ENR} = 10 \log_{10} \left( \frac{T_{\text{hot}} - T_0}{T_0} \right) = 10 \log_{10} \left( \frac{P_{\text{PSD}} - P_{0/\text{Hz}}}{P_{0/\text{Hz}}} \right)
+\]</div>
+<p>At <span class="arithmatex">\(T_0 = 290\text{ K}\)</span>, the baseline thermal noise density is:</p>
+<div class="arithmatex">\[
+P_{0/\text{Hz}} = k T_0 = -174.0\text{ dBm/Hz}
+\]</div>
+<p>When measuring on an analyzer configured with a resolution bandwidth of <span class="arithmatex">\(\text{RBW} = 1.0\text{ MHz} = 10^6\text{ Hz}\)</span>, the baseline thermal noise floor within that filter window expands by:</p>
+<div class="arithmatex">\[
+10 \log_{10}(10^6) = +60.0\text{ dB}
+\]</div>
+<div class="arithmatex">\[
+P_{\text{floor, 1MHz}} = -174.0\text{ dBm/Hz} + 60.0\text{ dB} = -114.0\text{ dBm}
+\]</div>
+<p>For a detected power level <span class="arithmatex">\(P_{\text{meas}}\)</span> (in <span class="arithmatex">\(\text{dBm}\)</span>) measured by the CMU200 at the output of the <span class="arithmatex">\(10\text{ dB}\)</span> attenuator pad:</p>
+<div class="arithmatex">\[
+\text{ENR}_{\text{sys}}\ (\text{dB}) = P_{\text{meas}}\ (\text{dBm}) - (-114.0\text{ dBm}) = P_{\text{meas}} + 114.0
+\]</div>
+<p>Accounting for the insertion loss of the matching attenuator (<span class="arithmatex">\(A_{\text{pad}} = 10.0\text{ dB}\)</span>), the intrinsic raw ENR generated directly across the BJT junction (<span class="arithmatex">\(\text{ENR}_{\text{DUT}}\)</span>) is:</p>
+<div class="arithmatex">\[
+\text{ENR}_{\text{DUT}}\ (\text{dB}) = \text{ENR}_{\text{sys}} + A_{\text{pad}} = P_{\text{meas}} + 124.0
+\]</div>
+<p>The total integrated power delivered over the entire <span class="arithmatex">\(10.0\text{ MHz}\)</span> receiver passband (<span class="arithmatex">\(B = 10\text{ MHz}\)</span>) is:</p>
+<div class="arithmatex">\[
+P_{\text{total, 10MHz}} = P_{\text{meas}} + 10 \log_{10} \left( \frac{10\text{ MHz}}{1\text{ MHz}} \right) = P_{\text{meas}} + 10.0\text{ dB}
+\]</div>
+<hr />
+<h4 id="313-hardware-testbench-configuration-wiring">3.1.3. Hardware Testbench Configuration &amp; Wiring<a class="headerlink" href="#313-hardware-testbench-configuration-wiring" title="Permanent link">&para;</a></h4>
+<h5 id="3131-interconnect-schematic-diagram">3.1.3.1. Interconnect Schematic Diagram<a class="headerlink" href="#3131-interconnect-schematic-diagram" title="Permanent link">&para;</a></h5>
+<p>To eliminate lead contact resistance and maintain bias voltage readouts accurate to the millivolt level, the Chroma 58221-200-2 SMU is wired via 4-wire remote Kelvin sensing. The series <span class="arithmatex">\(1.0\text{ nF}\)</span> ceramic capacitor provides DC isolation (<span class="arithmatex">\(V_{\text{BR}} \approx 9.2\text{ V}\)</span>), while the <span class="arithmatex">\(10.0\text{ dB}\)</span> coaxial attenuator forces source return loss beyond <span class="arithmatex">\(22\text{ dB}\)</span> (<span class="arithmatex">\(50\ \Omega\)</span> reference impedance).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>  +-----------------------------------------------------------------------------+
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  |                          CHROMA 58221-200-2 SMU                             |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  |  Force (+) [I+] ────┐                                                       |
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  |  Sense (+) [V+] ──┐ │                                                       |
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  |                   │ │                                                       |
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  |  Sense (-) [V-] ──┼─┼───────────────┐                                       |
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  |  Force (-) [I-] ──┼─┼─────────────┐ │                                       |
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  +-------------------┼─┼-------------┼─┼---------------------------------------+
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                      │ │             │ │
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                      │ │             │ │ (Kelvin clip lead pair)
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                      ▼ ▼             ▼ ▼
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                   ┌───────┐       ┌───────┐
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                   │   E   │       │   B   │
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                   │       │       │       │
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                 ┌─┴───────┴───────┴───────┴─┐
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                 │       2N2222 (TO-92)      │  Base tied to GND
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                 │    Reverse-Biased B-E     │  Collector left floating (NC)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                 └─────────────┬─────────────┘
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                               │ RF + DC Potential (~9.2 V)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                               │
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>                       [ C_block: 1.0 nF ]
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>                       (Ceramic, 50V, NP0)
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>                               │
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>                               │ RF Noise (DC Isolated)
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>                               ▼
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>                   ┌───────────────────────┐
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>                   │    10 dB ATTENUATOR   │  Pi-Pad Coaxial Attenuator
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>                   │   (50 Ω Return Loss)  │  VSWR &lt; 1.15 (DC - 3 GHz)
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>                   └───────────┬───────────┘
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>                               │
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>                               │ Matched Noise Output (-80 dBm / MHz at Sweet Spot)
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>                               ▼
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>                 +───────────────────────────+
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>                 |    ROHDE &amp; SCHWARZ CMU200 |
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>                 |     High-Sensitivity      |
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>                 |       [ RF4 IN ]          |
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>                 |      (50 Ω Input)         |
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>                 +───────────────────────────+
+</code></pre></div>
+<h5 id="3132-physical-laboratory-testbench-setup">3.1.3.2. Physical Laboratory Testbench Setup<a class="headerlink" href="#3132-physical-laboratory-testbench-setup" title="Permanent link">&para;</a></h5>
+<p>The hardware assembly below illustrates the physical wiring harness between the SMU Kelvin leads, the breadboard test fixture housing the 2N2222 DUT, the series DC blocking capacitor, the coaxial attenuator, and the CMU200 input interface.</p>
+<p><img alt="Physical Bench Test Setup" src="../../assets/photos/noise_source_2.1_setup.jpg" />
+<em>Figure 1.1: Physical laboratory testbench arrangement showing the Chroma 58221-200-2 4-wire Kelvin probe interface clamped to the 2N2222 TO-92 junction, <span class="arithmatex">\(1.0\text{ nF}\)</span> series DC-blocking capacitor, inline <span class="arithmatex">\(10.0\text{ dB}\)</span> <span class="arithmatex">\(50\ \Omega\)</span> SMA attenuator, and low-loss coaxial cabling to the R&amp;S CMU200 RF4 IN port.</em></p>
+<hr />
+<h4 id="314-experimental-spectrum-observation">3.1.4. Experimental Spectrum Observation<a class="headerlink" href="#314-experimental-spectrum-observation" title="Permanent link">&para;</a></h4>
+<p>The captured spectrum analyzer trace verifies uniform, broadband avalanche noise across the designated operational bandwidth (<span class="arithmatex">\(30.0\text{ MHz} - 40.0\text{ MHz}\)</span>). The RMS detector coupled with 20 trace averages smooths out stochastic microplasma burst noise, delineating the true underlying power spectral density.</p>
+<p><img alt="CMU200 Spectrum Analyzer Output" src="../../assets/photos/noise_source_spectrum_output.jpg" />
+<em>Figure 1.2: Spectral density of the raw 2N2222 avalanche core recorded on the R&amp;S CMU200 (Span: <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span>, <span class="arithmatex">\(\text{RBW} = 1.0\text{ MHz}\)</span>, RMS Detector, through <span class="arithmatex">\(1.0\text{ nF}\)</span> DC block and <span class="arithmatex">\(10.0\text{ dB}\)</span> matching pad).</em></p>
+<hr />
+<h4 id="315-dc-parametric-sweep-and-noise-survey-10-ma-100-ma">3.1.5. DC Parametric Sweep and Noise Survey (1.0 mA - 10.0 mA)<a class="headerlink" href="#315-dc-parametric-sweep-and-noise-survey-10-ma-100-ma" title="Permanent link">&para;</a></h4>
+<p>A parametric current sweep was conducted using the Chroma SMU from <span class="arithmatex">\(1.0\text{ mA}\)</span> to <span class="arithmatex">\(10.0\text{ mA}\)</span> in steps of <span class="arithmatex">\(1.0\text{ mA}\)</span>. At each bias step, the junction clamp potential (<span class="arithmatex">\(V_{\text{BR}}\)</span>), measured output power (<span class="arithmatex">\(P_{\text{meas}}\)</span> in <span class="arithmatex">\(1\text{ MHz}\)</span> RBW), system ENR, intrinsic ENR, and qualitative trace behavior were cataloged:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><span class="arithmatex">\(I_{\text{bias}}\)</span> (mA)</th>
+<th style="text-align: left;">Breakdown Voltage <span class="arithmatex">\(V_{\text{BR}}\)</span> (V)</th>
+<th style="text-align: left;">Measured Power <span class="arithmatex">\(P_{\text{meas}}\)</span> at CMU200 (dBm)</th>
+<th style="text-align: left;">System ENR <span class="arithmatex">\(\text{ENR}_{\text{sys}}\)</span> (dB)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>1.0</strong></td>
+<td style="text-align: left;">9.29</td>
+<td style="text-align: left;">-81</td>
+<td style="text-align: left;">+33.5</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2.0</strong></td>
+<td style="text-align: left;"><strong>9.31</strong></td>
+<td style="text-align: left;"><strong>-80.0</strong></td>
+<td style="text-align: left;"><strong>+34.0</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>3.0</strong></td>
+<td style="text-align: left;">9.32</td>
+<td style="text-align: left;">-80.0</td>
+<td style="text-align: left;">+34.0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>4.0</strong></td>
+<td style="text-align: left;">9.34</td>
+<td style="text-align: left;">-81.0</td>
+<td style="text-align: left;">+33.0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5.0</strong></td>
+<td style="text-align: left;">9.36</td>
+<td style="text-align: left;">-81.5</td>
+<td style="text-align: left;">+32.5</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>6.0</strong></td>
+<td style="text-align: left;">9.37</td>
+<td style="text-align: left;">-82.5</td>
+<td style="text-align: left;">+31.5</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>7.0</strong></td>
+<td style="text-align: left;">9.38</td>
+<td style="text-align: left;">-84.0</td>
+<td style="text-align: left;">+30.0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>8.0</strong></td>
+<td style="text-align: left;">9.43</td>
+<td style="text-align: left;">-84.5</td>
+<td style="text-align: left;">+29.5</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>9.0</strong></td>
+<td style="text-align: left;">9.44</td>
+<td style="text-align: left;">-85.0</td>
+<td style="text-align: left;">+29.0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>10.0</strong></td>
+<td style="text-align: left;">9.47</td>
+<td style="text-align: left;">-85.0</td>
+<td style="text-align: left;">+29.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="316-engineering-conclusions-design-next-steps">3.1.6. Engineering Conclusions &amp; Design Next Steps<a class="headerlink" href="#316-engineering-conclusions-design-next-steps" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p><strong>Operating Point Selection:</strong></p>
+</li>
+<li>
+<p>The optimal bias current is locked at <span class="arithmatex">\(I_{\text{bias}} = 2.0\text{ mA}\)</span> (<span class="arithmatex">\(V_{\text{BR}} = 9.21\text{ V}\)</span>). At this operating point, the avalanche core produces an intrinsic raw ENR of <span class="arithmatex">\(+44.0\text{ dB}\)</span> (equivalent to <span class="arithmatex">\(-70.0\text{ dBm}\)</span> integrated over the entire <span class="arithmatex">\(10\text{ MHz}\)</span> receiver passband) with optimum spectral flatness (<span class="arithmatex">\(\pm 0.35\text{ dB}\)</span> across <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span>).</p>
+</li>
+<li>
+<p><strong>Gain Budgeting for Receiver Front-End:</strong></p>
+</li>
+<li>
+<p>The SDRplay RSPdx receiver front-end operating at nominal gain settings (<code>GAIN_GRDB = 30</code>) requires an injected input level of <span class="arithmatex">\(-55.0\text{ dBm}\)</span> to <span class="arithmatex">\(-45.0\text{ dBm}\)</span> to guarantee a cross-correlation Peak-to-Noise Ratio (<span class="arithmatex">\(\text{PNR}\)</span>) exceeding <span class="arithmatex">\(30\text{ dB}\)</span>.</p>
+</li>
+<li>
+<p>Because the post-attenuator power from the raw core at <span class="arithmatex">\(2.0\text{ mA}\)</span> is only <span class="arithmatex">\(-80.0\text{ dBm}\)</span> (over <span class="arithmatex">\(10\text{ MHz}\)</span>), an intermediate RF buffer stage (<span class="arithmatex">\(Q_2\)</span>) delivering <span class="arithmatex">\(+25.0\text{ dB}\)</span> to <span class="arithmatex">\(+30.0\text{ dB}\)</span> of linear power gain is mandatory prior to the final <span class="arithmatex">\(50\ \Omega\)</span> matching network.</p>
+</li>
+</ol>
+<hr />
+<h3 id="32-log-entry-02-discrete-active-current-source-implementation-2-bjt-pnp">3.2. LOG ENTRY #02: Discrete Active Current Source Implementation (2-BJT PNP)<a class="headerlink" href="#32-log-entry-02-discrete-active-current-source-implementation-2-bjt-pnp" title="Permanent link">&para;</a></h3>
+<h4 id="321-problem-statement-quantitative-error-analysis">3.2.1. Problem Statement &amp; Quantitative Error Analysis<a class="headerlink" href="#321-problem-statement-quantitative-error-analysis" title="Permanent link">&para;</a></h4>
+<p>Bench laboratory programmable DC supplies (such as the Chroma source) cannot be integrated onto the final embedded receiver shield in the field. An initial passive pull-up resistor topology powered from an unregulated or semi-regulated <span class="arithmatex">\(+15\text{ V}\)</span> DC supply rail leaves an extremely narrow operating voltage headroom:</p>
+<div class="arithmatex">\[
+\Delta V = V_{\text{CC}} - V_{\text{BR}} = 15\text{ V} - 9.2\text{ V} = 5.8\text{ V}
+\]</div>
+<p>To establish the target nominal avalanche bias current <span class="arithmatex">\(I_{\text{bias}} = 2.0\text{ mA}\)</span>, the required passive pull-up resistance is:</p>
+<div class="arithmatex">\[
+R_{\text{pull-up}} = \frac{\Delta V}{I_{\text{bias}}} = \frac{5.8\text{ V}}{2.0\text{ mA}} = 2.9\text{ k}\Omega
+\]</div>
+<p>Because a purely passive pull-up topology provides zero active negative feedback or power supply rejection (PSRR), any line noise, switching ripple, or DC bus fluctuations directly perturb the reverse-biased junction breakdown point:</p>
+<ul>
+<li><strong>Switching Power Supply Ripple (<span class="arithmatex">\(\Delta V_{\text{ripple}} = 100\text{ mV}_{\text{p-p}}\)</span>):</strong><br />
+  High-frequency ripple from step-up/step-down converters produces direct instantaneous current modulation:</li>
+</ul>
+<div class="arithmatex">\[
+\Delta I_{\text{ripple}} = \frac{100\text{ mV}}{2.9\text{ k}\Omega} \approx 0.0345\text{ mA} \quad (\approx 1.72\%)
+\]</div>
+<p>This periodic variation amplitude-modulates (AM) the avalanche plasma carrier density, generating spurious spectral spurs across the RF passband and destroying the Gaussian white-noise characteristics of the source.</p>
+<ul>
+<li><strong>DC Voltage Drift (<span class="arithmatex">\(\Delta V_{\text{drift}} = 500\text{ mV}\)</span> drop):</strong><br />
+  A minor line droop of <span class="arithmatex">\(500\text{ mV}\)</span> (representing a <span class="arithmatex">\(3.33\%\)</span> drop on a nominal <span class="arithmatex">\(15\text{ V}\)</span> rail) induces a severe static current collapse:</li>
+</ul>
+<div class="arithmatex">\[
+\Delta I_{\text{drift}} = \frac{0.5\text{ V}}{2.9\text{ k}\Omega} \approx 0.172\text{ mA} \quad (\approx \mathbf{8.62\%})
+\]</div>
+<ul>
+<li><strong>Impact on Excess Noise Ratio (ENR):</strong><br />
+  In the avalanche breakdown region, the generated shot and microplasma spectral noise power density is directly proportional to the DC bias current (<span class="arithmatex">\(\overline{i_n^2} \propto I_{\text{bias}}\)</span>). Consequently, an <span class="arithmatex">\(8.62\%\)</span> current drop directly alters the Excess Noise Ratio (ENR):</li>
+</ul>
+<div class="arithmatex">\[
+\Delta \text{ENR} \approx 10 \log_{10}\left(1 + \frac{\Delta I}{I_{\text{bias}}}\right) = 10 \log_{10}(1 - 0.0862) \approx \mathbf{-0.39\text{ dB}}
+\]</div>
+<p>In radio astronomy calibration budgets, where the maximum permissible uncertainty is typically constrained within <span class="arithmatex">\(\pm 0.15\text{ dB}\)</span>, an ENR error of <span class="arithmatex">\(-0.39\text{ dB}\)</span> skews radiometric system temperature (<span class="arithmatex">\(T_{\text{sys}}\)</span>) and sky flux density calculations by approximately <span class="arithmatex">\(8.6\%\)</span>. This necessitated the design of an active, high-PSRR constant current source.</p>
+<hr />
+<h4 id="322-circuit-architecture">3.2.2. Circuit Architecture<a class="headerlink" href="#322-circuit-architecture" title="Permanent link">&para;</a></h4>
+<p>To insulate the avalanche breakdown junction from supply line fluctuations, an active, discrete two-transistor constant current source was designed using two matched PNP BJTs (<strong>2N2907</strong>, designated <span class="arithmatex">\(Q_{\text{pass}}\)</span> and <span class="arithmatex">\(Q_{\text{sense}}\)</span>).</p>
+<p><img alt="2-BJT PNP Active Current Source Schematic" src="../../assets/photos/current_source_schematic.png" />
+<em>Figure 1: Schematic diagram of the discrete 2-BJT PNP active current source delivering regulated bias to the avalanche junction.</em></p>
+<h5 id="3221-feedback-regulation-mechanism">3.2.2.1. Feedback Regulation Mechanism<a class="headerlink" href="#3221-feedback-regulation-mechanism" title="Permanent link">&para;</a></h5>
+<ol>
+<li>The load current flowing into the avalanche breakdown diode passes entirely through the sense resistor <span class="arithmatex">\(R_{\text{sense}}\)</span> positioned at the emitter of the series-pass transistor <span class="arithmatex">\(Q_{\text{pass}}\)</span>.</li>
+<li>As the output current rises, the voltage drop across <span class="arithmatex">\(R_{\text{sense}}\)</span> increases:</li>
+</ol>
+<div class="arithmatex">\[
+V_{\text{sense}} = I_{\text{bias}} \cdot R_{\text{sense}}
+\]</div>
+<ol>
+<li>This voltage directly biases the Base-Emitter junction of the sensing transistor <span class="arithmatex">\(Q_{\text{sense}}\)</span>. When <span class="arithmatex">\(V_{\text{sense}}\)</span> reaches the threshold <span class="arithmatex">\(V_{\text{BE(on)}} \approx 0.65\text{ V}\)</span>, <span class="arithmatex">\(Q_{\text{sense}}\)</span> begins conducting collector current.</li>
+<li>The collector of <span class="arithmatex">\(Q_{\text{sense}}\)</span> pulls the Base node of <span class="arithmatex">\(Q_{\text{pass}}\)</span> upward toward <span class="arithmatex">\(V_{\text{CC}}\)</span>, reducing the <span class="arithmatex">\(V_{\text{EB}}\)</span> drive of <span class="arithmatex">\(Q_{\text{pass}}\)</span> and throttling back conduction.</li>
+<li>This negative feedback loop clamps <span class="arithmatex">\(I_{\text{bias}}\)</span> to a stable constant value, providing dynamic output impedance in the megaohm range and effectively attenuating ripple on <span class="arithmatex">\(V_{\text{CC}}\)</span>.</li>
+</ol>
+<hr />
+<h4 id="323-theoretical-formulation-component-selection">3.2.3. Theoretical Formulation &amp; Component Selection<a class="headerlink" href="#323-theoretical-formulation-component-selection" title="Permanent link">&para;</a></h4>
+<h5 id="3231-current-sense-resistor-r_sense">3.2.3.1. Current Sense Resistor (R_sense)<a class="headerlink" href="#3231-current-sense-resistor-r_sense" title="Permanent link">&para;</a></h5>
+<p>The nominal sensing resistance is calculated using the forward-bias threshold of <span class="arithmatex">\(Q_{\text{sense}}\)</span>:</p>
+<div class="arithmatex">\[
+R_{\text{sense}} = \frac{V_{\text{BE(sense)}}}{I_{\text{bias}}} \approx \frac{0.65\text{ V}}{2.0\text{ mA}} \approx 325\ \Omega
+\]</div>
+<ul>
+<li><strong>Selected Nominal Value:</strong> The closest standard E24 resistor is <span class="arithmatex">\(R_{\text{nominal}} = 330\ \Omega\)</span>.</li>
+</ul>
+<h5 id="3232-base-pull-down-resistor-r_pull">3.2.3.2. Base Pull-Down Resistor (R_pull)<a class="headerlink" href="#3232-base-pull-down-resistor-r_pull" title="Permanent link">&para;</a></h5>
+<p>A pull-down resistor <span class="arithmatex">\(R_{\text{pull}} = 10\text{ k}\Omega\)</span> ties the Base of <span class="arithmatex">\(Q_{\text{pass}}\)</span> to ground (GND), ensuring adequate base current to saturate or drive <span class="arithmatex">\(Q_{\text{pass}}\)</span> into its linear forward-active operating region across variations:</p>
+<div class="arithmatex">\[
+V_{\text{EC(pass)}} = V_{\text{CC}} - V_{\text{sense}} - V_{\text{BR}} = 15\text{ V} - 0.65\text{ V} - 9.2\text{ V} = 5.15\text{ V} \gg V_{\text{EC(sat)}}
+\]</div>
+<p>With <span class="arithmatex">\(V_{\text{EC(pass)}} \approx 5.15\text{ V}\)</span>, the transistor operates deep within its active region, ensuring high output resistance (<span class="arithmatex">\(r_o\)</span>) and preventing early-voltage clipping.</p>
+<hr />
+<h4 id="324-hardware-implementation-lab-bench-setup">3.2.4. Hardware Implementation &amp; Lab Bench Setup<a class="headerlink" href="#324-hardware-implementation-lab-bench-setup" title="Permanent link">&para;</a></h4>
+<p>The circuit was prototyped on a low-parasitic copper clad board for zero-baseline laboratory validation prior to PCB integration.</p>
+<p><img alt="Lab Bench Prototyping &amp; Test Setup" src="../../assets/photos/current_source_setup.jpg" />
+<em>Figure 2: Laboratory bench test setup showing the breadboard prototype of the 2-BJT current source driving the avalanche diode, monitored via digital multimeter and spectrum analyzer.</em></p>
+<h4 id="325-validation-summary">3.2.5. Validation Summary<a class="headerlink" href="#325-validation-summary" title="Permanent link">&para;</a></h4>
+<h5 id="3251-empirical-test-data">3.2.5.1. Empirical Test Data<a class="headerlink" href="#3251-empirical-test-data" title="Permanent link">&para;</a></h5>
+<p>Laboratory validation of the active 2-BJT PNP current source over a wide supply rail sweep (<span class="arithmatex">\(V_{\text{source}} = 14.0\text{ V} \to 16.0\text{ V}\)</span>, <span class="arithmatex">\(\Delta V_{\text{source}} = 2.0\text{ V}\)</span>) driving the avalanche breakdown junction of a 2N2222 BJT (<span class="arithmatex">\(V_{\text{out}} \approx 9.27\text{ V}\)</span>) with sense resistor <span class="arithmatex">\(R_{\text{sense}} = 330\ \Omega\)</span>:</p>
+<ul>
+<li><strong>Emitter-Base Sense Voltage:</strong> <span class="arithmatex">\(V_{\text{EB}} = V_{\text{source}} - V_{\text{sense,B}}\)</span></li>
+<li><strong>Regulated Avalanche Bias Current:</strong> <span class="arithmatex">\(I_{\text{bias}} = \frac{V_{\text{EB}}}{R_{\text{sense}}} = \frac{V_{\text{EB}}}{330\ \Omega}\)</span></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;"><span class="arithmatex">\(V_{\text{source}}\text{ (V)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(V_{\text{out}}\text{ (V)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(V_{\text{sense,B}}\text{ (V)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(V_{\text{pass,B}}\text{ (V)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(V_{\text{EB}}\text{ (V)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(I_{\text{bias}}\text{ (mA)}\)</span></th>
+<th style="text-align: center;"><span class="arithmatex">\(I_{\text{source}}\text{ (mA)}\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">14.0</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.38</td>
+<td style="text-align: center;">12.75</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.13</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.1</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.48</td>
+<td style="text-align: center;">12.85</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.14</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.2</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.58</td>
+<td style="text-align: center;">12.96</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.15</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.3</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.68</td>
+<td style="text-align: center;">13.05</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.16</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.4</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.78</td>
+<td style="text-align: center;">13.16</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.17</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.5</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.89</td>
+<td style="text-align: center;">13.26</td>
+<td style="text-align: center;">0.61</td>
+<td style="text-align: center;">1.85</td>
+<td style="text-align: center;">3.18</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.6</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">13.98</td>
+<td style="text-align: center;">13.36</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.19</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.7</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">14.09</td>
+<td style="text-align: center;">13.46</td>
+<td style="text-align: center;">0.61</td>
+<td style="text-align: center;">1.85</td>
+<td style="text-align: center;">3.20</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.8</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">14.19</td>
+<td style="text-align: center;">13.56</td>
+<td style="text-align: center;">0.61</td>
+<td style="text-align: center;">1.85</td>
+<td style="text-align: center;">3.21</td>
+</tr>
+<tr>
+<td style="text-align: center;">14.9</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">14.28</td>
+<td style="text-align: center;">13.66</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.22</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>15.0</strong></td>
+<td style="text-align: center;"><strong>9.26</strong></td>
+<td style="text-align: center;"><strong>14.38</strong></td>
+<td style="text-align: center;"><strong>13.75</strong></td>
+<td style="text-align: center;"><strong>0.62</strong></td>
+<td style="text-align: center;"><strong>1.88</strong></td>
+<td style="text-align: center;"><strong>3.23</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">15.1</td>
+<td style="text-align: center;">9.26</td>
+<td style="text-align: center;">14.48</td>
+<td style="text-align: center;">13.85</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.25</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.2</td>
+<td style="text-align: center;">9.26</td>
+<td style="text-align: center;">14.58</td>
+<td style="text-align: center;">13.95</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.26</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.3</td>
+<td style="text-align: center;">9.26</td>
+<td style="text-align: center;">14.68</td>
+<td style="text-align: center;">14.05</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.27</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.4</td>
+<td style="text-align: center;">9.26</td>
+<td style="text-align: center;">14.78</td>
+<td style="text-align: center;">14.15</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.28</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.5</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">14.88</td>
+<td style="text-align: center;">14.25</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.29</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.6</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">14.98</td>
+<td style="text-align: center;">14.35</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.30</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.7</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">15.08</td>
+<td style="text-align: center;">14.45</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.31</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.8</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">15.18</td>
+<td style="text-align: center;">14.55</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.32</td>
+</tr>
+<tr>
+<td style="text-align: center;">15.9</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">15.28</td>
+<td style="text-align: center;">14.65</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.33</td>
+</tr>
+<tr>
+<td style="text-align: center;">16.0</td>
+<td style="text-align: center;">9.27</td>
+<td style="text-align: center;">15.38</td>
+<td style="text-align: center;">14.75</td>
+<td style="text-align: center;">0.62</td>
+<td style="text-align: center;">1.88</td>
+<td style="text-align: center;">3.34</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="326-line-regulation-dynamic-output-impedance">3.2.6. Line Regulation &amp; Dynamic Output Impedance<a class="headerlink" href="#326-line-regulation-dynamic-output-impedance" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Line Regulation Sensitivity (<span class="arithmatex">\(S_I\)</span>):</strong><br />
+  Over the full <span class="arithmatex">\(\Delta V_{\text{source}} = 2.0\text{ V}\)</span> span, <span class="arithmatex">\(V_{\text{EB}}\)</span> remains tightly clamped at <span class="arithmatex">\(0.62\text{ V}\)</span> with a single-digit measurement fluctuation bounded within <span class="arithmatex">\(\Delta V_{\text{EB}} \le 0.01\text{ V}\)</span> (<span class="arithmatex">\(10\text{ mV}\)</span>, matching instrument resolution). The resulting maximum bias drift is:</li>
+</ul>
+<div class="arithmatex">\[
+\Delta I_{\text{bias}} = 1.879\text{ mA} - 1.848\text{ mA} \approx 0.0303\text{ mA} \quad (30.3\ \mu\text{A})
+\]</div>
+<div class="arithmatex">\[
+S_{I} = \frac{\Delta I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{0.0303\text{ mA}}{2.0\text{ V}} \approx 0.0152\text{ mA/V} = 15.15\ \mu\text{A/V}
+\]</div>
+<p>Expressed as relative sensitivity:</p>
+<div class="arithmatex">\[
+\frac{\Delta I_{\text{bias}} / I_{\text{bias}}}{\Delta V_{\text{source}}} = \frac{1.61\%}{2.0\text{ V}} \approx 0.81\%/\text{V}
+\]</div>
+<ul>
+<li><strong>Dynamic Output Resistance (<span class="arithmatex">\(r_{\text{out}}\)</span>):</strong><br />
+  The small-signal dynamic impedance looking into the collector of the active pass transistor <span class="arithmatex">\(Q_{\text{pass}}\)</span> is:</li>
+</ul>
+<div class="arithmatex">\[
+r_{\text{out}} = \frac{\Delta V_{\text{source}}}{\Delta I_{\text{bias}}} = \frac{2.0\text{ V}}{30.3\ \mu\text{A}} \approx 66.0\text{ k}\Omega
+\]</div>
+<p>Compared to a passive pull-up resistor (<span class="arithmatex">\(R_{\text{passive}} = \frac{15.0\text{ V} - 9.27\text{ V}}{2.0\text{ mA}} \approx 2.87\text{ k}\Omega\)</span>), the active circuit increases dynamic source impedance by:</p>
+<div class="arithmatex">\[
+\frac{r_{\text{out}}}{R_{\text{passive}}} = \frac{66.0\text{ k}\Omega}{2.87\text{ k}\Omega} \approx 23.0\times \quad (\mathbf{+27.2\text{ dB}}\text{ PSRR improvement})
+\]</div>
+<ul>
+<li><strong>Base Current Divergence Analysis:</strong><br />
+  While <span class="arithmatex">\(I_{\text{bias}}\)</span> remains constant at <span class="arithmatex">\(1.88\text{ mA}\)</span>, the measured total current <span class="arithmatex">\(I_{\text{source}}\)</span> increases from <span class="arithmatex">\(3.13\text{ mA}\)</span> to <span class="arithmatex">\(3.34\text{ mA}\)</span> (<span class="arithmatex">\(\Delta I_{\text{source}} = 0.21\text{ mA}\)</span>). This perfectly correlates with the static current drawn by the base pull-down resistor <span class="arithmatex">\(R_{\text{pull}} = 10\text{ k}\Omega\)</span> connected to ground:</li>
+</ul>
+<div class="arithmatex">\[
+\Delta I_{\text{pull}} = \frac{\Delta V_{\text{pass,B}}}{R_{\text{pull}}} = \frac{14.75\text{ V} - 12.75\text{ V}}{10\text{ k}\Omega} = \frac{2.00\text{ V}}{10\text{ k}\Omega} = 0.20\text{ mA}
+\]</div>
+<p>This confirms that excess line voltage is entirely dissipated across the passive biasing branch, while the core avalanche junction is decoupled and fed by a constant current.</p>
+<hr />
+<h3 id="33-log-entry-03-mmic-buffer-amplifier-gali-74-thermal-optimization-of-r_bias">3.3. LOG ENTRY #03: MMIC Buffer Amplifier (GALI-74) &amp; Thermal Optimization of R_bias<a class="headerlink" href="#33-log-entry-03-mmic-buffer-amplifier-gali-74-thermal-optimization-of-r_bias" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Power Budget Target:</strong> Deliver <strong><span class="arithmatex">\(-40\text{ dBm}\)</span> total power</strong> across the <span class="arithmatex">\(10\text{ MHz}\)</span> bandwidth (<span class="arithmatex">\(30 - 40\text{ MHz}\)</span>) to drive the RSPdx receivers at <span class="arithmatex">\(-14\text{ dBFS} \dots -18\text{ dBFS}\)</span> without ADC clipping. On the CMU200 with <span class="arithmatex">\(\text{RBW} = 1\text{ MHz}\)</span>, this corresponds to:
+    $<span class="arithmatex">\(P_{\text{RBW}} = -40\text{ dBm} - 10\log_{10}\left(\frac{10\text{ MHz}}{1\text{ MHz}}\right) = -50\text{ dBm}\)</span>$</p>
+</li>
+<li>
+<p><strong>MMIC Operating Point:</strong> Mini-Circuits GALI-74 requires a device operating current <span class="arithmatex">\(I_d \approx 80\text{ mA}\)</span> at device voltage <span class="arithmatex">\(V_d \approx 4.8\text{ V}\)</span>.</p>
+</li>
+<li>
+<p><strong>Bias Resistance Calculation (from 15V Supply):</strong>
+    $<span class="arithmatex">\(R_{\text{bias}} = \frac{V_{\text{CC}} - V_d}{I_d} = \frac{15.0\text{ V} - 4.8\text{ V}}{0.080\text{ A}} = \frac{10.2\text{ V}}{0.080\text{ A}} = 127.5\ \Omega\)</span>$</p>
+<div class="arithmatex">\[P_{\text{diss}} = I_d^2 \cdot R_{\text{bias}} = (0.08\text{ A})^2 \times 127.5\ \Omega \approx 0.816\text{ W} \approx 0.82\text{ W}\]</div>
+</li>
+<li>
+<p><strong>Engineering Trade-off &amp; Cost Optimization:</strong></p>
+<ul>
+<li><em>Issue:</em> A dedicated <span class="arithmatex">\(127\ \Omega\)</span>, <span class="arithmatex">\(&gt;1\text{ W}\)</span> precision resistor (2512 SMD or TO-220) is expensive and difficult to source locally.</li>
+<li><em>Implementation:</em> Paralleled <strong>four <span class="arithmatex">\(510\ \Omega\)</span> SMD 1206 resistors</strong> (standard E24 series):<ul>
+<li><strong>Equivalent Resistance:</strong> <span class="arithmatex">\(R_{\text{total}} = \frac{510\ \Omega}{4} = 127.5\ \Omega\)</span> (<span class="arithmatex">\(0.0\%\)</span> error against target).</li>
+<li><strong>Power Capability:</strong> Rated at <span class="arithmatex">\(0.25\text{ W}\)</span> each, four 1206 packages handle <span class="arithmatex">\(P_{\text{rated}} = 4 \times 0.25\text{ W} = 1.0\text{ W} &gt; 0.82\text{ W}\)</span> (<span class="arithmatex">\(22\%\)</span> thermal margin).</li>
+<li><strong>Thermal Dissipation:</strong> Distributes heat across 8 solder pads and copper planes, eliminating localized hot spots.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>RF Output Coupling:</strong> Choke inductor <span class="arithmatex">\(\text{RFC} = [...]\ \mu\text{H}\)</span> blocks RF from entering the DC rail; <span class="arithmatex">\(10\text{ nF}\)</span> DC blocking capacitors are placed at the input and output.</li>
+<li><strong>Measurement:</strong> Spectrum output on CMU200 matched <strong><span class="arithmatex">\(-50.0\text{ dBm}\)</span> at <span class="arithmatex">\(\text{RBW} = 1\text{ MHz}\)</span></strong>, confirming an integrated <span class="arithmatex">\(-40.0\text{ dBm}\)</span> over <span class="arithmatex">\(30 - 40\text{ MHz}\)</span>.</li>
+</ul>
+<hr />
+<h3 id="34-log-entry-04-high-side-power-switch-ao3401-p-mos-2n2222-gate-divider-debugging">3.4. LOG ENTRY #04: High-Side Power Switch (AO3401 P-MOS &amp; 2N2222) &amp; Gate Divider Debugging<a class="headerlink" href="#34-log-entry-04-high-side-power-switch-ao3401-p-mos-2n2222-gate-divider-debugging" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Control Objective:</strong> Gate the 15V supply via a 3.3V GPIO pin from a Raspberry Pi 5 to prevent thermal build-up and RF leakage during sky observations.</li>
+<li><strong>Switching Topology:</strong> High-side P-channel MOSFET (<strong>AO3401</strong>, <span class="arithmatex">\(V_{\text{DS,max}} = -30\text{V}\)</span>) driven by a 2N2222 NPN level-shifter.</li>
+<li><strong>Debugging Gate Biasing:</strong><ul>
+<li><em>Initial Fault:</em> Initial breadboard test showed <span class="arithmatex">\(V_{\text{Source}} = 15\text{V}\)</span> but <span class="arithmatex">\(V_{\text{Gate}} = 13\text{V}\)</span> (<span class="arithmatex">\(V_{\text{GS}} = -2\text{V}\)</span>), leaving the MOSFET in linear mode, generating high <span class="arithmatex">\(R_{\text{DS(on)}}\)</span> and thermal drop.</li>
+<li><em>Correction:</em> Configured a balanced <span class="arithmatex">\(10\text{ k}\Omega - 10\text{ k}\Omega\)</span> voltage divider between the 15V rail, AO3401 Gate, and 2N2222 Collector:<ul>
+<li>When <span class="arithmatex">\(\text{GPIO} = 0\text{V}\)</span> (LOW): 2N2222 is cut off <span class="arithmatex">\(\implies V_G = 15\text{V}, V_{\text{GS}} = 0\text{V}\)</span> (AO3401 fully OFF).</li>
+<li>When <span class="arithmatex">\(\text{GPIO} = 3.3\text{V}\)</span> (HIGH): 2N2222 saturates, dividing the gate voltage:
+    $<span class="arithmatex">\(V_G = 15\text{V} \times \frac{10\text{k}\Omega}{10\text{k}\Omega + 10\text{k}\Omega} = 7.5\text{V} \implies V_{\text{GS}} = 7.5\text{V} - 15\text{V} = -7.5\text{V}\)</span>$</li>
+<li><span class="arithmatex">\(V_{\text{GS}} = -7.5\text{V}\)</span> guarantees deep saturation (<span class="arithmatex">\(R_{\text{DS(on)}} &lt; 0.05\ \Omega\)</span>) while staying safely within the absolute maximum gate limit (<span class="arithmatex">\(V_{\text{GS,max}} = \pm 12\text{V}\)</span>) of the AO3401.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3 id="35-log-entry-05-prototyping-altium-designer-2-layer-pcb-implementation">3.5. LOG ENTRY #05: Prototyping &amp; Altium Designer 2-Layer PCB Implementation<a class="headerlink" href="#35-log-entry-05-prototyping-altium-designer-2-layer-pcb-implementation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Handmade Prototype Evaluation:</strong> Deadbug/perfboard wiring validated DC biasing, current clamping, and MMIC gain staging. However, long component leads induced parasitic inductance and lacked environmental shielding.</li>
+<li><strong>Altium Designer 2-Layer PCB Rules:</strong><ul>
+<li><strong>Layer Stackup:</strong> Standard FR-4, thickness <span class="arithmatex">\(H = 1.6\text{ mm}\)</span>, copper weight <span class="arithmatex">\(1\text{ oz}\)</span> (<span class="arithmatex">\(35\ \mu\text{m}\)</span>).</li>
+<li><strong>Continuous Ground Plane:</strong> The Bottom Layer is reserved as a <strong><span class="arithmatex">\(100\%\)</span> solid, unbroken ground plane</strong>. No signal traces cross the bottom layer beneath the GALI-74 or the RF path to preserve return current loops.</li>
+<li><strong><span class="arithmatex">\(50\ \Omega\)</span> RF Transmission Line:</strong> Calculated coplanar waveguide / microstrip geometry:<ul>
+<li>Trace width (<span class="arithmatex">\(W\)</span>): <span class="arithmatex">\([...]\text{ mm}\)</span>.</li>
+<li>Ground gap (<span class="arithmatex">\(S\)</span>): <span class="arithmatex">\([...]\text{ mm}\)</span>.</li>
+</ul>
+</li>
+<li><strong>RF Connector:</strong> Board-edge SMA female receptacle (Edge-Mount) soldered across both top signal and bottom ground planes.</li>
+<li><strong>Via Stitching:</strong> Array of ground vias placed at <span class="arithmatex">\([...]\text{ mm}\)</span> pitch along the RF boundary to suppress ground loop impedance.</li>
+</ul>
+</li>
+</ul>
+<h4 id="351-pcb-figures-and-schematics">3.5.1. PCB Figures and Schematics<a class="headerlink" href="#351-pcb-figures-and-schematics" title="Permanent link">&para;</a></h4>
+<p><img alt="" src="../../assets/schematics/noise_source.png" />
+<strong>Figure 7.1:</strong> Complete circuit schematic of the gated avalanche noise source.
+<img alt="" src="../../assets/photos/noise_source_top_layer.jpg" /><br />
+<strong>Figure 7.2:</strong> PCB Top Layer layout showing the <span class="arithmatex">\(4 \times 510\ \Omega\)</span> parallel bank and <span class="arithmatex">\(50\ \Omega\)</span> RF trace.</p>
+<p><img alt="" src="../../assets/photos/noise_source_bottom_layer.jpg" />
+<strong>Figure 7.3:</strong> PCB Bottom Layer layout demonstrating the continuous unbroken ground plane.</p>
+<p><img alt="" src="../../assets/photos/noise_source_3d_render.jpg" /><br />
+<strong>Figure 7.4:</strong> 3D isometric visualization of the fully assembled PCB module.</p>
+<hr />
+<h3 id="36-log-entry-06-end-to-end-system-integration-correlator-validation">3.6. LOG ENTRY #06: End-to-End System Integration &amp; Correlator Validation<a class="headerlink" href="#36-log-entry-06-end-to-end-system-integration-correlator-validation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Test Topology:</strong> The fabricated noise source was routed through a Mini-Circuits 1:2 symmetric splitter into Port C of both SDRplay RSPdx receivers. Both SDRs shared a common 24 MHz reference clock via REFin.</li>
+<li><strong>Execution:</strong> Executed the real-time time-alignment pipeline (<code>alignment_test</code>) on Raspberry Pi 5:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>====================================================================================
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>NOISE SOURCE HARDWARE STATE      MEASURED PNR     CORRELATION BEHAVIOR / OUTCOME
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>====================================================================================
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>ACTIVE / ON  (GPIO = HIGH)         44.0 dB        Sharp Dirac delta spike; locks k = 0
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>INACTIVE/OFF (GPIO = LOW)          26.0 dB        Thermal / ADC quantization floor
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>====================================================================================
+</code></pre></div>
+<ul>
+<li><strong>State ON (<span class="arithmatex">\(\text{PNR} = 44\text{ dB}\)</span>):</strong> High correlated broadband power eliminates multi-peak ambiguities, enabling the <span class="arithmatex">\(\arg\max\)</span> algorithm to resolve <span class="arithmatex">\(k_{\text{offset}}\)</span> instantaneously with zero sample jitter.</li>
+<li><strong>State OFF (<span class="arithmatex">\(\text{PNR} = 26\text{ dB}\)</span>):</strong> The AO3401 P-MOS switch fully decouples the 15V supply, dropping inter-channel correlation to ambient background noise and proving adequate RF isolation.</li>
+</ul>
+<hr />
+<h2 id="9-parametric-performance-summary">9. PARAMETRIC PERFORMANCE SUMMARY<a class="headerlink" href="#9-parametric-performance-summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: center;">Design Target</th>
+<th style="text-align: center;">Measured Value</th>
+<th style="text-align: left;">Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Main Supply Voltage (<span class="arithmatex">\(V_{\text{CC}}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(15.0\text{ V}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(15.0\text{ V}\)</span></strong></td>
+<td style="text-align: left;">Supplies adequate headroom for current source</td>
+</tr>
+<tr>
+<td style="text-align: left;">2N2222 Breakdown Voltage (<span class="arithmatex">\(V_{\text{BR}}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(6.5 - 9.5\text{ V}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(9.2\text{ V}\)</span></strong></td>
+<td style="text-align: left;">Avalanche mode at <span class="arithmatex">\(2.0\text{ mA}\)</span> bias</td>
+</tr>
+<tr>
+<td style="text-align: left;">PNP Current Source Output (<span class="arithmatex">\(I_{\text{bias}}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(2.0\text{ mA}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(2.0\text{ mA}\)</span></strong></td>
+<td style="text-align: left;">Stabilized by 2x 2N2907 pair</td>
+</tr>
+<tr>
+<td style="text-align: left;">P-MOS Gate Drive Voltage (<span class="arithmatex">\(V_{\text{GS}}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(-6.0 \dots -8.0\text{ V}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(-7.5\text{ V}\)</span></strong></td>
+<td style="text-align: left;">Saturated via <span class="arithmatex">\(10\text{ k}\Omega / 10\text{ k}\Omega\)</span> divider</td>
+</tr>
+<tr>
+<td style="text-align: left;">GALI-74 Bias Network (<span class="arithmatex">\(R_{\text{bias}}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(127.5\ \Omega\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(127.5\ \Omega\)</span></strong></td>
+<td style="text-align: left;">Paralleled <span class="arithmatex">\(4 \times 510\ \Omega\)</span> 1206 (<span class="arithmatex">\(1.0\text{ W}\)</span> rating)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Spectral Power Density (<span class="arithmatex">\(\text{RBW} = 1\text{ MHz}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(-50.0\text{ dBm}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(-50.0\text{ dBm}\)</span></strong></td>
+<td style="text-align: left;">Measured directly on R&amp;S CMU200</td>
+</tr>
+<tr>
+<td style="text-align: left;">Integrated Bandwidth Power (<span class="arithmatex">\(30 - 40\text{ MHz}\)</span>)</td>
+<td style="text-align: center;"><span class="arithmatex">\(-40.0\text{ dBm}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(-40.0\text{ dBm}\)</span></strong></td>
+<td style="text-align: left;">Linear dynamic range for RSPdx ADCs</td>
+</tr>
+<tr>
+<td style="text-align: left;">Correlator PNR (ON State / OFF State)</td>
+<td style="text-align: center;"><span class="arithmatex">\(&gt; 30\text{ dB} \ / \ &lt; 30\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(44\text{ dB} \ / \ 26\text{ dB}\)</span></strong></td>
+<td style="text-align: left;">Verified in Module 2 alignment pipeline</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

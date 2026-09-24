@@ -1,0 +1,1819 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/02-firmware-dsp/module1-driver/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../module2-time-align/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Module 1: Dual USB Stream Validation & Ingestion Driver - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#module-1-dual-usb-stream-validation-ingestion-driver" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary-objectives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary &amp; Objectives
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-physical-interconnect-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Physical Interconnect Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Physical Interconnect Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-logical-interconnect-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Logical Interconnect Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-laboratory-benchtop-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Laboratory Benchtop Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-host-operating-system-environment-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Host Operating System &amp; Environment Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Host Operating System &amp; Environment Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-os-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. OS Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-driver-service-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. Driver Service Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-software-architecture-ingestion-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Software Architecture &amp; Ingestion Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Software Architecture &amp; Ingestion Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-multi-process-driver-lifecycle-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Multi-Process Driver Lifecycle Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.1. Multi-Process Driver Lifecycle Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#411-multi-process-execution-walkthrough" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1.1 Multi-Process Execution Walkthrough
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-configuration-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Configuration Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-key-code-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Key Code Implementations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Key Code Implementations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-lock-free-atomic-callback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Lock-Free Atomic Callback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-isolated-process-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Isolated Process Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-process-orchestration-reaping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Process Orchestration &amp; Reaping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-experimental-verification-ingestion-benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Experimental Verification &amp; Ingestion Benchmark
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Experimental Verification &amp; Ingestion Benchmark">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-log-analysis-performance-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Log Analysis &amp; Performance Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary-objectives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary &amp; Objectives
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-physical-interconnect-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Physical Interconnect Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Physical Interconnect Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-logical-interconnect-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Logical Interconnect Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-laboratory-benchtop-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Laboratory Benchtop Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-host-operating-system-environment-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Host Operating System &amp; Environment Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Host Operating System &amp; Environment Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-os-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. OS Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-driver-service-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. Driver Service Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-software-architecture-ingestion-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Software Architecture &amp; Ingestion Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Software Architecture &amp; Ingestion Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-multi-process-driver-lifecycle-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Multi-Process Driver Lifecycle Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.1. Multi-Process Driver Lifecycle Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#411-multi-process-execution-walkthrough" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1.1 Multi-Process Execution Walkthrough
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-configuration-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Configuration Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-key-code-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Key Code Implementations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Key Code Implementations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-lock-free-atomic-callback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Lock-Free Atomic Callback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-isolated-process-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Isolated Process Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-process-orchestration-reaping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Process Orchestration &amp; Reaping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-experimental-verification-ingestion-benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Experimental Verification &amp; Ingestion Benchmark
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Experimental Verification &amp; Ingestion Benchmark">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-log-analysis-performance-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Log Analysis &amp; Performance Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="module-1-dual-usb-stream-validation-ingestion-driver">Module 1: Dual USB Stream Validation &amp; Ingestion Driver<a class="headerlink" href="#module-1-dual-usb-stream-validation-ingestion-driver" title="Permanent link">&para;</a></h1>
+<h2 id="1-executive-summary-objectives">1. Executive Summary &amp; Objectives<a class="headerlink" href="#1-executive-summary-objectives" title="Permanent link">&para;</a></h2>
+<p>Module 1 establishes the physical and driver-level ingestion layer of the 2-element solar radio interferometer. The core objective is to verify that a Raspberry Pi 5 can reliably ingest concurrent, continuous high-throughput baseband data from two SDRplay RSPdx receivers over independent USB 3.0 links without buffer overflows, dropped packets, or kernel DMA stalls.</p>
+<p>The primary validation milestones are:</p>
+<ul>
+<li>
+<p><strong>High-Throughput Ingestion:</strong> Sustain an aggregate data throughput of 80 MB/s (640 Mbps) across two USB 3.0 buses without packet loss (10.0 MSPS  <span class="arithmatex">\(\times\)</span> 4 bytes [int16 I/Q] <span class="arithmatex">\(\times\)</span> 2 channels).</p>
+</li>
+<li>
+<p><strong>Driver Stability &amp; Low Overhead:</strong> Maintain zero driver-level buffer resets (<code>reset = 0</code>) over continuous streaming runs in a headless Linux environment.</p>
+</li>
+<li>
+<p><strong>Physical Hardware Interface:</strong> Validate direct USB 3.0 bus connectivity between the Raspberry Pi 5 RP1 southbridge controller and the two RSPdx receivers.</p>
+</li>
+</ul>
+<hr />
+<h2 id="2-physical-interconnect-topology">2. Physical Interconnect Topology<a class="headerlink" href="#2-physical-interconnect-topology" title="Permanent link">&para;</a></h2>
+<p>The physical hardware layer interfaces the Raspberry Pi 5 host directly with the two SDRplay RSPdx receiver units to validate concurrent, high-throughput baseband data ingestion across independent USB buses. The physical topology and signal routing are represented by the logical architecture diagram (Figure 2.1) and its physical laboratory benchtop implementation (Figure 2.2):</p>
+<h3 id="a-logical-interconnect-architecture">A. Logical Interconnect Architecture<a class="headerlink" href="#a-logical-interconnect-architecture" title="Permanent link">&para;</a></h3>
+<p><img alt="Physical Interconnect Topology" src="../../assets/photos/module1_hardware_interconnect.svg" /></p>
+<p><em>Figure 2.1: Logical bus topology connecting dual SDRplay RSPdx units directly to the Raspberry Pi 5 host controller over dedicated USB 3.0 links.</em></p>
+<h3 id="b-laboratory-benchtop-implementation">B. Laboratory Benchtop Implementation<a class="headerlink" href="#b-laboratory-benchtop-implementation" title="Permanent link">&para;</a></h3>
+<p><img alt="Physical Benchtop Hardware Setup" src="../../assets/photos/module1_bench_setup.jpg" /></p>
+<p><em>Figure 2.2: Benchtop validation setup illustrating the physical arrangement of the Raspberry Pi 5 host and dual SDRplay RSPdx receivers during ingestion testing.</em></p>
+<hr />
+<h2 id="3-host-operating-system-environment-configuration">3. Host Operating System &amp; Environment Configuration<a class="headerlink" href="#3-host-operating-system-environment-configuration" title="Permanent link">&para;</a></h2>
+<p>To prevent OS scheduler preemption and interrupt latencies from stalling kernel-level USB DMA transfers, the Raspberry Pi 5 host environment is configured as follows:</p>
+<h3 id="31-os-configuration">3.1. OS Configuration<a class="headerlink" href="#31-os-configuration" title="Permanent link">&para;</a></h3>
+<p>To prevent kernel-level USB DMA streaming from stalling due to CPU scheduling delays, Dynamic Voltage and Frequency Scaling (DVFS) latency spikes, or graphical rendering interrupts, the host operating system is tuned as follows:</p>
+<ul>
+<li><strong>Operating System:</strong> Raspberry Pi OS 64-bit Lite (Debian Bookworm) running the AArch64 kernel, leveraging native 64-bit registers and ARM NEON SIMD capabilities while minimizing background RAM and process overhead.</li>
+<li><strong>Headless Runlevel Target:</strong> The Wayland/X11 display server is disabled by default to eliminate display interrupt latency and window manager context switching:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>set-default<span class="w"> </span>multi-user.target
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>reboot
+</code></pre></div></li>
+<li><strong>CPU Frequency Governor:</strong> All four ARM Cortex-A76 cores are locked to <code>performance</code> mode at a constant 2.4 GHz, eliminating DVFS transition latencies that trigger DMA FIFO overruns and driver buffer resets during continuous 80 MB/s ingestion:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Force all CPU cores to maximum operating frequency (2.4 GHz)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">echo</span><span class="w"> </span>performance<span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Verify locked clock frequency (returns 2400000000 Hz)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>vcgencmd<span class="w"> </span>measure_clock<span class="w"> </span>arm
+</code></pre></div></li>
+</ul>
+<h3 id="32-driver-service-setup">3.2. Driver Service Setup<a class="headerlink" href="#32-driver-service-setup" title="Permanent link">&para;</a></h3>
+<p>The SDRplay API v3 runtime daemon (<code>sdrplay.service</code>) manages the low-level hardware interface:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Verify driver daemon health</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>sdrplay
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Restart driver service prior to hardware acquisition tests</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>sdrplay
+</code></pre></div></p>
+<hr />
+<h2 id="4-software-architecture-ingestion-implementation">4. Software Architecture &amp; Ingestion Implementation<a class="headerlink" href="#4-software-architecture-ingestion-implementation" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Design Retrospective: Multi-Threading Failure (<code>std::thread</code>)</strong>
+An initial design attempt evaluated an in-process multi-threaded architecture using <code>std::thread</code> to handle each RSPdx device on dedicated thread loops. This approach failed due to internal constraints of the proprietary <code>libsdrplay_api.so</code> runtime:</p>
+<ul>
+<li>
+<p><strong>Single-Device Process Bound:</strong> The API runtime relies on unexposed process-wide global state variables and static event callbacks, restricting each Unix process space (PID) to a single active hardware instance.</p>
+</li>
+<li>
+<p><strong>Hardware Selection Conflict:</strong> Calling <code>sdrplay_api_SelectDevice()</code> concurrently from secondary threads caused subsequent initialization calls to return <code>sdrplay_api_Fail</code>, while bypassing thread safety led to race conditions and memory segmentation faults.</p>
+</li>
+</ul>
+<p>Consequently, multi-threading was deprecated in favor of a multi-process architecture (<code>fork()</code>), providing strict virtual memory isolation for each receiver instance.</p>
+</blockquote>
+<h3 id="41-multi-process-driver-lifecycle-flow">4.1. Multi-Process Driver Lifecycle Flow<a class="headerlink" href="#41-multi-process-driver-lifecycle-flow" title="Permanent link">&para;</a></h3>
+<p><img alt="Multi-Process Driver Lifecycle Flow" src="../../assets/photos/module1_code_diagram.svg" /></p>
+<h4 id="411-multi-process-execution-walkthrough">4.1.1 Multi-Process Execution Walkthrough<a class="headerlink" href="#411-multi-process-execution-walkthrough" title="Permanent link">&para;</a></h4>
+<p>The driver lifecycle executes across isolated Unix process spaces to prevent thread deadlocks and guarantee deterministic streaming:</p>
+<ol>
+<li>
+<p><strong>Hardware Discovery &amp; Handle Release (Parent Process):</strong><br />
+   The parent process queries the SDRplay API service, verifies that two RSPdx units are detected on the physical USB 3.0 buses, and captures their serial strings (<code>ser0</code>, <code>ser1</code>). The parent then calls <code>sdrplay_api_Close()</code>. Explicitly releasing the API instance before spawning children prevents cloned processes from inheriting locked file descriptors or corrupt driver handles.</p>
+</li>
+<li>
+<p><strong>Process Address Space Isolation (<code>fork()</code>):</strong><br />
+   The execution context branches into two dedicated child worker processes (<code>p1</code>, <code>p2</code>). Each child process operates in its own memory space and initializes its own isolated instance of the SDRplay API runtime, completely eliminating inter-thread memory corruption.</p>
+</li>
+<li>
+<p><strong>Per-Device Configuration &amp; Ingestion (Child Processes):</strong><br />
+   Each child binds strictly to its designated serial number via <code>sdrplay_api_SelectDevice()</code>. Hardware registers are committed (35.0 MHz RF, 8.0 MHz IF filter, 10.0 MSPS sample rate, manual gain, and Port C input). The asynchronous streaming engine runs for a continuous 10-second window, tallying sample volumes and tracking buffer reset flags atomically before performing teardown and terminating via <code>_exit(0)</code>.</p>
+</li>
+<li>
+<p><strong>Synchronization &amp; Lifecycle Reaping (<code>waitpid</code>):</strong><br />
+   The parent process blocks on <code>waitpid()</code> until both child processes finish execution. This enforces orderly shutdown, reaps exit statuses to prevent zombie processes, and confirms that both hardware links sustained ingestion simultaneously.</p>
+</li>
+</ol>
+<h3 id="42-configuration-parameters">4.2. Configuration Parameters<a class="headerlink" href="#42-configuration-parameters" title="Permanent link">&para;</a></h3>
+<p>Both receivers are configured with identical hardware register settings to ensure symmetric operation:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Configuration Value</th>
+<th style="text-align: left;">Physical / Engineering Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Center Frequency (<span class="arithmatex">\(f_{\text{RF}}\)</span>)</strong></td>
+<td style="text-align: left;"><code>35000000.0</code> (<span class="arithmatex">\(35.0\text{ MHz}\)</span>)</td>
+<td style="text-align: left;">Centers reception over the 30.0 – 40.0 MHz solar observation band.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Analog Filter Bandwidth</strong></td>
+<td style="text-align: left;"><code>sdrplay_api_BW_8_000</code> (<span class="arithmatex">\(8.0\text{ MHz}\)</span>)</td>
+<td style="text-align: left;">Limits out-of-band aliasing prior to ADC digitisation.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sampling Rate (<span class="arithmatex">\(f_s\)</span>)</strong></td>
+<td style="text-align: left;"><code>10000000.0</code> (<span class="arithmatex">\(10.0\text{ MSPS}\)</span>)</td>
+<td style="text-align: left;">Provides <span class="arithmatex">\(100\text{ ns}\)</span> sample resolution and 10.0 MHz complex Nyquist bandwidth.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Antenna Input Port</strong></td>
+<td style="text-align: left;"><code>sdrplay_api_RspDx_ANTENNA_C</code></td>
+<td style="text-align: left;">Routes through the low-loss <span class="arithmatex">\(50\ \Omega\)</span> BNC Port C.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Automatic Gain Control (AGC)</strong></td>
+<td style="text-align: left;"><code>sdrplay_api_AGC_DISABLE</code></td>
+<td style="text-align: left;">Fixes analog/digital gains to avoid artificial amplitude modulation.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>IF Gain Reduction</strong></td>
+<td style="text-align: left;"><code>30</code> (<span class="arithmatex">\(30\text{ dB}\)</span> nominal)</td>
+<td style="text-align: left;">Sets IF variable gain amplifier across both channels.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-key-code-implementations">4.3. Key Code Implementations<a class="headerlink" href="#43-key-code-implementations" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Source Reference:</strong> Full production driver implementation is available at <a href="https://github.com/tuchau1404/solar_correlator/blob/main/tests/dual_stream_test.cpp"><code>tests/dual_stream_test.cpp</code></a>.</p>
+</blockquote>
+<h4 id="a-lock-free-atomic-callback">A. Lock-Free Atomic Callback<a class="headerlink" href="#a-lock-free-atomic-callback" title="Permanent link">&para;</a></h4>
+<p>The driver delivers I/Q blocks asynchronously via kernel threads. To avoid DMA latency stalls, the callback uses lock-free atomic counters with relaxed memory order instead of mutex locks:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kt">void</span><span class="w"> </span><span class="nf">StreamCallback</span><span class="p">(</span><span class="kt">short</span><span class="w"> </span><span class="o">*</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="o">*</span><span class="n">xq</span><span class="p">,</span><span class="w"> </span><span class="n">sdrplay_api_StreamCbParamsT</span><span class="w"> </span><span class="o">*</span><span class="n">params</span><span class="p">,</span><span class="w"> </span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">                    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">numSamples</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">reset</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">cbContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">reset</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">        </span><span class="n">reset_count</span><span class="p">.</span><span class="n">fetch_add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_relaxed</span><span class="p">);</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="n">total_samples</span><span class="p">.</span><span class="n">fetch_add</span><span class="p">(</span><span class="n">numSamples</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_relaxed</span><span class="p">);</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="b-isolated-process-execution">B. Isolated Process Execution<a class="headerlink" href="#b-isolated-process-execution" title="Permanent link">&para;</a></h4>
+<p>Each child worker binds exclusively to a specific hardware serial and executes in its own address space, bypassing thread contention in <code>libsdrplay_api.so</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kt">void</span><span class="w"> </span><span class="nf">run_device_process</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">dev_index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">target_serno</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="n">sdrplay_api_Open</span><span class="p">();</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="n">sdrplay_api_SelectDevice</span><span class="p">(</span><span class="o">&amp;</span><span class="n">devs</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">]);</span><span class="w"> </span><span class="c1">// Isolated binding</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="c1">// Commit 35 MHz, 10 MSPS, Port C</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="n">chParams</span><span class="o">-&gt;</span><span class="n">tunerParams</span><span class="p">.</span><span class="n">rfFreq</span><span class="p">.</span><span class="n">rfHz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">35000000.0</span><span class="p">;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="n">deviceParams</span><span class="o">-&gt;</span><span class="n">devParams</span><span class="o">-&gt;</span><span class="n">fsFreq</span><span class="p">.</span><span class="n">fsHz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10000000.0</span><span class="p">;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="n">deviceParams</span><span class="o">-&gt;</span><span class="n">devParams</span><span class="o">-&gt;</span><span class="n">rspDxParams</span><span class="p">.</span><span class="n">antennaSel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sdrplay_api_RspDx_ANTENNA_C</span><span class="p">;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="n">sdrplay_api_Init</span><span class="p">(</span><span class="n">devs</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">].</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cbFns</span><span class="p">,</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="c-process-orchestration-reaping">C. Process Orchestration &amp; Reaping<a class="headerlink" href="#c-process-orchestration-reaping" title="Permanent link">&para;</a></h4>
+<p>The parent process enumerates the bus, explicitly closes its API instance, forks dedicated workers, and reaps exit statuses to prevent zombie processes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Explicitly release API handle before fork to avoid contaminated descriptors</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sdrplay_api_Close</span><span class="p">();</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kt">pid_t</span><span class="w"> </span><span class="n">p1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fork</span><span class="p">();</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">run_device_process</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ser0</span><span class="p">);</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="kt">pid_t</span><span class="w"> </span><span class="n">p2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fork</span><span class="p">();</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p2</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">run_device_process</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ser1</span><span class="p">);</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1">// Await completion of both parallel streams</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">waitpid</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">waitpid</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+</code></pre></div>
+<h2 id="5-experimental-verification-ingestion-benchmark">5. Experimental Verification &amp; Ingestion Benchmark<a class="headerlink" href="#5-experimental-verification-ingestion-benchmark" title="Permanent link">&para;</a></h2>
+<p>To validate the throughput, zero-packet-drop integrity, and driver isolation under high data rates, a 10-second simultaneous streaming benchmark was conducted on Raspberry Pi 5 using two RSPdx devices at 10.0 MSPS (80 MB/s aggregated raw I/Q throughput).</p>
+<p><img alt="Figure 5.1: Dual 10 MSPS Streaming Benchmark Terminal Output" src="../../assets/photos/module1_result.jpg" /></p>
+<p><em>Figure 5.1: Simultaneous dual-channel benchmark output verifying sustained 80 MB/s ingestion without runtime buffer drops</em></p>
+<h3 id="51-log-analysis-performance-evaluation">5.1. Log Analysis &amp; Performance Evaluation<a class="headerlink" href="#51-log-analysis-performance-evaluation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Actual Sample Rate (9.98646 MSPS):</strong> Both devices achieved <span class="arithmatex">\(\approx 99.86\%\)</span> of the nominal 10.0 MSPS target. The fractional deficit (<span class="arithmatex">\(\approx 135,400\)</span> samples out of 100 million) accounts for an initial handshake and USB DMA startup latency of approximately <span class="arithmatex">\(13.5\text{ ms}\)</span> during API initialization.</p>
+</li>
+<li>
+<p><strong>Buffer Stability &amp; Zero Drop (Reset/Drop = 1):</strong> The count of 1 corresponds strictly to the mandatory hardware flush flag dispatched on the very first USB packet during driver startup. Over the entire subsequent 10-second run, this counter remained unchanged, proving zero runtime buffer overflows and zero packet loss at 80 MB/s.</p>
+</li>
+<li>
+<p><strong>Channel Symmetry:</strong> Identical metrics across both channels confirm that the multi-process (<code>fork()</code>) architecture completely decouples hardware driver instances across the dual USB 3.0 buses on Raspberry Pi 5.</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

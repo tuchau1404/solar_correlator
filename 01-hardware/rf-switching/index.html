@@ -1,0 +1,2958 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/01-hardware/rf-switching/">
+      
+      
+        <link rel="prev" href="../rf-frontend/">
+      
+      
+        <link rel="next" href="../../02-firmware-dsp/architecture/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>RF Switching & Routing - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rf-switching-routing" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              RF Switching &amp; Routing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview-and-operational-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview and Operational Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Overview and Operational Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-role-of-the-rf-switching-matrix-in-the-2-element-solar-interferometer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Role of the RF Switching Matrix in the 2-Element Solar Interferometer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-key-electrical-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Key Electrical Specifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-component-selection-and-circuit-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Component Selection and Circuit Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Component Selection and Circuit Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-active-rf-switch-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Active RF Switch Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.1. Active RF Switch Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#211-evaluation-of-high-speed-spdt-mmic-switches-gaas-hmc544a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1.1. Evaluation of High-Speed SPDT MMIC Switches (GaAs HMC544A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-direct-33v-gpio-logic-interfacing-from-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1.2. Direct 3.3V GPIO Logic Interfacing from Raspberry Pi 5
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-resistive-power-splitter-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Resistive Power Splitter Network
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2. Resistive Power Splitter Network">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#221-3-resistor-delta-configuration-using-50-standard-resistors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2.1. 3-Resistor Delta (Δ) Configuration Using 50Ω Standard Resistors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-ac-coupling-and-dc-blocking-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3. AC Coupling and DC Blocking Network
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.3. AC Coupling and DC Blocking Network">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-dc-blocking-capacitor-sizing-1nf-smd-ceramic-capacitors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3.1. DC Blocking Capacitor Sizing (1nF SMD Ceramic Capacitors)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-front-end-esd-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4. Front-End ESD Protection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.4. Front-End ESD Protection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#241-ultra-low-capacitance-bidirectional-esd-protection-diodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4.1. Ultra-Low Capacitance Bidirectional ESD Protection Diodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-summary-bill-of-materials-bom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5. Summary Bill of Materials (BOM)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.5. Summary Bill of Materials (BOM)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technical-notes-on-selected-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Notes on Selected Components:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-altium-designer-cad-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Altium Designer CAD Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Altium Designer CAD Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-complete-circuit-schematic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. Complete Circuit Schematic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pcb-footprint-and-physical-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. PCB Footprint and Physical Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. PCB Footprint and Physical Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-pcb-stackup-50-transmission-line-synthesis-via-shielding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. PCB Stackup, 50 Ω Transmission Line Synthesis &amp; Via Shielding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.1. PCB Stackup, 50 Ω Transmission Line Synthesis &amp; Via Shielding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-substrate-cpw-g-synthesis-saturn-pcb-toolkit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Substrate &amp; CPW-G Synthesis (Saturn PCB Toolkit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-ground-via-shielding-altium-designer-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ground Via Shielding (Altium Designer Implementation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pcb-footprint-and-physical-layout_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. PCB Footprint and Physical Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. PCB Footprint and Physical Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-top-layer-layout-and-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. Top Layer Layout and Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#322-bottom-layer-ground-plane-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2. Bottom Layer Ground Plane Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-3d-mechanical-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. 3D Mechanical Modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-fabricated-board-assembly-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. Fabricated Board &amp; Assembly Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-laboratory-vna-characterization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Laboratory VNA Characterization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Laboratory VNA Characterization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-vector-network-analyzer-test-setup-300-400-mhz-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Vector Network Analyzer Test Setup (30.0 – 40.0 MHz Calibration)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-path-a-antenna-a-noise-source-to-out-a-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Path A: Antenna A &amp; Noise Source to OUT A Measurements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2. Path A: Antenna A &amp; Noise Source to OUT A Measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#421-antenna-a-to-out-a-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.1. Antenna A to OUT A — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#422-antenna-a-to-out-a-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.2. Antenna A to OUT A — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#423-noise-source-to-out-a-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.3. Noise Source to OUT A — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#424-noise-source-to-out-a-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.4. Noise Source to OUT A — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-path-b-antenna-b-noise-source-to-out-b-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Path B: Antenna B &amp; Noise Source to OUT B Measurements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Path B: Antenna B &amp; Noise Source to OUT B Measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#431-noise-source-to-out-b-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.1. Noise Source to OUT B — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#432-noise-source-to-out-b-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.2. Noise Source to OUT B — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#433-antenna-b-to-out-b-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.3. Antenna B to OUT B — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#434-antenna-b-to-out-b-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.4. Antenna B to OUT B — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-s-parameter-performance-evaluation-discussion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4. S-Parameter Performance Evaluation &amp; Discussion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.4. S-Parameter Performance Evaluation &amp; Discussion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#441-observation-mode-transmission-port-match-antenna-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.1. Observation Mode Transmission &amp; Port Match (Antenna paths)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#442-calibration-mode-power-division-flatness-noise-source-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.2. Calibration Mode Power Division &amp; Flatness (Noise Source paths)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#443-off-state-switch-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.3. Off-State Switch Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#444-dual-channel-tracking-symmetry-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.4. Dual-Channel Tracking &amp; Symmetry Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-summary-of-experimental-results-vs-design-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5. Summary of Experimental Results vs. Design Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-system-integration-control-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. System Integration &amp; Control Sequence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. System Integration &amp; Control Sequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-gpio-switching-logic-from-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. GPIO Switching Logic from Raspberry Pi 5
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-digital-backend-delay-alignment-verification-k0-lock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Digital Backend Delay Alignment Verification (k=0 Lock)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-chapter-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Chapter Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview-and-operational-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview and Operational Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Overview and Operational Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-role-of-the-rf-switching-matrix-in-the-2-element-solar-interferometer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Role of the RF Switching Matrix in the 2-Element Solar Interferometer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-key-electrical-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Key Electrical Specifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-component-selection-and-circuit-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Component Selection and Circuit Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Component Selection and Circuit Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-active-rf-switch-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Active RF Switch Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.1. Active RF Switch Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#211-evaluation-of-high-speed-spdt-mmic-switches-gaas-hmc544a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1.1. Evaluation of High-Speed SPDT MMIC Switches (GaAs HMC544A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-direct-33v-gpio-logic-interfacing-from-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1.2. Direct 3.3V GPIO Logic Interfacing from Raspberry Pi 5
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-resistive-power-splitter-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Resistive Power Splitter Network
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2. Resistive Power Splitter Network">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#221-3-resistor-delta-configuration-using-50-standard-resistors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2.1. 3-Resistor Delta (Δ) Configuration Using 50Ω Standard Resistors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-ac-coupling-and-dc-blocking-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3. AC Coupling and DC Blocking Network
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.3. AC Coupling and DC Blocking Network">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-dc-blocking-capacitor-sizing-1nf-smd-ceramic-capacitors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3.1. DC Blocking Capacitor Sizing (1nF SMD Ceramic Capacitors)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-front-end-esd-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4. Front-End ESD Protection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.4. Front-End ESD Protection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#241-ultra-low-capacitance-bidirectional-esd-protection-diodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4.1. Ultra-Low Capacitance Bidirectional ESD Protection Diodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-summary-bill-of-materials-bom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5. Summary Bill of Materials (BOM)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.5. Summary Bill of Materials (BOM)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technical-notes-on-selected-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Notes on Selected Components:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-altium-designer-cad-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Altium Designer CAD Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Altium Designer CAD Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-complete-circuit-schematic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. Complete Circuit Schematic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pcb-footprint-and-physical-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. PCB Footprint and Physical Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. PCB Footprint and Physical Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-pcb-stackup-50-transmission-line-synthesis-via-shielding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. PCB Stackup, 50 Ω Transmission Line Synthesis &amp; Via Shielding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2.1. PCB Stackup, 50 Ω Transmission Line Synthesis &amp; Via Shielding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-substrate-cpw-g-synthesis-saturn-pcb-toolkit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Substrate &amp; CPW-G Synthesis (Saturn PCB Toolkit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-ground-via-shielding-altium-designer-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ground Via Shielding (Altium Designer Implementation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-pcb-footprint-and-physical-layout_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. PCB Footprint and Physical Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2. PCB Footprint and Physical Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#321-top-layer-layout-and-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.1. Top Layer Layout and Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#322-bottom-layer-ground-plane-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2.2. Bottom Layer Ground Plane Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-3d-mechanical-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. 3D Mechanical Modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-fabricated-board-assembly-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. Fabricated Board &amp; Assembly Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-laboratory-vna-characterization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Laboratory VNA Characterization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Laboratory VNA Characterization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-vector-network-analyzer-test-setup-300-400-mhz-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Vector Network Analyzer Test Setup (30.0 – 40.0 MHz Calibration)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-path-a-antenna-a-noise-source-to-out-a-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. Path A: Antenna A &amp; Noise Source to OUT A Measurements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2. Path A: Antenna A &amp; Noise Source to OUT A Measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#421-antenna-a-to-out-a-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.1. Antenna A to OUT A — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#422-antenna-a-to-out-a-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.2. Antenna A to OUT A — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#423-noise-source-to-out-a-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.3. Noise Source to OUT A — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#424-noise-source-to-out-a-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2.4. Noise Source to OUT A — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-path-b-antenna-b-noise-source-to-out-b-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Path B: Antenna B &amp; Noise Source to OUT B Measurements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Path B: Antenna B &amp; Noise Source to OUT B Measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#431-noise-source-to-out-b-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.1. Noise Source to OUT B — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#432-noise-source-to-out-b-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.2. Noise Source to OUT B — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#433-antenna-b-to-out-b-state-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.3. Antenna B to OUT B — State: ON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#434-antenna-b-to-out-b-state-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3.4. Antenna B to OUT B — State: OFF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-s-parameter-performance-evaluation-discussion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4. S-Parameter Performance Evaluation &amp; Discussion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.4. S-Parameter Performance Evaluation &amp; Discussion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#441-observation-mode-transmission-port-match-antenna-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.1. Observation Mode Transmission &amp; Port Match (Antenna paths)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#442-calibration-mode-power-division-flatness-noise-source-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.2. Calibration Mode Power Division &amp; Flatness (Noise Source paths)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#443-off-state-switch-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.3. Off-State Switch Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#444-dual-channel-tracking-symmetry-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4.4. Dual-Channel Tracking &amp; Symmetry Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-summary-of-experimental-results-vs-design-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5. Summary of Experimental Results vs. Design Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-system-integration-control-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. System Integration &amp; Control Sequence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. System Integration &amp; Control Sequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-gpio-switching-logic-from-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. GPIO Switching Logic from Raspberry Pi 5
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-digital-backend-delay-alignment-verification-k0-lock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Digital Backend Delay Alignment Verification (k=0 Lock)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-chapter-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Chapter Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="rf-switching-routing">RF Switching &amp; Routing<a class="headerlink" href="#rf-switching-routing" title="Permanent link">&para;</a></h1>
+<hr />
+<h2 id="1-overview-and-operational-requirements">1. Overview and Operational Requirements<a class="headerlink" href="#1-overview-and-operational-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="11-role-of-the-rf-switching-matrix-in-the-2-element-solar-interferometer">1.1. Role of the RF Switching Matrix in the 2-Element Solar Interferometer<a class="headerlink" href="#11-role-of-the-rf-switching-matrix-in-the-2-element-solar-interferometer" title="Permanent link">&para;</a></h3>
+<p>In a two-element radio interferometer observing decametric solar radio bursts across the 30.0 – 40.0 MHz band, instrumental phase coherence and delay stability between the dual receive channels are critical. The physical system captures celestial radio emissions via two spatially separated antennas and feeds them into two independent SDRplay RSPdx receivers operating at a center frequency of 35.0 MHz with a 10.0 MSPS sample rate, interfaced to a Raspberry Pi 5 edge processor over USB 3.0 links.
+<img alt="RF Switch diagram" src="../../assets/photos/rf_switch_diagram.svg" /></p>
+<p>To enable real-time interferometric correlation, the digital backend requires automated calibration routines:
+1. Coarse sample delay compensation (<span class="arithmatex">\(k_{\text{offset}} = 0\)</span>) to align non-deterministic USB enumeration and driver startup latencies between the two digitizers.
+2. Instrumental phase equalization (<span class="arithmatex">\(\Delta\phi_0(f)\)</span>) across all frequency bins.</p>
+<p>Performing calibration by manually reconnecting coaxial cables introduces mechanical wear, cable phase disturbances, and operational downtime. The Dual-Channel RF Switching Matrix integrates electronic routing and power splitting onto a single printed circuit board, routing either the dual sky antennas (Observation Mode) or a common broadband noise reference (Calibration Mode) into the receivers under direct software control.</p>
+<hr />
+<h3 id="12-key-electrical-specifications">1.2. Key Electrical Specifications<a class="headerlink" href="#12-key-electrical-specifications" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter / Metric</th>
+<th style="text-align: center;">Target Specification</th>
+<th style="text-align: left;">Design Constraint / Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Operating Passband</strong></td>
+<td style="text-align: center;">30.0 – 40.0 MHz</td>
+<td style="text-align: left;">Ionospheric window &amp; 10 MSPS USB throughput limit</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Observation Insertion Loss (<span class="arithmatex">\(S_{21}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.8\text{ dB}\)</span></td>
+<td style="text-align: left;">Cascaded Friis noise figure &amp; receiver sensitivity preservation</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Observation Return Loss (<span class="arithmatex">\(S_{11}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\le -15.0\text{ dB}\)</span></td>
+<td style="text-align: left;">Standing wave suppression (<span class="arithmatex">\(\vert\Gamma\vert^2 \le 3.16\%\)</span>, <span class="arithmatex">\(\text{VSWR} &lt; 1.43:1\)</span>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Calibration Attenuation (<span class="arithmatex">\(S_{21}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -6.3\text{ dB}\)</span></td>
+<td style="text-align: left;">3-resistor <span class="arithmatex">\(50\ \Omega\)</span> Delta divider theoretical split + FET loss</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Switch Off-State Isolation</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\ge 40.0\text{ dB}\)</span></td>
+<td style="text-align: left;">Software-controlled noise source DC power gating strategy</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Inter-Channel Gain Balance (<span class="arithmatex">\(\Delta \vert S_{21}\vert\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.2\text{ dB}\)</span></td>
+<td style="text-align: left;">FX Correlator fringe coherence &amp; zero-delay locking (<span class="arithmatex">\(\Delta\phi \approx 0^\circ\)</span>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>📘 <strong>Detailed Derivations:</strong> For detailed mathematical proofs, RF loss budgets, and physics constraints supporting these targets, refer to <a href="../../appendix/rf-switch-spec-derivation/">Appendix A: RF Switch Specification Derivations &amp; Design Constraints</a>.</p>
+</blockquote>
+<hr />
+<h2 id="2-component-selection-and-circuit-topology">2. Component Selection and Circuit Topology<a class="headerlink" href="#2-component-selection-and-circuit-topology" title="Permanent link">&para;</a></h2>
+<h3 id="21-active-rf-switch-selection">2.1. Active RF Switch Selection<a class="headerlink" href="#21-active-rf-switch-selection" title="Permanent link">&para;</a></h3>
+<h4 id="211-evaluation-of-high-speed-spdt-mmic-switches-gaas-hmc544a">2.1.1. Evaluation of High-Speed SPDT MMIC Switches (GaAs HMC544A)<a class="headerlink" href="#211-evaluation-of-high-speed-spdt-mmic-switches-gaas-hmc544a" title="Permanent link">&para;</a></h4>
+<p>The primary routing elements consist of two HMC544A GaAs MMIC Single-Pole Double-Throw (SPDT) switches in 6-lead SOT-23 packages. Operating from DC to 4.0 GHz, the HMC544A provides low insertion loss, high linearity, and sub-microsecond switching speeds. Compared to electromechanical relays, solid-state GaAs switches eliminate contact bounce, mechanical wear, and coil-induced electromagnetic pickup.</p>
+<h4 id="212-direct-33v-gpio-logic-interfacing-from-raspberry-pi-5">2.1.2. Direct 3.3V GPIO Logic Interfacing from Raspberry Pi 5<a class="headerlink" href="#212-direct-33v-gpio-logic-interfacing-from-raspberry-pi-5" title="Permanent link">&para;</a></h4>
+<p>The HMC544A requires complementary control logic (<span class="arithmatex">\(V_1, V_2\)</span>) to establish RF conduction paths:
+* State 0 (<span class="arithmatex">\(V_1 = 0\text{V},\ V_2 = 3.3\text{V}\)</span>): RFC connected to RF1 (Sky Antenna Input).</p>
+<ul>
+<li>State 1 (<span class="arithmatex">\(V_1 = 3.3\text{V},\ V_2 = 0\text{V}\)</span>): RFC connected to RF2 (Calibration Splitter Input).</li>
+</ul>
+<p>To switch both channels synchronously using a single GPIO line from the Raspberry Pi 5, an on-board single-gate inverter (74LVC1G04) generates the complementary logic drive, guaranteeing synchronized channel reconfiguration.</p>
+<hr />
+<h3 id="22-resistive-power-splitter-network">2.2. Resistive Power Splitter Network<a class="headerlink" href="#22-resistive-power-splitter-network" title="Permanent link">&para;</a></h3>
+<h4 id="221-3-resistor-delta-configuration-using-50-standard-resistors">2.2.1. 3-Resistor Delta (Δ) Configuration Using 50Ω Standard Resistors<a class="headerlink" href="#221-3-resistor-delta-configuration-using-50-standard-resistors" title="Permanent link">&para;</a></h4>
+<p>The calibration reference port (CAL IN) distributes incoming noise power symmetrically to the RF2 ports of Switch A and Switch B through an on-board 3-resistor Delta (<span class="arithmatex">\(\Delta\)</span>) network. The network utilizes three standard <span class="arithmatex">\(50\ \Omega\)</span> SMD resistors (<span class="arithmatex">\(1\%\)</span> tolerance) connected in a closed delta topology between the input port and the two switch branches. This configuration provides wideband phase linearity and group delay stability across 30.0 – 40.0 MHz without reactive components, maintaining identical phase delivery to both receiver branches.</p>
+<hr />
+<h3 id="23-ac-coupling-and-dc-blocking-network">2.3. AC Coupling and DC Blocking Network<a class="headerlink" href="#23-ac-coupling-and-dc-blocking-network" title="Permanent link">&para;</a></h3>
+<h4 id="231-dc-blocking-capacitor-sizing-1nf-smd-ceramic-capacitors">2.3.1. DC Blocking Capacitor Sizing (1nF SMD Ceramic Capacitors)<a class="headerlink" href="#231-dc-blocking-capacitor-sizing-1nf-smd-ceramic-capacitors" title="Permanent link">&para;</a></h4>
+<p>Because the internal GaAs FET channels of the HMC544A operate at specific internal DC bias potentials, DC blocking capacitors are placed in series on all RF ports (RFC, RF1, and RF2). Ceramic surface-mount capacitors (<span class="arithmatex">\(1\text{ nF}\)</span>, 0603, C0G/NP0 dielectric) are implemented. At <span class="arithmatex">\(35.0\text{ MHz}\)</span>, a <span class="arithmatex">\(1\text{ nF}\)</span> capacitance exhibits a reactance of <span class="arithmatex">\(X_C \approx 4.55\ \Omega\)</span>, yielding a high-pass cutoff frequency of <span class="arithmatex">\(f_c \approx 3.18\text{ MHz}\)</span> into a <span class="arithmatex">\(50\ \Omega\)</span> termination, well below the 30.0 – 40.0 MHz band of interest.</p>
+<hr />
+<h3 id="24-front-end-esd-protection">2.4. Front-End ESD Protection<a class="headerlink" href="#24-front-end-esd-protection" title="Permanent link">&para;</a></h3>
+<h4 id="241-ultra-low-capacitance-bidirectional-esd-protection-diodes">2.4.1. Ultra-Low Capacitance Bidirectional ESD Protection Diodes<a class="headerlink" href="#241-ultra-low-capacitance-bidirectional-esd-protection-diodes" title="Permanent link">&para;</a></h4>
+<p>Because the antenna elements are deployed outdoors, they are susceptible to electrostatic discharge (ESD) and atmospheric static accumulation. Bidirectional transient voltage suppressor (TVS) diodes with ultra-low junction capacitance (<span class="arithmatex">\(C_j &lt; 0.5\text{ pF}\)</span>) are placed across the Antenna A and Antenna B input lines directly adjacent to the SMA connectors. The high capacitive reactance of these diodes across 30.0 – 40.0 MHz ensures transparent RF operation without shunting high-frequency signal energy to ground.</p>
+<hr />
+<h3 id="25-summary-bill-of-materials-bom">2.5. Summary Bill of Materials (BOM)<a class="headerlink" href="#25-summary-bill-of-materials-bom" title="Permanent link">&para;</a></h3>
+<p>The physical implementation of the Dual-Channel RF Switching Matrix utilizes standard surface-mount (SMD) and high-frequency edge-mount components. The 14 line items below represent the complete component roster captured in the Altium Designer schematic and layout database:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Item</th>
+<th style="text-align: left;">Designator</th>
+<th style="text-align: left;">Part Number / Value</th>
+<th style="text-align: left;">Description &amp; Specifications</th>
+<th style="text-align: left;">Package / Footprint</th>
+<th style="text-align: center;">Qty</th>
+<th style="text-align: left;">Functional Application</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: left;">C1, C2, C6, C7, C8</td>
+<td style="text-align: left;">1000pF (1 nF)</td>
+<td style="text-align: left;">1000 pF ±5% 50V Ceramic Capacitor (C0G/NP0)</td>
+<td style="text-align: left;">SMD 0603</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">AC-coupling &amp; DC-blocking on RF switch ports</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>2</strong></td>
+<td style="text-align: left;">C3, C4, C5</td>
+<td style="text-align: left;">1uF</td>
+<td style="text-align: left;">1 µF ±10% 25V Ceramic Capacitor (X7R)</td>
+<td style="text-align: left;">SMD 0603</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">Bulk decoupling &amp; power rail stabilization</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>3</strong></td>
+<td style="text-align: left;">D1</td>
+<td style="text-align: left;">SS14</td>
+<td style="text-align: left;">Schottky Barrier Diode, 40 V, 1 A, Low <span class="arithmatex">\(V_F\)</span></td>
+<td style="text-align: left;">SMA (DO-214AC)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">Reverse-polarity protection on main DC supply</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>4</strong></td>
+<td style="text-align: left;">D2, D3, D4, D5, D6</td>
+<td style="text-align: left;">DIO_TPD1E01B04DPYR</td>
+<td style="text-align: left;">Bidirectional TVS ESD Diode, 15 V clamp, <span class="arithmatex">\(C_j \approx 0.18\text{ pF}\)</span></td>
+<td style="text-align: left;">0402 / X1SON-2 (DPY)</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: left;">Ultra-low capacitance ESD protection on RF ports</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>5</strong></td>
+<td style="text-align: left;">J1</td>
+<td style="text-align: left;">CON_KF128-5.08-3P-AA</td>
+<td style="text-align: left;">3-position 5.08 mm pitch Screw Terminal Block</td>
+<td style="text-align: left;">Through-Hole</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">External DC power and dual GPIO control header</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>6</strong></td>
+<td style="text-align: left;">J2</td>
+<td style="text-align: left;">RF Out A</td>
+<td style="text-align: left;">SMA Female Connector Jack, <span class="arithmatex">\(50\ \Omega\)</span>, PCB Edge Mount</td>
+<td style="text-align: left;">Edge-Mount SMA (1.6 mm)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">RF Output to Receiver Channel A (RSPdx 1)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>7</strong></td>
+<td style="text-align: left;">J3</td>
+<td style="text-align: left;">RF In A</td>
+<td style="text-align: left;">SMA Female Connector Jack, <span class="arithmatex">\(50\ \Omega\)</span>, PCB Edge Mount</td>
+<td style="text-align: left;">Edge-Mount SMA (1.6 mm)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">RF Input from Sky Dipole Antenna A</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>8</strong></td>
+<td style="text-align: left;">J4</td>
+<td style="text-align: left;">RF Out B</td>
+<td style="text-align: left;">SMA Female Connector Jack, <span class="arithmatex">\(50\ \Omega\)</span>, PCB Edge Mount</td>
+<td style="text-align: left;">Edge-Mount SMA (1.6 mm)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">RF Output to Receiver Channel B (RSPdx 2)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>9</strong></td>
+<td style="text-align: left;">J5</td>
+<td style="text-align: left;">RF IN B</td>
+<td style="text-align: left;">SMA Female Connector Jack, <span class="arithmatex">\(50\ \Omega\)</span>, PCB Edge Mount</td>
+<td style="text-align: left;">Edge-Mount SMA (1.6 mm)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">RF Input from Sky Dipole Antenna B</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>10</strong></td>
+<td style="text-align: left;">J6</td>
+<td style="text-align: left;">Noise Source</td>
+<td style="text-align: left;">SMA Female Connector Jack, <span class="arithmatex">\(50\ \Omega\)</span>, PCB Edge Mount</td>
+<td style="text-align: left;">Edge-Mount SMA (1.6 mm)</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: left;">RF Calibration Reference Input (CAL IN)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>11</strong></td>
+<td style="text-align: left;">R1, R2, R4</td>
+<td style="text-align: left;">1k</td>
+<td style="text-align: left;">1 k<span class="arithmatex">\(\Omega\)</span> ±1% 0.1 W Thick Film Resistor</td>
+<td style="text-align: left;">SMD 0603</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">ogic input current limiting</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12</strong></td>
+<td style="text-align: left;">R3, R5, R6</td>
+<td style="text-align: left;">49.9R</td>
+<td style="text-align: left;">49.9 <span class="arithmatex">\(\Omega\)</span> ±1% 0.1 W Precision Resistor</td>
+<td style="text-align: left;">SMD 0603</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: left;">3-resistor symmetric Delta (<span class="arithmatex">\(\Delta\)</span>) power splitter</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>13</strong></td>
+<td style="text-align: left;">U1, U2</td>
+<td style="text-align: left;">HMC544AE</td>
+<td style="text-align: left;">GaAs MMIC SPDT Non-Reflective RF Switch, DC–4 GHz</td>
+<td style="text-align: left;">SOT-23-6</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">High-speed RF routing switches (Channel A &amp; B)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14</strong></td>
+<td style="text-align: left;">U3, U4</td>
+<td style="text-align: left;">SN74LVC1G04DBVR</td>
+<td style="text-align: left;">Single Inverter Gate IC, 1.65 V to 5.5 V</td>
+<td style="text-align: left;">SOT-23-5</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: left;">Complementary logic inversion for switch control</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="technical-notes-on-selected-components">Technical Notes on Selected Components:<a class="headerlink" href="#technical-notes-on-selected-components" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Resistive Power Splitter Network (R3, R5, R6):</strong> The <span class="arithmatex">\(49.9\ \Omega\)</span> value corresponds to the nearest standard EIA E96 1% precision resistor rating for nominal <span class="arithmatex">\(50.0\ \Omega\)</span>, maintaining accurate port matching and equal power split with minimal reflection.</li>
+<li><strong>ESD Clamping Diodes (D2 – D6):</strong> The Texas Instruments <code>TPD1E01B04</code> features an ultra-low typical capacitance of <span class="arithmatex">\(0.18\text{ pF}\)</span>, making it transparent across the 30.0 – 40.0 MHz band without degrading return loss or adding phase distortion.</li>
+<li><strong>Polarity &amp; Header Security (D1, J1):</strong> The <code>SS14</code> Schottky diode guards the active ICs against reverse supply connections, while the industrial screw terminal (<code>KF128-5.08-3P</code>) provides secure field wiring to the Raspberry Pi 5 GPIO lines and power rails.</li>
+</ul>
+<hr />
+<h2 id="3-altium-designer-cad-implementation">3. Altium Designer CAD Implementation<a class="headerlink" href="#3-altium-designer-cad-implementation" title="Permanent link">&para;</a></h2>
+<h3 id="31-complete-circuit-schematic">3.1. Complete Circuit Schematic<a class="headerlink" href="#31-complete-circuit-schematic" title="Permanent link">&para;</a></h3>
+<p>The electrical schematic was designed in Altium Designer, capturing the RF switches, logic inverter, <span class="arithmatex">\(50\ \Omega\)</span> Delta splitter, <span class="arithmatex">\(1\text{ nF}\)</span> DC blocking capacitors, power supply decoupling, and input ESD protection diodes.</p>
+<p><img alt="Figure 3.1: Complete Schematic Capture" src="../../assets/schematics/rf_switch.svg" /></p>
+<p><em>Figure 3.1: Complete Schematic Capture</em></p>
+<hr />
+<h3 id="32-pcb-footprint-and-physical-layout">3.2. PCB Footprint and Physical Layout<a class="headerlink" href="#32-pcb-footprint-and-physical-layout" title="Permanent link">&para;</a></h3>
+<h4 id="321-pcb-stackup-50-transmission-line-synthesis-via-shielding">3.2.1. PCB Stackup, 50 Ω Transmission Line Synthesis &amp; Via Shielding<a class="headerlink" href="#321-pcb-stackup-50-transmission-line-synthesis-via-shielding" title="Permanent link">&para;</a></h4>
+<p>To preserve impedance matching and phase balance across 30.0 – 40.0 MHz, all high-frequency signal lines are designed for a nominal characteristic impedance of <span class="arithmatex">\(Z_0 = 50.0\ \Omega\)</span>.</p>
+<h5 id="1-substrate-cpw-g-synthesis-saturn-pcb-toolkit">1. Substrate &amp; CPW-G Synthesis (Saturn PCB Toolkit)<a class="headerlink" href="#1-substrate-cpw-g-synthesis-saturn-pcb-toolkit" title="Permanent link">&para;</a></h5>
+<p>A Coplanar Waveguide with Ground (CPW-G) geometry was synthesized on a standard 2-layer FR-4 substrate (Kingboard KB-6164) using the 2D Field Solver in <strong>Saturn PCB Toolkit</strong>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: center;">Symbol</th>
+<th style="text-align: center;">Value</th>
+<th style="text-align: center;">Unit</th>
+<th style="text-align: left;">Description / Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Dielectric Height</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(H\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(62.99\)</span> (<span class="arithmatex">\(1.60\)</span>)</td>
+<td style="text-align: center;">mils (mm)</td>
+<td style="text-align: left;">Core substrate thickness</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Relative Permittivity</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\varepsilon_r\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(4.40\)</span></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: left;">Evaluated at 35.0 MHz</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Copper Thickness</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(T\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(2.10\)</span> (<span class="arithmatex">\(0.053\)</span>)</td>
+<td style="text-align: center;">mils (mm)</td>
+<td style="text-align: left;">1.0 oz base + surface plating</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Conductor Width</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(W\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(50.00\)</span> (<span class="arithmatex">\(1.27\)</span>)</td>
+<td style="text-align: center;">mils (mm)</td>
+<td style="text-align: left;">Matches SMA connector footprint pitch</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ground Clearance Gap</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(G\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(8.00\)</span> (<span class="arithmatex">\(0.203\)</span>)</td>
+<td style="text-align: center;">mils (mm)</td>
+<td style="text-align: left;">Top coplanar ground separation</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Characteristic Impedance</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(Z_0\)</span></td>
+<td style="text-align: center;"><strong><span class="arithmatex">\(50.41\)</span></strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\Omega\)</span></td>
+<td style="text-align: left;">Error <span class="arithmatex">\(&lt; 0.82\%\)</span> (<span class="arithmatex">\(S_{11} &lt; -47\text{ dB}\)</span>, <span class="arithmatex">\(\text{VSWR} \approx 1.01:1\)</span>)</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Figure 3.2: Coplanar Waveguide impedance calculation in Saturn PCB Toolkit" src="../../assets/photos/rf_switch_saturn.jpg" /></p>
+<p><em>Figure 3.2: Coplanar Waveguide impedance calculation in Saturn PCB Toolkit</em></p>
+<h5 id="2-ground-via-shielding-altium-designer-implementation">2. Ground Via Shielding (Altium Designer Implementation)<a class="headerlink" href="#2-ground-via-shielding-altium-designer-implementation" title="Permanent link">&para;</a></h5>
+<p>A via fence was generated along both sides of each RF route (<em>Via Shielding to Net</em>) to tie the top coplanar ground to the bottom ground plane and suppress substrate resonances:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Altium Field</th>
+<th style="text-align: center;">Value</th>
+<th style="text-align: left;">Physical Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Via Geometry</strong></td>
+<td style="text-align: left;">Hole / Diameter</td>
+<td style="text-align: center;"><span class="arithmatex">\(0.30\text{ mm}\)</span> / <span class="arithmatex">\(0.60\text{ mm}\)</span></td>
+<td style="text-align: left;">Standard mechanical drill and annular ring</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Trace Clearance</strong></td>
+<td style="text-align: left;"><code>Distance</code></td>
+<td style="text-align: center;"><span class="arithmatex">\(0.508\text{ mm}\)</span> (<span class="arithmatex">\(20\text{ mils}\)</span>)</td>
+<td style="text-align: left;">Pad edge clears the 8-mil gap to preserve <span class="arithmatex">\(Z_0 = 50.4\ \Omega\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Via Spacing</strong></td>
+<td style="text-align: left;"><code>Grid</code></td>
+<td style="text-align: center;"><span class="arithmatex">\(0.508\text{ mm}\)</span> (<span class="arithmatex">\(20\text{ mils}\)</span>)</td>
+<td style="text-align: left;">Pitch <span class="arithmatex">\(\ll \lambda_g / 1000\)</span> at 35 MHz; suppresses cavity modes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Row Setup</strong></td>
+<td style="text-align: left;"><code>Rows</code> / <code>Row spacing</code></td>
+<td style="text-align: center;"><span class="arithmatex">\(1\)</span> / <span class="arithmatex">\(0.025\text{ mm}\)</span></td>
+<td style="text-align: left;">Single shielding fence per trace side</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Figure 3.3: Altium Designer via shielding configuration and routing interface" src="../../assets/photos/rf_switch_shielding_net.jpg" /></p>
+<p><em>Figure 3.3: Altium Designer via shielding configuration and routing interface</em></p>
+<h3 id="32-pcb-footprint-and-physical-layout_1">3.2. PCB Footprint and Physical Layout<a class="headerlink" href="#32-pcb-footprint-and-physical-layout_1" title="Permanent link">&para;</a></h3>
+<h4 id="321-top-layer-layout-and-routing">3.2.1. Top Layer Layout and Routing<a class="headerlink" href="#321-top-layer-layout-and-routing" title="Permanent link">&para;</a></h4>
+<p>The board is laid out on a standard 2-layer FR-4 substrate (<span class="arithmatex">\(1.6\text{ mm}\)</span> thickness) with <span class="arithmatex">\(50\ \Omega\)</span> Coplanar Waveguides with Ground (CPW-G). Channel traces from the Delta splitter to both switches and from the switches to the output SMA connectors are geometrically length-matched (<span class="arithmatex">\(\Delta L &lt; 0.2\text{ mm}\)</span>) to preserve phase balance.</p>
+<p><img alt="Figure 3.4: Top Layer Routing and Component Footprints" src="../../assets/photos/rf_switch_top_layer.jpg" /></p>
+<p><em>Figure 3.4: Top Layer Routing and Component Footprints</em></p>
+<h4 id="322-bottom-layer-ground-plane-structure">3.2.2. Bottom Layer Ground Plane Structure<a class="headerlink" href="#322-bottom-layer-ground-plane-structure" title="Permanent link">&para;</a></h4>
+<p>The bottom layer serves as an uninterrupted ground reference plane, reinforced with perimeter via stitching along all RF tracks to suppress parasitic resonances and provide low-impedance return paths.</p>
+<p><img alt="Figure 3.5: Bottom Layer Ground Plane" src="../../assets/photos/rf_switch_bottom_layer.jpg" /></p>
+<p><em>Figure 3.5: Bottom Layer Ground Plane</em></p>
+<hr />
+<h3 id="33-3d-mechanical-modeling">3.3. 3D Mechanical Modeling<a class="headerlink" href="#33-3d-mechanical-modeling" title="Permanent link">&para;</a></h3>
+<p>The 3D CAD assembly integrates edge-mount SMA female connectors, discrete SMD passives, and active IC packages to ensure clearance and mechanical compatibility.</p>
+<p><img alt="Figure 3.6: 3D Isometric Board Visualization" src="../../assets/photos/rf_switch_3d_render.jpg" /></p>
+<p><em>Figure 3.6: 3D Isometric Board Visualization</em></p>
+<h3 id="34-fabricated-board-assembly-verification">3.4. Fabricated Board &amp; Assembly Verification<a class="headerlink" href="#34-fabricated-board-assembly-verification" title="Permanent link">&para;</a></h3>
+<p>Following the layout phase, the switching matrix prototype was fabricated on a standard 1.6 mm 2-layer FR-4 substrate. </p>
+<p>Pre-power continuity checks confirmed no solder bridges across the fine-pitch SOT-23 leads, proper ground bonding across all SMA outer shells, and high impedance between the +3.3V power rail and ground. This assembled prototype serves as the Device Under Test (DUT) for the laboratory Vector Network Analyzer (VNA) characterization presented in Section 4.
+<img alt="Figure 3.7: Assembled Dual-Channel RF Switching Matrix Prototype" src="../../assets/photos/rf_switch_pcb_assembled.jpg" /></p>
+<p><em>Figure 3.7: Assembled Dual-Channel RF Switching Matrix Prototype</em></p>
+<hr />
+<h2 id="4-laboratory-vna-characterization">4. Laboratory VNA Characterization<a class="headerlink" href="#4-laboratory-vna-characterization" title="Permanent link">&para;</a></h2>
+<h3 id="41-vector-network-analyzer-test-setup-300-400-mhz-calibration">4.1. Vector Network Analyzer Test Setup (30.0 – 40.0 MHz Calibration)<a class="headerlink" href="#41-vector-network-analyzer-test-setup-300-400-mhz-calibration" title="Permanent link">&para;</a></h3>
+<p>To validate the high-frequency performance and port tracking of the fabricated RF Switching Matrix, laboratory measurements were conducted using a calibrated two-port Vector Network Analyzer (VNA). Prior to measurement, a standard Short-Open-Load-Through (SOLT) calibration was performed across 1.0 – 200.0 MHz to shift the measurement reference planes directly to the end faces of the coaxial test cables.</p>
+<p>The assembled board (DUT) was powered with a 3.3V DC supply, and the RF routing state was set via the control pin. During each two-port transmission (<span class="arithmatex">\(S_{21}\)</span>) and reflection (<span class="arithmatex">\(S_{11}\)</span>) measurement sweep, all unused/idle RF ports were terminated with precision <span class="arithmatex">\(50\ \Omega\)</span> broadband dummy loads to prevent parasitic reflections and preserve system impedance matching.</p>
+<p><img alt="Figure 4.1: Laboratory measurement setup connecting the Device Under Test (DUT) to the Vector Network Analyzer" src="../../assets/photos/rf_switch_vna_test_setup.jpg" /></p>
+<p><em>Figure 4.1: Laboratory measurement setup connecting the Device Under Test (DUT) to the Vector Network Analyzer</em></p>
+<hr />
+<h3 id="42-path-a-antenna-a-noise-source-to-out-a-measurements">4.2. Path A: Antenna A &amp; Noise Source to OUT A Measurements<a class="headerlink" href="#42-path-a-antenna-a-noise-source-to-out-a-measurements" title="Permanent link">&para;</a></h3>
+<h4 id="421-antenna-a-to-out-a-state-on">4.2.1. Antenna A to OUT A — State: ON<a class="headerlink" href="#421-antenna-a-to-out-a-state-on" title="Permanent link">&para;</a></h4>
+<p>Measurement of the primary sky path from Antenna A (RF IN A) to Receiver OUT A with the switch engaged (Observation Mode).</p>
+<p><img alt="Figure 4.2: Antenna A to OUT A (ON State)" src="../../assets/plots/rf_switch/in_out_A_on.png" /></p>
+<p><em>Figure 4.2: Antenna A to OUT A (ON State)</em></p>
+<h4 id="422-antenna-a-to-out-a-state-off">4.2.2. Antenna A to OUT A — State: OFF<a class="headerlink" href="#422-antenna-a-to-out-a-state-off" title="Permanent link">&para;</a></h4>
+<p>Measurement of isolation along the Antenna A path to Receiver OUT A when switched to calibration (Calibration Mode).</p>
+<p><img alt="Figure 4.3: Antenna A to OUT A (OFF State)" src="../../assets/plots/rf_switch/in_out_A_off.png" /></p>
+<p><em>Figure 4.3: Antenna A to OUT A (OFF State)</em></p>
+<h4 id="423-noise-source-to-out-a-state-on">4.2.3. Noise Source to OUT A — State: ON<a class="headerlink" href="#423-noise-source-to-out-a-state-on" title="Permanent link">&para;</a></h4>
+<p>Measurement of transmission from the Noise Source port through the Delta power splitter to Receiver OUT A (Calibration Mode).</p>
+<p><img alt="Figure 4.4: Noise Source to OUT A (ON State)" src="../../assets/plots/rf_switch/ns_out_A_on.png" /></p>
+<p><em>Figure 4.4: Noise Source to OUT A (ON State)</em></p>
+<h4 id="424-noise-source-to-out-a-state-off">4.2.4. Noise Source to OUT A — State: OFF<a class="headerlink" href="#424-noise-source-to-out-a-state-off" title="Permanent link">&para;</a></h4>
+<p>Measurement of calibration reference isolation to Receiver OUT A while the switch is routed to the antenna (Observation Mode).</p>
+<p><img alt="Figure 4.5: Noise Source to OUT A (OFF State)" src="../../assets/plots/rf_switch/ns_out_A_off.png" /></p>
+<p><em>Figure 4.5: Noise Source to OUT A (OFF State)</em></p>
+<hr />
+<h3 id="43-path-b-antenna-b-noise-source-to-out-b-measurements">4.3. Path B: Antenna B &amp; Noise Source to OUT B Measurements<a class="headerlink" href="#43-path-b-antenna-b-noise-source-to-out-b-measurements" title="Permanent link">&para;</a></h3>
+<h4 id="431-noise-source-to-out-b-state-on">4.3.1. Noise Source to OUT B — State: ON<a class="headerlink" href="#431-noise-source-to-out-b-state-on" title="Permanent link">&para;</a></h4>
+<p>Measurement of transmission from the Noise Source port through the Delta power splitter to Receiver OUT B (Calibration Mode).</p>
+<p><img alt="Figure 4.6: Noise Source to OUT B (ON State)" src="../../assets/plots/rf_switch/ns_out_B_on.png" /></p>
+<p><em>Figure 4.6: Noise Source to OUT B (ON State)</em></p>
+<h4 id="432-noise-source-to-out-b-state-off">4.3.2. Noise Source to OUT B — State: OFF<a class="headerlink" href="#432-noise-source-to-out-b-state-off" title="Permanent link">&para;</a></h4>
+<p>Measurement of calibration reference isolation to Receiver OUT B while the switch is routed to the antenna (Observation Mode).</p>
+<p><img alt="Figure 4.7: Noise Source to OUT B (OFF State)" src="../../assets/plots/rf_switch/ns_out_B_off.png" /></p>
+<p><em>Figure 4.7: Noise Source to OUT B (OFF State)</em></p>
+<h4 id="433-antenna-b-to-out-b-state-on">4.3.3. Antenna B to OUT B — State: ON<a class="headerlink" href="#433-antenna-b-to-out-b-state-on" title="Permanent link">&para;</a></h4>
+<p>Measurement of the primary sky path from Antenna B (RF IN B) to Receiver OUT B with the switch engaged (Observation Mode).</p>
+<p><img alt="Figure 4.8: Antenna B to OUT B (ON State)" src="../../assets/plots/rf_switch/in_out_B_on.png" /></p>
+<p><em>Figure 4.8: Antenna B to OUT B (ON State)</em></p>
+<h4 id="434-antenna-b-to-out-b-state-off">4.3.4. Antenna B to OUT B — State: OFF<a class="headerlink" href="#434-antenna-b-to-out-b-state-off" title="Permanent link">&para;</a></h4>
+<p>Measurement of isolation along the Antenna B path to Receiver OUT B when switched to calibration (Calibration Mode).</p>
+<p><img alt="Figure 4.9: Antenna B to OUT B (OFF State)" src="../../assets/plots/rf_switch/in_out_B_off.png" /></p>
+<p><em>Figure 4.9: Antenna B to OUT B (OFF State)</em></p>
+<hr />
+<h3 id="44-s-parameter-performance-evaluation-discussion">4.4. S-Parameter Performance Evaluation &amp; Discussion<a class="headerlink" href="#44-s-parameter-performance-evaluation-discussion" title="Permanent link">&para;</a></h3>
+<h4 id="441-observation-mode-transmission-port-match-antenna-paths">4.4.1. Observation Mode Transmission &amp; Port Match (Antenna paths)<a class="headerlink" href="#441-observation-mode-transmission-port-match-antenna-paths" title="Permanent link">&para;</a></h4>
+<p>In Observation Mode, both transmission paths exhibit low insertion loss and good impedance matching across the 30.0 – 40.0 MHz frequency window:
+* <strong>Insertion Loss (<span class="arithmatex">\(S_{21}\)</span>):</strong> Across the target band, the measured forward transmission remains stable at <span class="arithmatex">\(S_{21} \approx -0.45\text{ dB}\)</span> on both Antenna A <span class="arithmatex">\(\to\)</span> OUT A (Figure 4.3) and Antenna B <span class="arithmatex">\(\to\)</span> OUT B (Figure 4.9). This minimal attenuation satisfies the initial requirement (<span class="arithmatex">\(&lt; 0.8\text{ dB}\)</span>), preserving receiver sensitivity and preventing front-end noise figure degradation.
+* <strong>Return Loss (<span class="arithmatex">\(S_{11}\)</span>):</strong> The input return loss remains below <span class="arithmatex">\(-18.0\text{ dB}\)</span> (<span class="arithmatex">\(\text{VSWR} \approx 1.28:1\)</span>), confirming that the coplanar waveguide routing and SMA launch transitions maintain <span class="arithmatex">\(50\ \Omega\)</span> characteristic impedance.</p>
+<h4 id="442-calibration-mode-power-division-flatness-noise-source-paths">4.4.2. Calibration Mode Power Division &amp; Flatness (Noise Source paths)<a class="headerlink" href="#442-calibration-mode-power-division-flatness-noise-source-paths" title="Permanent link">&para;</a></h4>
+<p>When switched to Calibration Mode, the external noise reference is distributed via the internal Delta resistive network:
+* <strong>Forward Coupling (<span class="arithmatex">\(S_{21}\)</span>):</strong> Measured forward transmission is <span class="arithmatex">\(S_{21} \approx -6.3\text{ dB}\)</span> to both OUT A (Figure 4.4) and OUT B (Figure 4.6). This closely matches theoretical expectations: <span class="arithmatex">\(-6.02\text{ dB}\)</span> nominal power division from the 3-resistor <span class="arithmatex">\(50\ \Omega\)</span> Delta configuration plus <span class="arithmatex">\(\approx 0.35\text{ dB}\)</span> switch on-state path loss.
+* <strong>Band Flatness:</strong> The transmission curve exhibits less than <span class="arithmatex">\(0.15\text{ dB}\)</span> peak-to-peak ripple across the 10 MHz passband with linear phase behavior, preventing distortion of injected reference noise.
+* <strong>Port Match (<span class="arithmatex">\(S_{11}\)</span>):</strong> Calibration input return loss measures better than <span class="arithmatex">\(-20\text{ dB}\)</span>, preventing reflections back into the noise generator.</p>
+<h4 id="443-off-state-switch-isolation">4.4.3. Off-State Switch Isolation<a class="headerlink" href="#443-off-state-switch-isolation" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Antenna Isolation (Calibration Mode):</strong> When observing paths are deactivated (Figures 4.3 and 4.9), off-state isolation reaches <span class="arithmatex">\(-67\text{ dB}\)</span> to <span class="arithmatex">\(-68\text{ dB}\)</span>, with <span class="arithmatex">\(S_{11}\)</span> approaching <span class="arithmatex">\(0\text{ dB}\)</span> (purely reactive reflective state), preventing external interference from entering during calibration.</li>
+<li><strong>Noise Source Isolation (Observation Mode):</strong> Isolation between the inactive calibration splitter and the receiver outputs measures <span class="arithmatex">\(\approx -58\text{ dB}\)</span> (Figures 4.5 and 4.7). Because the avalanche noise source DC bias is actively cut during observation, total noise leakage drops below the sky background floor (<span class="arithmatex">\(&lt; -120\text{ dBm}\)</span>), validating the relaxed isolation strategy.</li>
+</ul>
+<h4 id="444-dual-channel-tracking-symmetry-verification">4.4.4. Dual-Channel Tracking &amp; Symmetry Verification<a class="headerlink" href="#444-dual-channel-tracking-symmetry-verification" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Amplitude Balance:</strong> The inter-channel gain delta between Path A and Path B satisfies:
+  $<span class="arithmatex">\(\Delta |S_{21}| = \big| |S_{21,\text{Path A}}| - |S_{21,\text{Path B}}| \big| &lt; 0.15\text{ dB}\)</span>$</li>
+<li><strong>Phase Alignment:</strong> Due to symmetric trace routing and length matching (<span class="arithmatex">\(\Delta L &lt; 0.2\text{ mm}\)</span>), the differential phase offset remains negligible (<span class="arithmatex">\(\Delta\phi \approx 0^\circ\)</span>), ensuring baseline symmetry for the correlation engine.</li>
+</ul>
+<hr />
+<h3 id="45-summary-of-experimental-results-vs-design-targets">4.5. Summary of Experimental Results vs. Design Targets<a class="headerlink" href="#45-summary-of-experimental-results-vs-design-targets" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter / Metric</th>
+<th style="text-align: center;">Target Specification</th>
+<th style="text-align: center;">Measured Value (Path A)</th>
+<th style="text-align: center;">Measured Value (Path B)</th>
+<th style="text-align: center;">Compliance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Passband Frequency</strong></td>
+<td style="text-align: center;">30.0 – 40.0 MHz</td>
+<td style="text-align: center;">30.0 – 40.0 MHz</td>
+<td style="text-align: center;">30.0 – 40.0 MHz</td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Observation Insertion Loss (<span class="arithmatex">\(S_{21}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.8\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -0.45\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -0.45\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Observation Return Loss (<span class="arithmatex">\(S_{11}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\le -15.0\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -18.5\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -18.0\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Calibration Attenuation (<span class="arithmatex">\(S_{21}\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(-6.0\text{ dB} \dots -6.5\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -6.3\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(\approx -6.3\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Switch Off-State Isolation</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(\ge 40.0\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(58\text{ dB} \dots 68\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(58\text{ dB} \dots 67\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Inter-Channel Gain Balance (<span class="arithmatex">\(\Delta \|S_{21}\|\)</span>)</strong></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.2\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.15\text{ dB}\)</span></td>
+<td style="text-align: center;"><span class="arithmatex">\(&lt; 0.15\text{ dB}\)</span></td>
+<td style="text-align: center;"><strong>PASS</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-system-integration-control-sequence">5. System Integration &amp; Control Sequence<a class="headerlink" href="#5-system-integration-control-sequence" title="Permanent link">&para;</a></h2>
+<h3 id="51-gpio-switching-logic-from-raspberry-pi-5">5.1. GPIO Switching Logic from Raspberry Pi 5<a class="headerlink" href="#51-gpio-switching-logic-from-raspberry-pi-5" title="Permanent link">&para;</a></h3>
+<p>The RF Switching Matrix operates in tandem with the active power gate of the avalanche noise source via two dedicated Raspberry Pi 5 GPIO commands:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Operating Mode</th>
+<th style="text-align: left;">GPIO 1 (<code>GPIO_SW</code>)</th>
+<th style="text-align: left;">GPIO 2 (<code>GPIO_NOISE</code>)</th>
+<th style="text-align: left;">RF Switch Position</th>
+<th style="text-align: left;">Noise Source DC Power</th>
+<th style="text-align: left;">Correlator Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Observation</strong></td>
+<td style="text-align: left;"><code>LOW</code> (0V)</td>
+<td style="text-align: left;"><code>LOW</code> (0V)</td>
+<td style="text-align: left;">Antenna → Receiver OUT</td>
+<td style="text-align: left;"><code>OFF</code> (0V, Gated)</td>
+<td style="text-align: left;">Solar Fringe Acquisition (Module 3)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Calibration</strong></td>
+<td style="text-align: left;"><code>HIGH</code> (3.3V)</td>
+<td style="text-align: left;"><code>HIGH</code> (3.3V)</td>
+<td style="text-align: left;">Noise Splitter → Receiver OUT</td>
+<td style="text-align: left;"><code>ON</code> (+15V, Active)</td>
+<td style="text-align: left;">Delay &amp; Phase Locking (Module 2)</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Figure 5.1: Dual-state control sequence and signal timing diagram" src="../../assets/photos/observation_cabliration_diagram.svg" /></p>
+<p><em>Figure 5.1: Dual-state control sequence and signal timing diagram</em></p>
+<p>Cutting DC power to the noise source during observation guarantees that no broadband noise leaks into the receiver front-ends, validating the relaxed switch isolation strategy.</p>
+<hr />
+<h3 id="52-digital-backend-delay-alignment-verification-k0-lock">5.2. Digital Backend Delay Alignment Verification (k=0 Lock)<a class="headerlink" href="#52-digital-backend-delay-alignment-verification-k0-lock" title="Permanent link">&para;</a></h3>
+<p>To verify end-to-end hardware symmetry, the switching matrix was tested in Calibration Mode using the backend alignment engine (Module 2). Broadband noise injected through the Delta splitter was ingested simultaneously by both RSPdx receivers.</p>
+<p>The backend computes the cross-correlation function via FFTW3:</p>
+<div class="arithmatex">\[
+R_{12}[k] = \mathcal{F}^{-1}\left\{ \mathcal{F}\{\tilde{x}_1[n]\} \cdot \mathcal{F}^*\{\tilde{x}_2[n]\} \right\}
+\]</div>
+<p>Due to the length-matched CPW-G traces and symmetric <span class="arithmatex">\(50\ \Omega\)</span> Delta divider network, the cross-correlation collapses into an isolated Dirac peak locked deterministically at lag index <span class="arithmatex">\(k = 0\)</span> with a high Peak-to-Noise Ratio (<span class="arithmatex">\(\text{PNR} &gt; 20\text{ dB}\)</span>), verifying zero inter-channel hardware timing skew.</p>
+<hr />
+<h2 id="6-chapter-summary">6. Chapter Summary<a class="headerlink" href="#6-chapter-summary" title="Permanent link">&para;</a></h2>
+<p>The design, CAD layout, and laboratory verification of the Dual-Channel RF Switching Matrix provide an automated front-end routing solution for the 30.0 – 40.0 MHz solar interferometer. Utilizing GaAs MMIC switches, a symmetric <span class="arithmatex">\(50\ \Omega\)</span> Delta resistive power divider, <span class="arithmatex">\(1\text{ nF}\)</span> DC blocking capacitors, and low-capacitance ESD protection, the board delivers balanced dual-channel routing. Coordinating switch logic with active noise source power gating ensures reliable isolation, while digital backend testing confirms zero-delay (<span class="arithmatex">\(k=0\)</span>) sample alignment across the receive chain.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

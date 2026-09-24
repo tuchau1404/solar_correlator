@@ -1,0 +1,1896 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/">
+      
+      
+      
+        <link rel="next" href="workflow/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#solar-radio-interferometer-300-400-mhz" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Solar Radio Interferometer (30.0 – 40.0 MHz)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview &amp; Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-key-engineering-challenges-design-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Key Engineering Challenges &amp; Design Rationale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-key-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Key Specifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-documentation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Documentation Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-project-status-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Project Status &amp; Roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Project Status &amp; Roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-weekly-progress-deliverables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Weekly Progress &amp; Deliverables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.1. Weekly Progress &amp; Deliverables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#week-3-21092026-27092026-current-sprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-2-14092026-20092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 2 (14.09.2026 – 20.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-1-08092026-15092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 1 (08.09.2026 – 15.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-0-31082026-07092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 0 (31.08.2026 – 07.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#521-current-status-phase-1-lab-benchtop-instrumentation-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2.1. Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#522-future-roadmap-phase-2-field-deployment-science-archiving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2.2 Future Roadmap: Phase 2 — Field Deployment &amp; Science Archiving
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-repository-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Repository Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-quick-start-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Quick Start Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Quick Start Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-build-and-run-hardware-sanity-check-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Build and Run Hardware Sanity Check (Raspberry Pi 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-launch-real-time-correlator-backend-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Launch Real-Time Correlator Backend (Raspberry Pi 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-launch-frontend-visualizer-host-pc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Launch Frontend Visualizer (Host PC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-license-acknowledgments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. License &amp; Acknowledgments
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="02-firmware-dsp/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="02-firmware-dsp/module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="02-firmware-dsp/module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="02-firmware-dsp/module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="02-firmware-dsp/module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview &amp; Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-key-engineering-challenges-design-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Key Engineering Challenges &amp; Design Rationale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-key-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Key Specifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-documentation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Documentation Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-project-status-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Project Status &amp; Roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Project Status &amp; Roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-weekly-progress-deliverables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Weekly Progress &amp; Deliverables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.1. Weekly Progress &amp; Deliverables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#week-3-21092026-27092026-current-sprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-2-14092026-20092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 2 (14.09.2026 – 20.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-1-08092026-15092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 1 (08.09.2026 – 15.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#week-0-31082026-07092026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Week 0 (31.08.2026 – 07.09.2026)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#521-current-status-phase-1-lab-benchtop-instrumentation-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2.1. Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#522-future-roadmap-phase-2-field-deployment-science-archiving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2.2 Future Roadmap: Phase 2 — Field Deployment &amp; Science Archiving
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-repository-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Repository Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-quick-start-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Quick Start Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Quick Start Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-build-and-run-hardware-sanity-check-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Build and Run Hardware Sanity Check (Raspberry Pi 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-launch-real-time-correlator-backend-raspberry-pi-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Launch Real-Time Correlator Backend (Raspberry Pi 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-launch-frontend-visualizer-host-pc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Launch Frontend Visualizer (Host PC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-license-acknowledgments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. License &amp; Acknowledgments
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="solar-radio-interferometer-300-400-mhz">Solar Radio Interferometer (30.0 – 40.0 MHz)<a class="headerlink" href="#solar-radio-interferometer-300-400-mhz" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Weekly Report:</strong> Week 3 (21.09.2026 – 27.09.2026)</p>
+<p><strong>Current Focus:</strong> RF Switch Matrix VNA Validation &amp; Backend Integration <a href="#weekly-log">Jump to Weekly Log</a></p>
+</blockquote>
+<hr />
+<p>A real-time, dual-channel coherent radio interferometer designed for decametric solar radio burst observation (Solar Type II and Type III events). The system couples two SDRplay RSPdx software-defined radio receivers synchronized via an external 24 MHz reference clock to a Raspberry Pi 5 edge compute node running a multi-process C++17 FX correlator pipeline, streaming real-time visibilities via UDP to a host visualization workstation.</p>
+<hr />
+<h2 id="1-system-overview-architecture">1. System Overview &amp; Architecture<a class="headerlink" href="#1-system-overview-architecture" title="Permanent link">&para;</a></h2>
+<p>The instrumentation is structured across two physical nodes: an <strong>Embedded Edge DSP Node</strong> (Raspberry Pi 5) responsible for high-throughput USB 3.0 ingestion, sample-accurate alignment, and FX correlation; and a <strong>Host Visualization Node</strong> (PC) providing real-time GPU-accelerated waterfall rendering and scientific archiving.</p>
+<p><img alt="System Architecture" src="assets/architecture.svg" /></p>
+<hr />
+<h2 id="2-key-engineering-challenges-design-rationale">2. Key Engineering Challenges &amp; Design Rationale<a class="headerlink" href="#2-key-engineering-challenges-design-rationale" title="Permanent link">&para;</a></h2>
+<p>Building a coherent radio interferometer with low-cost commercial SDRs presents fundamental physics and timing bottlenecks:</p>
+<ul>
+<li>
+<p><strong>Eliminating Sampling Drift with 24 MHz Reference Locking:</strong><br />
+  Independent on-board TCXOs exhibit fractional frequency offsets of a few Hz, causing continuous sample drift (<span class="arithmatex">\(k = 0 \to \pm 1 \to \pm 2\dots\)</span>) within seconds. Distributing an external 24.0 MHz clock to both <code>REFin</code> ports forces identical ADC sampling rates (<span class="arithmatex">\(f_{s1} = f_{s2}\)</span>), ensuring zero drift over extended observation runs.</p>
+</li>
+<li>
+<p><strong>Broadband Noise Standard for Multi-Tier Calibration:</strong><br />
+  Rather than relying on single-tone CW signals—which introduce periodic phase ambiguity and low correlation contrast—the system integrates a broadband avalanche noise source as an absolute physical calibration standard. This hardware reference fulfills three critical calibration functions:</p>
+<ol>
+<li><em>Coarse Delay Synchronization:</em> Exploits high random entropy across 10 MHz to compress cross-correlation into an isolated Dirac delta (<span class="arithmatex">\(\delta[k]\)</span>), driving Peak-to-Noise Ratio (PNR) above 30 dB for deterministic <span class="arithmatex">\(k=0\)</span> sample locking.</li>
+<li><em>Instrumental Phase &amp; Gain Equalization:</em> Directly measures the static inter-channel transfer function <span class="arithmatex">\(\Delta\phi_0(f)\)</span> across all 2048 FFT bins, establishing the phase calibration matrix to neutralize internal analog filter and path discrepancies.</li>
+<li><em>Radiometric Flux Scaling (<span class="arithmatex">\(T_{\text{sys}}\)</span>):</em> Serves as a calibrated hot/cold standard for Y-factor measurements, mapping arbitrary ADC digital units to physical brightness temperature (Kelvin) and Solar Flux Units (SFU) while tracking receiver thermal gain drift.  </li>
+</ol>
+</li>
+<li><strong>Multi-Process USB Jitter Elimination:</strong><br />
+  API initialization jitter between separate child processes introduces up to <span class="arithmatex">\(\sim 30\text{ ms}\)</span> (<span class="arithmatex">\(\sim 300,000\text{ samples}\)</span> at 10 MSPS) of startup skew—far exceeding the <span class="arithmatex">\(N = 65,536\)</span> FFT snapshot window. A shared-memory barrier gate synchronizes the write-pointers at a common microsecond epoch prior to correlation.</li>
+</ul>
+<h2 id="3-key-specifications">3. Key Specifications<a class="headerlink" href="#3-key-specifications" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Specification</th>
+<th style="text-align: left;">Notes / Verification Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>RF Operating Band</strong></td>
+<td style="text-align: left;">30.0 – 40.0 MHz</td>
+<td style="text-align: left;">Center frequency <span class="arithmatex">\(f_{\text{LO}} = 35.0\text{ MHz}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Analog IF Bandwidth</strong></td>
+<td style="text-align: left;">8.0 MHz analog filter</td>
+<td style="text-align: left;">SDRplay <code>BW_8_000</code> configuration</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sampling Rate (<span class="arithmatex">\(f_s\)</span>)</strong></td>
+<td style="text-align: left;">10.0 MSPS complex I/Q</td>
+<td style="text-align: left;"><span class="arithmatex">\(100\text{ ns}\)</span> sample period, sustaining 80 MB/s total USB throughput</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Clock Synchronization</strong></td>
+<td style="text-align: left;">External 24.0 MHz reference clock</td>
+<td style="text-align: left;">Common distribution to dual <code>REFin</code> ports, zero sample drift verified</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>RF Input Port</strong></td>
+<td style="text-align: left;">2x Antenna Port C (50 <span class="arithmatex">\(\Omega\)</span> BNC)</td>
+<td style="text-align: left;">Matched impedance, manual gain locked to 30 dB (IF AGC disabled)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Inter-Process Buffer</strong></td>
+<td style="text-align: left;">POSIX Shared Memory (<code>/dev/shm</code>)</td>
+<td style="text-align: left;">Lock-free SPSC circular ring buffers (<span class="arithmatex">\(2^{22}\)</span> complex samples / 16.7 MB per channel)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Coarse Time Alignment</strong></td>
+<td style="text-align: left;">Fast cross-correlation via FFTW3</td>
+<td style="text-align: left;">Snapshot <span class="arithmatex">\(N = 65,536\)</span>, startup delay resolved to <span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ sample}\)</span> (<span class="arithmatex">\(\approx 100\text{ ns}\)</span>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Spectral Engine (F-Engine)</strong></td>
+<td style="text-align: left;">2048-point 1D Complex FFT</td>
+<td style="text-align: left;">Hanning-windowed, 50% overlap, ARM NEON SIMD accelerated via FFTW3</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cross-Engine (X-Engine)</strong></td>
+<td style="text-align: left;">Cross-power <span class="arithmatex">\(S_{12}(f) = X_1(f) X_2^*(f)\)</span></td>
+<td style="text-align: left;">Autospectra <span class="arithmatex">\(S_{11}, S_{22}\)</span> computed concurrently for power normalization</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Time Integration (<span class="arithmatex">\(\tau\)</span>)</strong></td>
+<td style="text-align: left;">Welch vector accumulation (<span class="arithmatex">\(\tau = 200\text{ ms}\)</span>)</td>
+<td style="text-align: left;">Configurable <span class="arithmatex">\(M = 1953\)</span> to 2441 frames; output refresh rate <span class="arithmatex">\(\sim 5\text{ FPS}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Network Telemetry</strong></td>
+<td style="text-align: left;">Flat binary UDP datagrams</td>
+<td style="text-align: left;">Custom header + 2048 float32 array sent to port 9999</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-documentation-map">4. Documentation Map<a class="headerlink" href="#4-documentation-map" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><em>Note: Hardware and firmware implementations are continuously evolving in the lab. Documentation status is tracked below.</em></p>
+</blockquote>
+<p>Detailed technical documentation, mathematical derivations, schematics, and lab test reports are maintained in the <a href="./"><code>docs/</code></a> directory:</p>
+<ul>
+<li>
+<p><strong>Hardware &amp; RF Front-End (<code>docs/01-hardware/</code>):</strong></p>
+<ul>
+<li><a href="01-hardware/rf-frontend/">RF Front-End &amp; Antennas</a> <code>[Work in Progress]</code>: Antenna geometry, coaxial impedance matching, and BNC Port C termination.</li>
+<li><a href="01-hardware/clock-sync/">24 MHz Clock Distribution</a> <code>[Work in Progress]</code>: Reference oscillator splitting, phase locking, and <code>REFin</code> port distribution.</li>
+<li><a href="01-hardware/noise-source/">Avalanche Noise Source</a> <code>[Work in Progress - Updated 21.09.2026]</code>: 2N2222 B-E junction avalanche core, active current mirror biasing, MMIC buffer stage, 10 dB Pi-attenuator matching (-50 dBm output), and GPIO power gating.</li>
+<li><a href="01-hardware/rf-switching/">RF Switching &amp; Routing</a> <code>[Complete - 22.09.2026]</code>: Dual SPDT switches (HMC544AE), symmetric 1:2 resistive Wye splitter, GPIO state control, and port isolation.</li>
+<li><a href="01-hardware/host-interconnect/">Host Interconnect &amp; Power</a> <code>[Planned]</code>: Raspberry Pi 5 USB 3.0 throughput constraints, power budgeting, and isolation.</li>
+</ul>
+</li>
+<li>
+<p><strong>Firmware &amp; DSP Pipeline (<code>docs/02-firmware-dsp/</code>):</strong></p>
+<ul>
+<li><a href="02-firmware-dsp/architecture/">IPC Architecture</a>: Multi-process fork() model, zero-copy POSIX shared memory, and lock-free atomic barriers.</li>
+<li><a href="02-firmware-dsp/module1-driver/">Module 1 - SDR Ingestion Driver</a><code>[Complete - 23.09.2026]</code>: SDRplay API v3 integration and continuous 10 MSPS dual streaming.</li>
+<li><a href="02-firmware-dsp/module2-time-align/">Module 2 - Real-Time Time Alignment</a> <code>[Work in Progress]</code>: Initial USB startup delay compensation, flush barriers, and sample-level locking (<span class="arithmatex">\(k = 0\)</span>).</li>
+<li><a href="02-firmware-dsp/module3-fx-correlator/">Module 3 - FX Correlator</a> <code>[Work in Progress]</code>: 50% overlap F-Engine, ARM NEON vectorization, Hanning power correction, and Welch integration.</li>
+<li><a href="02-firmware-dsp/module4-telemetry/">Module 4 - UDP Telemetry &amp; Viewer</a> <code>[Work in Progress]</code>: Binary socket protocol and GPU-accelerated PyQtGraph waterfall visualization.</li>
+</ul>
+</li>
+<li><strong>Verification &amp; Calibration (<code>docs/03-calibration-tests/</code>):</strong><ul>
+<li><a href="03-calibration-tests/lab-bench-test/">Zero-Baseline Lab Bench Verification</a> <code>[Work in Progress]</code> : CW tone and wideband noise bench tests with peak-to-noise ratio analysis.</li>
+<li><a href="03-calibration-tests/debug-chronicles/">Debug Chronicles</a> <code>[Planned]</code>: Engineering logbook covering buffer wrap-around, race conditions, and synchronization fixes.</li>
+<li><a href="03-calibration-tests/field-deployment/">Field Deployment</a> <code>[Planned]</code>: Site noise surveys, antenna array erection, and observational campaigns.</li>
+</ul>
+</li>
+<li><strong>Deployment Guides (<code>docs/04-deployment-guide/</code>):</strong><ul>
+<li><a href="04-deployment-guide/pi5-setup/">Raspberry Pi 5 OS Setup</a> <code>[Planned]</code>: Headless Linux tuning, CPU governor optimization, and driver installation.</li>
+<li><a href="04-deployment-guide/systemd-daemon/">Systemd Daemonization</a> <code>[Planned]</code> Automated boot management, watchdog recovery, and operational scripts.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="5-project-status-roadmap">5. Project Status &amp; Roadmap<a class="headerlink" href="#5-project-status-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="51-weekly-progress-deliverables">5.1. Weekly Progress &amp; Deliverables <a id="weekly-log"></a><a class="headerlink" href="#51-weekly-progress-deliverables" title="Permanent link">&para;</a></h3>
+<h4 id="week-3-21092026-27092026-current-sprint">Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)<a class="headerlink" href="#week-3-21092026-27092026-current-sprint" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p><strong>RF Switching Matrix Hardware:</strong></p>
+<ul>
+<li>Assembled and hand-soldered the dual-channel RF switch prototype PCB.</li>
+<li>Performed laboratory two-port VNA characterization across the target band to evaluate insertion loss, port matching, and off-state isolation.</li>
+</ul>
+</li>
+<li>
+<p><strong>Technical Documentation Deliverables:</strong></p>
+<ul>
+<li><a href="01-hardware/rf-switching/"><code>rf-switching.md</code></a> <code>[Complete]</code>: Documented circuit schematics, layout implementation, and laboratory VNA measurement records.</li>
+<li><a href="02-firmware-dsp/module1-driver/"><code>module1-driver.md</code></a> <code>[Complete]</code>: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.</li>
+<li><a href="01-hardware/noise-source/"><code>noise-source.md</code></a> <code>[Work in Progress]</code>: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.</li>
+</ul>
+</li>
+</ul>
+<details>
+<summary><b>View Archived Progress (Week 0 – Week 2)</b></summary>
+<h4 id="week-2-14092026-20092026">Week 2 (14.09.2026 – 20.09.2026)<a class="headerlink" href="#week-2-14092026-20092026" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p><strong>Firmware &amp; Real-Time DSP Pipeline:</strong></p>
+<ul>
+<li>Implemented lock-free Single-Producer Single-Consumer (SPSC) circular ring buffers in POSIX Shared Memory (<code>/dev/shm</code>).</li>
+<li>Developed and verified the automated FFT cross-correlation time alignment algorithm to compensate for initial USB startup delays.</li>
+</ul>
+</li>
+<li>
+<p><strong>Hardware &amp; Noise Source Prototyping:</strong></p>
+<ul>
+<li>Assembled and tested the avalanche noise core on a breadboard to verify breakdown behavior and DC biasing.</li>
+<li>Completed the schematic and 2-layer PCB layout in Altium Designer, then officially placed the board fabrication order.</li>
+</ul>
+</li>
+</ul>
+<h4 id="week-1-08092026-15092026">Week 1 (08.09.2026 – 15.09.2026)<a class="headerlink" href="#week-1-08092026-15092026" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Master Clock Synchronization:</strong> Tracked and verified the delivery status of the GPSDO reference unit ordered from Taobao. </li>
+<li><strong>10 MHz to 24 MHz PLL Frequency Synthesizer:</strong><ul>
+<li>Designed the circuit schematic and PCB implementation for the 10-to-24 MHz PLL clock multiplier in Altium Designer.</li>
+<li>Simulated the PLL loop filter transient response, lock range, and stability in LTspice.</li>
+<li>Finalized the Bill of Materials (BOM) and placed procurement orders for all prototype components.</li>
+</ul>
+</li>
+</ul>
+<h4 id="week-0-31082026-07092026">Week 0 (31.08.2026 – 07.09.2026)<a class="headerlink" href="#week-0-31082026-07092026" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Configured the headless Linux environment and runtime dependencies on the host processor.</li>
+<li>Connected and verified the external reference clock distribution to lock receiver ADCs and local oscillators.</li>
+<li>Validated continuous dual-channel raw baseband streaming over independent USB buses without buffer drops.</li>
+</ul>
+</details>
+<h3 id="521-current-status-phase-1-lab-benchtop-instrumentation-completed">5.2.1. Current Status: Phase 1 — Lab Benchtop Instrumentation (Completed)<a class="headerlink" href="#521-current-status-phase-1-lab-benchtop-instrumentation-completed" title="Permanent link">&para;</a></h3>
+<p>All hardware-level synchronization, real-time shared-memory pipelines, and DSP correlation modules have been validated on the test bench:</p>
+<ul>
+<li><strong>Clock Phase Coherence:</strong> External 24 MHz reference clock distribution verified across both RSPdx ADCs with zero relative sampling drift over 60-second continuous runs.</li>
+<li><strong>Continuous Dual Ingestion:</strong> Multi-process POSIX Shared Memory architecture sustains an aggregate 80 MB/s raw I/Q throughput with zero dropped buffers.</li>
+<li><strong>Coarse Delay Alignment (Module 2):</strong> Automated cross-correlation identifies non-deterministic USB startup offsets and drains buffer lead, locking synchronization to <span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ sample}\)</span> (<span class="arithmatex">\(\approx 100\text{ ns}\)</span>) with <span class="arithmatex">\(\text{PNR} &gt; 15\text{ dB}\)</span>.</li>
+<li><strong>FX Correlation Core (Module 3):</strong> Pre-allocated, zero-heap FFTW3 transformation with 50% overlap and Welch integration verified against synthetic and CW bench tones.</li>
+<li><strong>Real-Time Telemetry &amp; GUI (Module 4):</strong> Non-blocking UDP transport with PyQtGraph displaying real-time power spectrum and dynamic waterfall spectrograms.</li>
+</ul>
+<h3 id="522-future-roadmap-phase-2-field-deployment-science-archiving">5.2.2 Future Roadmap: Phase 2 — Field Deployment &amp; Science Archiving<a class="headerlink" href="#522-future-roadmap-phase-2-field-deployment-science-archiving" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Automated Calibration Switching:</strong> Implement GPIO-driven RF switches to toggle between zero-baseline noise calibration and outdoor antennas.</li>
+<li><strong>Antenna Field Array:</strong> Deploy dual East-West baseline wire dipoles optimized for the 30.0 – 40.0 MHz decametric observation window.</li>
+<li><strong>Fringe Stopping:</strong> Implement continuous sub-sample geometric delay phase rotation (<span class="arithmatex">\(e^{-j 2\pi f \tau_g(t)}\)</span>) in the F-Engine.</li>
+<li><strong>HDF5 Archiving:</strong> Integrate rolling daily storage of complex visibilities (<span class="arithmatex">\(\text{Re}, \text{Im}, S_{11}, S_{22}\)</span>) in standard HDF5 format on the host workstation.</li>
+<li><strong>Autonomous Station Automation:</strong> Deploy systemd service watchdogs and automated nocturnal cloud backup via <code>rclone</code>.</li>
+</ul>
+<hr />
+<h2 id="6-repository-structure">6. Repository Structure<a class="headerlink" href="#6-repository-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>solar_correlator/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── CMakeLists.txt              # Top-level build configuration (C++17, -O3, NEON)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── WORKFLOW.md                 # Dual-node Git synchronization guidelines
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── src/                        # Core backend DSP source code (runs on Pi 5)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── config.hpp              # Central system configuration and constants
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── ring_buffer.hpp         # Lock-free SPSC POSIX Shared Memory ring buffer
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── time_alignment.hpp/.cpp # Startup sample alignment and cross-correlation
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── correlator.hpp/.cpp     # FX Correlator (F-Engine + X-Engine)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── telemetry_sender.hpp    # Non-blocking UDP socket streamer
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   └── main.cpp                # Multi-process supervisor and execution loop
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── tests/                      # Standalone hardware diagnostic binaries
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── single_dev_test.cpp     # Individual RSPdx validation
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── dual_stream_test.cpp    # Dual USB 10 MSPS continuous throughput test
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   └── alignment_test.cpp      # Standalone 60s sample alignment validation test
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>├── viewer/                     # Frontend visualization (runs on Host PC)
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── viewer.py               # PyQtGraph live spectrum and waterfall display
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   └── requirements.txt        # Python dependencies (PyQt5, pyqtgraph, numpy)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>└── docs/                       # Project engineering blog and documentation
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    ├── index.md                # Documentation portal
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    ├── 01-hardware/            # RF front-end, clock sync, and wiring schematics
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    ├── 02-firmware-dsp/        # C++ DSP algorithms and IPC memory models
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    ├── 03-calibration-tests/   # Bench test logs, PNR analysis, and field records
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    ├── 04-deployment-guide/    # Headless Pi 5 Linux configuration and daemons
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    └── assets/                 # Schematics, test plots, and bench setup photos
+</code></pre></div>
+<hr />
+<h2 id="7-quick-start-guide">7. Quick Start Guide<a class="headerlink" href="#7-quick-start-guide" title="Permanent link">&para;</a></h2>
+<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Raspberry Pi 5 Node:</strong> Raspberry Pi OS 64-bit Lite, SDRplay API v3 driver service, FFTW3 (<code>libfftw3-dev</code>), CMake, GCC/G++ with C++17 support.</li>
+<li><strong>Host PC Node:</strong> Python 3.8+, <code>pyqt5</code>, <code>pyqtgraph</code>, <code>numpy</code>.</li>
+</ul>
+<h3 id="1-build-and-run-hardware-sanity-check-raspberry-pi-5">1. Build and Run Hardware Sanity Check (Raspberry Pi 5)<a class="headerlink" href="#1-build-and-run-hardware-sanity-check-raspberry-pi-5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>~/solar_correlator
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cmake<span class="w"> </span>-B<span class="w"> </span>build
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cmake<span class="w"> </span>--build<span class="w"> </span>build<span class="w"> </span>-j4
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># Restart the SDRplay service and verify dual-device sample lock</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>sdrplay
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>./build/alignment_test
+</code></pre></div>
+<h3 id="2-launch-real-time-correlator-backend-raspberry-pi-5">2. Launch Real-Time Correlator Backend (Raspberry Pi 5)<a class="headerlink" href="#2-launch-real-time-correlator-backend-raspberry-pi-5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./build/solar_correlator
+</code></pre></div>
+<h3 id="3-launch-frontend-visualizer-host-pc">3. Launch Frontend Visualizer (Host PC)<a class="headerlink" href="#3-launch-frontend-visualizer-host-pc" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># On your local machine (within the same LAN)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>viewer/requirements.txt
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>python<span class="w"> </span>viewer/viewer.py
+</code></pre></div>
+<hr />
+<h2 id="7-license-acknowledgments">7. License &amp; Acknowledgments<a class="headerlink" href="#7-license-acknowledgments" title="Permanent link">&para;</a></h2>
+<p>This project is developed for educational and academic research in observational radio astronomy. Code and schematics are distributed under the MIT License. SDRplay API remains the intellectual property of SDRplay Ltd.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

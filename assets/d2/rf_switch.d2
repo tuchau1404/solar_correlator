@@ -1,0 +1,52 @@
+direction: right
+
+# Đầu vào tín hiệu (RF Inputs)
+ant_a: "Antenna A"
+ant_b: "Antenna B"
+cal_in: "CAL / Noise IN"
+
+# Bộ chia tín hiệu
+splitter: "Delta 50Ω\n(Splitter)"
+
+# Khối chuyển mạch (Switches)
+switch_a: "Switch A" {
+  rf1: "RF1"
+  rf2: "RF2"
+  out: "OUT A"
+}
+
+switch_b: "Switch B" {
+  rf1: "RF1"
+  rf2: "RF2"
+  out: "OUT B"
+}
+
+# Đầu ra (Receivers)
+ch1: "RSPdx Ch 1"
+ch2: "RSPdx Ch 2"
+
+# Điều khiển logic
+gpio: "GPIO Control\n(Complementary Logic)" {
+  style: {
+    stroke-dash: 3
+    fill: "#f4f4f4"
+  }
+}
+
+# Định tuyến tín hiệu RF
+ant_a -> switch_a.rf1
+cal_in -> splitter
+splitter -> switch_a.rf2
+splitter -> switch_b.rf2
+ant_b -> switch_b.rf1
+
+switch_a.out -> ch1
+switch_b.out -> ch2
+
+# Đường điều khiển GPIO
+gpio -> switch_a: "Control" {
+  style.stroke-dash: 4
+}
+gpio -> switch_b: "Control" {
+  style.stroke-dash: 4
+}

@@ -1,0 +1,2861 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/02-firmware-dsp/module2-time-align/">
+      
+      
+        <link rel="prev" href="../module1-driver/">
+      
+      
+        <link rel="next" href="../module3-fx-correlator/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Module 2: POSIX Shared Memory & Real-Time Time Alignment Engine - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#module-2-posix-shared-memory-real-time-time-alignment-engine" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary-problem-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary &amp; Problem Formulation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Executive Summary &amp; Problem Formulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-executive-summary-high-level-objectives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Executive Summary &amp; High-Level Objectives
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-problem-formulation-the-startup-sample-skew-k_textoffset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Problem Formulation: The Startup Sample Skew (\(k_{\text{offset}}\))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2. Problem Formulation: The Startup Sample Skew (\(k_{\text{offset}}\))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121-clock-frequency-locking-vs-trigger-epoch-ambiguity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.1. Clock Frequency Locking vs. Trigger Epoch Ambiguity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-empirical-verification-via-zero-baseline-bench-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.2. Empirical Verification via Zero-Baseline Bench Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123-physical-impact-on-radio-interferometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.3. Physical Impact on Radio Interferometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-scope-and-quantitative-acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Scope and Quantitative Acceptance Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-physical-interconnect-zero-baseline-calibration-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Physical Interconnect &amp; Zero-Baseline Calibration Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Physical Interconnect &amp; Zero-Baseline Calibration Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-physical-interconnect-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Physical Interconnect Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-test-signal-selection-broadband-avalanche-noise-vs-single-tone-cw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-limitation-of-continuous-wave-cw-tones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mathematical Limitation of Continuous-Wave (CW) Tones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages-of-broadband-avalanche-noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages of Broadband Avalanche Noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-theoretical-mathematical-foundations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Theoretical &amp; Mathematical Foundations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Theoretical &amp; Mathematical Foundations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-mathematical-signal-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. Mathematical Signal Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-time-domain-cross-correlation-mechanics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. Time-Domain Cross-Correlation Mechanics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-fast-cross-correlation-via-fft-fftw3-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. Fast Cross-Correlation via FFT (FFTW3 Engine)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.3. Fast Cross-Correlation via FFT (FFTW3 Engine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cross-correlation-theorem-computational-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Correlation Theorem &amp; Computational Scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre-processing-dc-offset-removal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Processing: DC Offset Removal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linear-vs-circular-correlation-validity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linear vs. Circular Correlation Validity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-lag-index-unwrapping-peak-to-noise-ratio-pnr-quantification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. Lag Index Unwrapping &amp; Peak-to-Noise Ratio (PNR) Quantification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.4. Lag Index Unwrapping &amp; Peak-to-Noise Ratio (PNR) Quantification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lag-index-unwrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lag Index Unwrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pnr-formulation-noise-exclusion-window" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PNR Formulation &amp; Noise-Exclusion Window
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-upper-bound-of-pnr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theoretical Upper Bound of PNR
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-ring-buffer-bitwise-indexing-math" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5. Ring Buffer Bitwise Indexing Math
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-inter-process-communication-memory-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Inter-Process Communication &amp; Memory Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Inter-Process Communication &amp; Memory Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-multi-process-concurrency-model-fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Multi-Process Concurrency Model (fork())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-posix-shared-memory-architecture-devshm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. POSIX Shared Memory Architecture (/dev/shm)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2. POSIX Shared Memory Architecture (/dev/shm)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memory-sizing-buffer-horizon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Sizing &amp; Buffer Horizon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-lock-free-single-producer-single-consumer-spsc-ring-buffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Lock-Free Single-Producer Single-Consumer (SPSC) Ring Buffer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Lock-Free Single-Producer Single-Consumer (SPSC) Ring Buffer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#weakly-ordered-memory-model-armv8-a-cortex-a76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weakly-Ordered Memory Model (ARMv8-A Cortex-A76)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preventing-false-sharing-alignas64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preventing False Sharing (alignas(64))
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-software-architecture-implementation-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Software Architecture &amp; Implementation Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Software Architecture &amp; Implementation Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-source-code-modularization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Source Code Modularization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-real-time-t_0-synchronization-via-flush-barrier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Real-Time \(T_0\) Synchronization via Flush Barrier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-non-destructive-snapshot-inspection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. Non-Destructive Snapshot Inspection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-single-shot-skip-algorithm-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Single-Shot Skip Algorithm &amp; Exception Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.4. Single-Shot Skip Algorithm &amp; Exception Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-shot-alignment-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-Shot Alignment Logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-rationale-single-shot-vs-continuous-auto-skip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Rationale: Single-Shot vs. Continuous Auto-Skip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception Handling &amp; Edge Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-process-lifecycle-posix-signal-handling-and-clean-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Process Lifecycle, POSIX Signal Handling, and Clean Teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-experimental-verification-stability-benchmarking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Experimental Verification &amp; Stability Benchmarking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Experimental Verification &amp; Stability Benchmarking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-four-stage-benchmarking-methodology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Four-Stage Benchmarking Methodology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-empirical-execution-logs-terminal-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Empirical Execution Logs &amp; Terminal Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-perturbation-sanity-test-coaxial-cable-delay-insertion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Perturbation Sanity Test (Coaxial Cable Delay Insertion)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-handover-contract-to-module-3-fx-correlator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4. Handover Contract to Module 3 (FX Correlator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary-problem-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary &amp; Problem Formulation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Executive Summary &amp; Problem Formulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-executive-summary-high-level-objectives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Executive Summary &amp; High-Level Objectives
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-problem-formulation-the-startup-sample-skew-k_textoffset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Problem Formulation: The Startup Sample Skew (\(k_{\text{offset}}\))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2. Problem Formulation: The Startup Sample Skew (\(k_{\text{offset}}\))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121-clock-frequency-locking-vs-trigger-epoch-ambiguity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.1. Clock Frequency Locking vs. Trigger Epoch Ambiguity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-empirical-verification-via-zero-baseline-bench-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.2. Empirical Verification via Zero-Baseline Bench Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123-physical-impact-on-radio-interferometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2.3. Physical Impact on Radio Interferometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-scope-and-quantitative-acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Scope and Quantitative Acceptance Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-physical-interconnect-zero-baseline-calibration-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Physical Interconnect &amp; Zero-Baseline Calibration Topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Physical Interconnect &amp; Zero-Baseline Calibration Topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-physical-interconnect-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Physical Interconnect Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-test-signal-selection-broadband-avalanche-noise-vs-single-tone-cw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-limitation-of-continuous-wave-cw-tones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mathematical Limitation of Continuous-Wave (CW) Tones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages-of-broadband-avalanche-noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages of Broadband Avalanche Noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-theoretical-mathematical-foundations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Theoretical &amp; Mathematical Foundations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Theoretical &amp; Mathematical Foundations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-mathematical-signal-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1. Mathematical Signal Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-time-domain-cross-correlation-mechanics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2. Time-Domain Cross-Correlation Mechanics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-fast-cross-correlation-via-fft-fftw3-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3. Fast Cross-Correlation via FFT (FFTW3 Engine)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.3. Fast Cross-Correlation via FFT (FFTW3 Engine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cross-correlation-theorem-computational-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Correlation Theorem &amp; Computational Scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre-processing-dc-offset-removal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Processing: DC Offset Removal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linear-vs-circular-correlation-validity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linear vs. Circular Correlation Validity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-lag-index-unwrapping-peak-to-noise-ratio-pnr-quantification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4. Lag Index Unwrapping &amp; Peak-to-Noise Ratio (PNR) Quantification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.4. Lag Index Unwrapping &amp; Peak-to-Noise Ratio (PNR) Quantification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lag-index-unwrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lag Index Unwrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pnr-formulation-noise-exclusion-window" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PNR Formulation &amp; Noise-Exclusion Window
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-upper-bound-of-pnr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theoretical Upper Bound of PNR
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-ring-buffer-bitwise-indexing-math" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5. Ring Buffer Bitwise Indexing Math
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-inter-process-communication-memory-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Inter-Process Communication &amp; Memory Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Inter-Process Communication &amp; Memory Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-multi-process-concurrency-model-fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1. Multi-Process Concurrency Model (fork())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-posix-shared-memory-architecture-devshm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2. POSIX Shared Memory Architecture (/dev/shm)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2. POSIX Shared Memory Architecture (/dev/shm)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memory-sizing-buffer-horizon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Sizing &amp; Buffer Horizon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-lock-free-single-producer-single-consumer-spsc-ring-buffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3. Lock-Free Single-Producer Single-Consumer (SPSC) Ring Buffer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.3. Lock-Free Single-Producer Single-Consumer (SPSC) Ring Buffer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#weakly-ordered-memory-model-armv8-a-cortex-a76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weakly-Ordered Memory Model (ARMv8-A Cortex-A76)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preventing-false-sharing-alignas64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preventing False Sharing (alignas(64))
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-software-architecture-implementation-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Software Architecture &amp; Implementation Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Software Architecture &amp; Implementation Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-source-code-modularization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Source Code Modularization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-real-time-t_0-synchronization-via-flush-barrier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Real-Time \(T_0\) Synchronization via Flush Barrier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-non-destructive-snapshot-inspection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. Non-Destructive Snapshot Inspection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-single-shot-skip-algorithm-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Single-Shot Skip Algorithm &amp; Exception Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.4. Single-Shot Skip Algorithm &amp; Exception Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-shot-alignment-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-Shot Alignment Logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-rationale-single-shot-vs-continuous-auto-skip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Rationale: Single-Shot vs. Continuous Auto-Skip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception Handling &amp; Edge Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-process-lifecycle-posix-signal-handling-and-clean-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Process Lifecycle, POSIX Signal Handling, and Clean Teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-experimental-verification-stability-benchmarking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Experimental Verification &amp; Stability Benchmarking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Experimental Verification &amp; Stability Benchmarking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-four-stage-benchmarking-methodology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Four-Stage Benchmarking Methodology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-empirical-execution-logs-terminal-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Empirical Execution Logs &amp; Terminal Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-perturbation-sanity-test-coaxial-cable-delay-insertion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Perturbation Sanity Test (Coaxial Cable Delay Insertion)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-handover-contract-to-module-3-fx-correlator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4. Handover Contract to Module 3 (FX Correlator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="module-2-posix-shared-memory-real-time-time-alignment-engine">Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine<a class="headerlink" href="#module-2-posix-shared-memory-real-time-time-alignment-engine" title="Permanent link">&para;</a></h1>
+<h2 id="1-executive-summary-problem-formulation">1. Executive Summary &amp; Problem Formulation<a class="headerlink" href="#1-executive-summary-problem-formulation" title="Permanent link">&para;</a></h2>
+<h3 id="11-executive-summary-high-level-objectives">1.1. Executive Summary &amp; High-Level Objectives<a class="headerlink" href="#11-executive-summary-high-level-objectives" title="Permanent link">&para;</a></h3>
+<p>Module 2 provides the inter-process data transport and real-time temporal synchronization infrastructure for the dual-channel decametric solar radio interferometer. By establishing a zero-copy POSIX Shared Memory (SHM) bus, the module bridges two isolated high-throughput ingestion workers with the downstream digital signal processing (DSP) backend[cite: 2].</p>
+<p>The primary engineering objectives of Module 2 are:
+* <strong>High-Throughput IPC Transport:</strong> Maintain a sustained aggregate throughput of 80 MB/s (10.0 MSPS per channel, 16-bit complex I/Q, dual-channel) over Linux virtual memory without ring buffer overflows or sample drops[cite: 2, 6].
+* <strong>Integer Sample-Accurate Alignment:</strong> Algorithmically identify and eliminate the non-deterministic initial hardware/USB startup delay skew (<span class="arithmatex">\(k_{\text{offset}}\)</span>), locking the temporal alignment of both baseband streams to within <span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ sample}\)</span> (<span class="arithmatex">\(\approx 100\text{ ns}\)</span> at 10.0 MSPS)[cite: 2, 3].
+* <strong>Phase-Locked Stability Verification:</strong> Confirm that an external 24.0 MHz clock reference completely suppresses sample drift over extended observation runs (Zero Drift over <span class="arithmatex">\(\ge 60\text{ seconds}\)</span>)[cite: 2, 3].</p>
+<hr />
+<h3 id="12-problem-formulation-the-startup-sample-skew-k_textoffset">1.2. Problem Formulation: The Startup Sample Skew (<span class="arithmatex">\(k_{\text{offset}}\)</span>)<a class="headerlink" href="#12-problem-formulation-the-startup-sample-skew-k_textoffset" title="Permanent link">&para;</a></h3>
+<h4 id="121-clock-frequency-locking-vs-trigger-epoch-ambiguity">1.2.1. Clock Frequency Locking vs. Trigger Epoch Ambiguity<a class="headerlink" href="#121-clock-frequency-locking-vs-trigger-epoch-ambiguity" title="Permanent link">&para;</a></h4>
+<p>To eliminate independent local oscillator drift, both SDRplay RSPdx receivers are fed a common 24.0 MHz reference clock at their respective <code>REFin</code> ports[cite: 2, 7]. This locks the internal phase-locked loops (PLLs) and analog-to-digital converters (ADCs), ensuring identical sampling rates[cite: 2, 7]:
+$<span class="arithmatex">\(f_{s1} = f_{s2} = 10.000000\text{ MSPS}\)</span>$</p>
+<p>Consequently, the temporal duration of a single baseband sample is:
+$<span class="arithmatex">\(T_s = \frac{1}{f_s} = \frac{1}{10,000,000\text{ Hz}} = 100\text{ ns} \quad (0.1\ \mu\text{s})\)</span>$
+[cite: 2]</p>
+<p>However, the hardware architecture lacks a hardware trigger or Pulse-Per-Second (PPS) acquisition gate line[cite: 2, 7]. Because the vendor <code>libsdrplay_api.so</code> runtime restricts multi-receiver operation to isolated OS processes, sample streaming must be initiated via two independent POSIX <code>fork()</code> worker processes[cite: 2]. </p>
+<p>This architecture introduces non-deterministic temporal jitter due to:
+1. Linux operating system task scheduler latencies and kernel context-switch variations[cite: 2].
+2. Independent USB 3.0 xHCI controller endpoint enumeration, DMA transfer handshakes, and packet queue initialization[cite: 2].
+3. Tuner firmware decimation and digital filter initialization latencies inside each receiver[cite: 2].</p>
+<p>An OS scheduling differential of merely <span class="arithmatex">\(10\ \mu\text{s}\)</span> between the two child processes calling <code>sdrplay_api_Init()</code> causes one receiver to start ingesting baseband samples 100 samples ahead of the other[cite: 2, 3]. Without software-level compensation, this startup skew persists indefinitely[cite: 2].</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Receiver 1 Timeline: [Sample 0][Sample 1][Sample 2][Sample 3] ...
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                              ▲
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                              │ k_offset (Initial Hardware/USB Delay Skew)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                              ▼
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Receiver 2 Timeline: ---------[Sample 0][Sample 1][Sample 2] ...
+</code></pre></div>
+<h4 id="122-empirical-verification-via-zero-baseline-bench-test">1.2.2. Empirical Verification via Zero-Baseline Bench Test<a class="headerlink" href="#122-empirical-verification-via-zero-baseline-bench-test" title="Permanent link">&para;</a></h4>
+<p>The existence of <span class="arithmatex">\(k_{\text{offset}}\)</span> was empirically confirmed on the test bench[cite: 2, 3]:
+* <strong>Test Topology:</strong> A common broadband noise source was coupled to a 1:2 resistive RF power divider and routed to Port C of both RSPdx receivers through two coaxial cables cut to identical physical lengths (<span class="arithmatex">\(\Delta L = 0\text{ cm} \to \Delta\tau_{\text{cable}} = 0\text{ ns}\)</span>)[cite: 2, 3].
+* <strong>Observation:</strong> When evaluating the cross-correlation function <span class="arithmatex">\(R_{12}[k]\)</span> over an initial snapshot window of <span class="arithmatex">\(N = 65,536\text{ samples}\)</span> immediately following driver startup, the correlation peak never appeared at index <span class="arithmatex">\(k = 0\)</span>[cite: 2, 3].
+* <strong>Stochastic Behavior:</strong> Cold-boot iterations yielded varying integer offsets (e.g., <span class="arithmatex">\(k_{\text{offset}} = +38\text{ samples}\)</span> on Run 1, <span class="arithmatex">\(k_{\text{offset}} = -120\text{ samples}\)</span> on Run 2, <span class="arithmatex">\(k_{\text{offset}} = +215\text{ samples}\)</span> on Run 3), all exhibiting high Peak-to-Noise Ratios (<span class="arithmatex">\(\text{PNR} &gt; 20\text{ dB}\)</span>)[cite: 2, 3].</p>
+<p>This confirmed that while the hardware clock locks sampling rates, initial data ingestion timelines exhibit random offsets that must be actively aligned[cite: 2, 3].</p>
+<h4 id="123-physical-impact-on-radio-interferometry">1.2.3. Physical Impact on Radio Interferometry<a class="headerlink" href="#123-physical-impact-on-radio-interferometry" title="Permanent link">&para;</a></h4>
+<p>In a two-element radio interferometer, an uncompensated time offset <span class="arithmatex">\(\Delta t = k_{\text{offset}} \cdot T_s\)</span> produces a linear phase slope across the observing bandwidth[cite: 2, 3]:
+$<span class="arithmatex">\(\frac{d(\Delta\phi)}{df} = 2\pi \Delta t\)</span>$
+[cite: 3, 7]</p>
+<p>For an uncorrected offset of <span class="arithmatex">\(k_{\text{offset}} = 38\text{ samples}\)</span> (<span class="arithmatex">\(\Delta t = 3.8\ \mu\text{s}\)</span>) across the 8.0 MHz analog IF passband, the relative phase wraps across 30.4 complete cycles (<span class="arithmatex">\(60.8\pi\text{ radians}\)</span>) between the band edges[cite: 2, 3]. When summing spectral channels or performing time integration in Module 3, this rapid phase rotation causes severe decorrelation (phase washing), degrading the cross-correlation amplitude[cite: 2, 3].</p>
+<hr />
+<h3 id="13-scope-and-quantitative-acceptance-criteria">1.3. Scope and Quantitative Acceptance Criteria<a class="headerlink" href="#13-scope-and-quantitative-acceptance-criteria" title="Permanent link">&para;</a></h3>
+<p>Module 2 is evaluated against four quantitative criteria:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Acceptance Metric</th>
+<th style="text-align: left;">Quantitative Threshold</th>
+<th style="text-align: left;">Verification Methodology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Post-Alignment Delay Skew</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ sample}\)</span> (<span class="arithmatex">\(\le 100\text{ ns}\)</span>)[cite: 2]</td>
+<td style="text-align: left;">Cross-correlation peak location after initial buffer trimming[cite: 2, 3].</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Peak-to-Noise Ratio (PNR)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(\ge 10.0\text{ dB}\)</span> (Broadband noise)[cite: 2, 3]</td>
+<td style="text-align: left;">Signal peak compared against the mean baseline floor (<span class="arithmatex">\(\pm 16\text{ bins}\)</span> excluded)[cite: 2].</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Temporal Stability (60s Run)</strong></td>
+<td style="text-align: left;">Zero Sample Drift (<span class="arithmatex">\(\Delta k = 0\)</span>)[cite: 2, 3]</td>
+<td style="text-align: left;">Continuous polling of lag position at 5-second intervals[cite: 2, 3].</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Integrity &amp; Continuity</strong></td>
+<td style="text-align: left;">Buffer Drop / Overflow <span class="arithmatex">\(= 0\)</span>[cite: 2, 6]</td>
+<td style="text-align: left;">Monitoring atomic ring buffer overflow counters under full 80 MB/s streaming[cite: 2, 6].</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-physical-interconnect-zero-baseline-calibration-topology">2. Physical Interconnect &amp; Zero-Baseline Calibration Topology<a class="headerlink" href="#2-physical-interconnect-zero-baseline-calibration-topology" title="Permanent link">&para;</a></h2>
+<h3 id="21-physical-interconnect-topology">2.1. Physical Interconnect Topology<a class="headerlink" href="#21-physical-interconnect-topology" title="Permanent link">&para;</a></h3>
+<p>The physical calibration setup interfaces the signal distribution network with the SDR receivers and host controller:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>  [ Broadband Avalanche Noise Source (-50 dBm) ]
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                        │
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>             [ 1:2 Resistive RF Splitter ]
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>              │                         │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>     (Equal Coaxial Cable)     (Equal Coaxial Cable)
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>              │                         │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>              ▼                         ▼
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>       [ Port C (BNC) ]          [ Port C (BNC) ]
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>       ┌──────────────┐          ┌──────────────┐
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>       │ RSPdx Unit 1 │          │ RSPdx Unit 2 │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>       └──────┬───────┘          └──────┬───────┘
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>              │ REFin                   │ REFin
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>              ▲                         ▲
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>              └─────[ Clock Divider ]───┘
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>                           │
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>             [ 24.0 MHz Reference Oscillator ]
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>                           │
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        (USB 3.0)          │          (USB 3.0)
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>         40 MB/s           │           40 MB/s
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    ┌──────────────────────┴─────────────────────────┐
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    │             Raspberry Pi 5 Host                │
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    │     (Dedicated RP1 USB 3.0 Host Controller)    │
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    └────────────────────────────────────────────────┘
+</code></pre></div>
+[cite: 1, 2]</p>
+<ul>
+<li><strong>RF Signal Routing:</strong> The calibration signal is split evenly using a 1:2 resistive splitter (<span class="arithmatex">\(50\ \Omega\)</span> impedance-matched) and coupled into Port C (BNC) on both RSPdx units via phase-matched coaxial cables[cite: 2, 3]. Port C provides direct low-band reception (0.001 – 50 MHz), bypassing intermediate VHF/UHF preselection stages[cite: 1, 2].</li>
+<li><strong>Clock Distribution:</strong> A 24.0 MHz reference clock is fed into both <code>REFin</code> SMA ports, stabilizing the internal synthesizers[cite: 2, 3].</li>
+<li><strong>Host Interconnect:</strong> Both units connect directly to the dual blue USB 3.0 ports of the Raspberry Pi 5, which are routed to the RP1 I/O hub chip[cite: 1, 2].</li>
+</ul>
+<hr />
+<h3 id="22-test-signal-selection-broadband-avalanche-noise-vs-single-tone-cw">2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW<a class="headerlink" href="#22-test-signal-selection-broadband-avalanche-noise-vs-single-tone-cw" title="Permanent link">&para;</a></h3>
+<p>Selecting an appropriate test waveform is essential for robust time-domain cross-correlation[cite: 2]:</p>
+<h4 id="mathematical-limitation-of-continuous-wave-cw-tones">Mathematical Limitation of Continuous-Wave (CW) Tones<a class="headerlink" href="#mathematical-limitation-of-continuous-wave-cw-tones" title="Permanent link">&para;</a></h4>
+<p>When a monochromatic sinusoidal test signal <span class="arithmatex">\(s(t) = A \cos(2\pi f_0 t)\)</span> is injected into both channels, the cross-correlation function is:
+$<span class="arithmatex">\(R_{12}(\tau) = \frac{A^2}{2} \cos(2\pi f_0 (\tau - \Delta t))\)</span>$
+[cite: 2]</p>
+<p>This periodic autocorrelation spreads across the entire correlation array[cite: 2]. Because energy is distributed across periodic lobes rather than localized at a single sample, the effective background floor remains elevated[cite: 2]. Under a discrete <span class="arithmatex">\(N\)</span>-point search with a local exclusion window, a pure sinusoid yields a theoretical ceiling of:
+$<span class="arithmatex">\(\text{PNR}_{\text{CW}} \approx 3.92\text{ dB}\)</span>$
+[cite: 2]</p>
+<p>This low PNR consistently trips the <code>LOW SNR</code> detector (<span class="arithmatex">\(\text{PNR} &lt; 10.0\text{ dB}\)</span>), making CW tones unsuitable for sample-level alignment[cite: 2].</p>
+<h4 id="advantages-of-broadband-avalanche-noise">Advantages of Broadband Avalanche Noise<a class="headerlink" href="#advantages-of-broadband-avalanche-noise" title="Permanent link">&para;</a></h4>
+<p>Broadband white Gaussian noise has high entropy and a wide frequency spectrum[cite: 2]. By the Wiener-Khinchin theorem, its autocorrelation function approaches a Dirac delta function:
+$<span class="arithmatex">\(R_{ss}(\tau) = \mathcal{F}^{-1}\{S_{ss}(f)\} \approx N_0 \cdot \delta(\tau)\)</span>$
+[cite: 2]</p>
+<p>When cross-correlating broadband noise, the array values cancel to near zero at all non-matching offsets (<span class="arithmatex">\(k \neq k_0\)</span>) due to random phase distribution[cite: 2, 4]. At the true offset (<span class="arithmatex">\(k = k_0\)</span>), all spectral components add coherently, producing a distinct, sharp impulse[cite: 2, 4]. On the physical test bench, an avalanche noise source (reverse-biased 2N2222 B-E junction with MMIC amplification) produces an experimental <span class="arithmatex">\(\text{PNR}\)</span> of <span class="arithmatex">\(44\text{ dB}\)</span>, providing reliable peak detection[cite: 2, 7].</p>
+<hr />
+<h2 id="3-theoretical-mathematical-foundations">3. Theoretical &amp; Mathematical Foundations<a class="headerlink" href="#3-theoretical-mathematical-foundations" title="Permanent link">&para;</a></h2>
+<h3 id="31-mathematical-signal-model">3.1. Mathematical Signal Model<a class="headerlink" href="#31-mathematical-signal-model" title="Permanent link">&para;</a></h3>
+<p>Let <span class="arithmatex">\(s[n] \in \mathbb{C}\)</span> denote the common baseband analytical signal from the calibration noise source[cite: 1, 3]. The digitized baseband discrete-time sequences at the output of the two receivers are expressed as:
+$<span class="arithmatex">\(x_1[n] = s[n] + w_1[n]\)</span>$
+[cite: 1, 3]
+$<span class="arithmatex">\(x_2[n] = s[n - k_0] \cdot e^{-j\theta_0} + w_2[n]\)</span>$
+[cite: 1, 3]</p>
+<p>Where:
+* <span class="arithmatex">\(k_0 \in \mathbb{Z}\)</span> is the unknown integer sample delay skew (<span class="arithmatex">\(k_{\text{offset}}\)</span>) resulting from asynchronous startup[cite: 1, 3].
+* <span class="arithmatex">\(\theta_0 \in [-\pi, \pi)\)</span> is the residual phase offset between the local oscillators[cite: 3].
+* <span class="arithmatex">\(w_1[n], w_2[n] \sim \mathcal{CN}(0, \sigma_w^2)\)</span> represent independent, identically distributed zero-mean complex Gaussian thermal noise generated in the respective RF front-ends[cite: 1].</p>
+<p>Because <span class="arithmatex">\(w_1[n]\)</span> and <span class="arithmatex">\(w_2[n]\)</span> originate from physically isolated circuits:
+$<span class="arithmatex">\(\mathbb{E}[w_1[n] \cdot w_2^*[m]] = 0, \quad \forall n, m\)</span>$
+[cite: 1]
+$<span class="arithmatex">\(\mathbb{E}[s[n] \cdot w_1^*[m]] = \mathbb{E}[s[n] \cdot w_2^*[m]] = 0, \quad \forall n, m\)</span>$
+[cite: 1]</p>
+<p>Only the shared signal components <span class="arithmatex">\(s[n]\)</span> correlate constructively[cite: 1, 4].</p>
+<hr />
+<h3 id="32-time-domain-cross-correlation-mechanics">3.2. Time-Domain Cross-Correlation Mechanics<a class="headerlink" href="#32-time-domain-cross-correlation-mechanics" title="Permanent link">&para;</a></h3>
+<p>The deterministic cross-correlation between two finite discrete sequences of length <span class="arithmatex">\(N\)</span> is defined as:
+$<span class="arithmatex">\(R_{12}[k] = \sum_{n=0}^{N-1} x_1[n] \cdot x_2^*[n - k]\)</span>$
+[cite: 1, 3]</p>
+<p>For complex analytic baseband samples (<span class="arithmatex">\(x[n] = I[n] + jQ[n]\)</span>), the product with the complex conjugate expand to:
+$<span class="arithmatex">\(x_1[n] \cdot x_2^*[n - k] = \Big(I_1[n] I_2[n - k] + Q_1[n] Q_2[n - k]\Big) + j\Big(Q_1[n] I_2[n - k] - I_1[n] Q_2[n - k]\Big)\)</span>$
+[cite: 3]</p>
+<ul>
+<li><strong>At Misaligned Offsets (<span class="arithmatex">\(k \neq k_0\)</span>):</strong> The signal terms are mutually uncorrelated, and the summation acts as a random walk in the complex plane, yielding an amplitude scaling with <span class="arithmatex">\(\mathcal{O}(\sqrt{N})\)</span>[cite: 4, 7].</li>
+<li><strong>At Matched Alignment (<span class="arithmatex">\(k = k_0\)</span>):</strong> The phase variations cancel, and the summation accumulates coherently, producing an amplitude scaling with <span class="arithmatex">\(\mathcal{O}(N)\)</span>[cite: 4, 7].</li>
+</ul>
+<hr />
+<h3 id="33-fast-cross-correlation-via-fft-fftw3-engine">3.3. Fast Cross-Correlation via FFT (FFTW3 Engine)<a class="headerlink" href="#33-fast-cross-correlation-via-fft-fftw3-engine" title="Permanent link">&para;</a></h3>
+<h4 id="cross-correlation-theorem-computational-scaling">Cross-Correlation Theorem &amp; Computational Scaling<a class="headerlink" href="#cross-correlation-theorem-computational-scaling" title="Permanent link">&para;</a></h4>
+<p>Direct evaluation of <span class="arithmatex">\(R_{12}[k]\)</span> in the time domain requires <span class="arithmatex">\(N\)</span> multiplications and additions for each of the <span class="arithmatex">\(N\)</span> lag positions, resulting in an algorithmic time complexity of <span class="arithmatex">\(\mathcal{O}(N^2)\)</span>[cite: 2, 4]. </p>
+<p>For a snapshot size of <span class="arithmatex">\(N = 65,536\text{ samples}\)</span>:
+$<span class="arithmatex">\(\text{Operations}_{\text{Direct}} = N^2 = (65,536)^2 \approx 4.29 \times 10^9 \text{ operations}\)</span>$
+[cite: 2, 4]</p>
+<p>On the Raspberry Pi 5 ARM Cortex-A76 core, executing <span class="arithmatex">\(4.29\text{ billion}\)</span> floating-point operations requires roughly <span class="arithmatex">\(2 \text{ to } 3\text{ seconds}\)</span>[cite: 2, 4]. At an aggregate stream rate of <span class="arithmatex">\(80\text{ MB/s}\)</span>, stalling the DSP consumer for <span class="arithmatex">\(2\text{ seconds}\)</span> would cause the SPSC ring buffers to overflow, triggering dropped packets[cite: 2, 4].</p>
+<p>To avoid this bottleneck, the cross-correlation is evaluated in the frequency domain using the Cross-Correlation Theorem[cite: 1, 2]:
+$<span class="arithmatex">\(R_{12}[k] = \mathcal{F}^{-1}\Big\{ X_1(f) \cdot X_2^*(f) \Big\}\)</span>$
+[cite: 1, 2]</p>
+<p>Where <span class="arithmatex">\(X_1(f) = \mathcal{F}\{x_1[n]\}\)</span> and <span class="arithmatex">\(X_2(f) = \mathcal{F}\{x_2[n]\}\)</span>.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>x1[n] ───&gt; [ Forward FFT ] ───&gt; X1(f) ──┐
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>                                        ├───&gt; [ Cross-Multiply: X1 * conj(X2) ] ───&gt; S12(f) ───&gt; [ Inverse FFT ] ───&gt; R12[k]
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>x2[n] ───&gt; [ Forward FFT ] ───&gt; X2(f)* ─┘
+</code></pre></div>
+[cite: 1, 2]</p>
+<p>Evaluating two forward FFTs, one vector complex-conjugate multiply, and one inverse FFT reduces the complexity to <span class="arithmatex">\(\mathcal{O}(N \log_2 N)\)</span>[cite: 2, 4]:
+$<span class="arithmatex">\(\text{Operations}_{\text{FFT}} \approx 3 \times (N \log_2 N) + N = 3 \times (65,536 \times 16) + 65,536 \approx 3.21 \times 10^6 \text{ operations}\)</span>$
+[cite: 2, 4]</p>
+<p>This approach reduces the computational workload by more than a factor of <span class="arithmatex">\(1,000\)</span>, executing in under <span class="arithmatex">\(0.8\text{ ms}\)</span> on the Raspberry Pi 5 using single-precision FFTW3 routines (<code>fftwf_plan_dft_1d</code>)[cite: 2, 4].</p>
+<h4 id="pre-processing-dc-offset-removal">Pre-Processing: DC Offset Removal<a class="headerlink" href="#pre-processing-dc-offset-removal" title="Permanent link">&para;</a></h4>
+<p>Direct-conversion (Zero-IF) architectures introduce hardware DC offsets caused by local oscillator leakage and ADC bias[cite: 2, 7]. A static DC offset introduces an artificial spike at bin <span class="arithmatex">\(0\)</span> (<span class="arithmatex">\(0\text{ Hz}\)</span>), which distorts the cross-correlation baseline[cite: 2].</p>
+<p>The mean DC bias is estimated and removed from each channel prior to the forward FFT[cite: 2]:
+$<span class="arithmatex">\(\mu_I = \frac{1}{N}\sum_{n=0}^{N-1} I[n], \quad \mu_Q = \frac{1}{N}\sum_{n=0}^{N-1} Q[n]\)</span>$
+[cite: 2]
+$<span class="arithmatex">\(\tilde{I}[n] = I[n] - \mu_I, \quad \tilde{Q}[n] = Q[n] - \mu_Q\)</span>$
+[cite: 2]</p>
+<blockquote>
+<p><strong>Operational Warning:</strong> If verifying the receiver with a CW test tone whose frequency matches the local oscillator frequency (<span class="arithmatex">\(f_{\text{RF}} = f_{\text{LO}} = 35.0\text{ MHz}\)</span>), the downconverted tone is converted to DC (<span class="arithmatex">\(0\text{ Hz}\)</span>) and will be removed by this filter, resulting in an alignment failure[cite: 2]. Test tones should be offset from the center frequency (e.g., at <span class="arithmatex">\(35.5\text{ MHz}\)</span>)[cite: 2].</p>
+</blockquote>
+<h4 id="linear-vs-circular-correlation-validity">Linear vs. Circular Correlation Validity<a class="headerlink" href="#linear-vs-circular-correlation-validity" title="Permanent link">&para;</a></h4>
+<p>Standard discrete Fourier transformation implements circular cross-correlation rather than linear cross-correlation:
+$<span class="arithmatex">\(\tilde{R}_{12}[k] = \sum_{n=0}^{N-1} x_1[n] \cdot x_2^*[(n - k) \pmod N]\)</span>$
+[cite: 2]</p>
+<p>Linear correlation can be recovered without circular wrap-around artifacts by zero-padding both arrays to <span class="arithmatex">\(2N - 1\)</span> points[cite: 2]. However, doubling the array size quadruples memory allocation and increases FFT execution time[cite: 2].</p>
+<p>Zero-padding is avoided here because the initial <span class="arithmatex">\(T_0\)</span> Flush Barrier guarantees that the residual startup delay satisfies <span class="arithmatex">\(\vert{}k_{\text{offset}}\vert{} &lt; 2,000\text{ samples}\)</span>[cite: 1, 2]. Because this residual delay spans less than <span class="arithmatex">\(3\%\)</span> of the <span class="arithmatex">\(N = 65,536\)</span> snapshot window, the correlation peak remains centered away from the array boundaries[cite: 1, 2]. As a result, circular convolution wrap-around does not interfere with peak detection, allowing the algorithm to operate directly on unpadded <span class="arithmatex">\(N\)</span>-point blocks[cite: 1, 2].</p>
+<hr />
+<h3 id="34-lag-index-unwrapping-peak-to-noise-ratio-pnr-quantification">3.4. Lag Index Unwrapping &amp; Peak-to-Noise Ratio (PNR) Quantification<a class="headerlink" href="#34-lag-index-unwrapping-peak-to-noise-ratio-pnr-quantification" title="Permanent link">&para;</a></h3>
+<h4 id="lag-index-unwrapping">Lag Index Unwrapping<a class="headerlink" href="#lag-index-unwrapping" title="Permanent link">&para;</a></h4>
+<p>The inverse FFT output array <code>xcorr_time</code> stores circular lags from index <span class="arithmatex">\(0\)</span> to <span class="arithmatex">\(N - 1\)</span>[cite: 2]. To map these values to a symmetric physical lag space <span class="arithmatex">\(k \in [-N/2, +N/2 - 1]\)</span>, index unwrapping is applied[cite: 2]:
+$<span class="arithmatex">\(m = \arg\max_{0 \le i &lt; N} \vert{}R_{12}[i]\vert{}\)</span>$
+[cite: 2]</p>
+<p>$<span class="arithmatex">\(k_{\text{offset}} = \begin{cases}  m, &amp; \text{if } 0 \le m &lt; \frac{N}{2} \quad (\text{Channel 1 leads Channel 2 } \to \text{Positive Lag}) \\  m - N, &amp; \text{if } \frac{N}{2} \le m &lt; N \quad (\text{Channel 2 leads Channel 1 } \to \text{Negative Lag})  \end{cases}\)</span>$
+[cite: 2]</p>
+<p>The physical delay in microseconds is computed as:
+$<span class="arithmatex">\(\Delta t = \frac{k_{\text{offset}}}{f_s} \times 10^6 \quad (\mu\text{s})\)</span>$
+[cite: 2]</p>
+<h4 id="pnr-formulation-noise-exclusion-window">PNR Formulation &amp; Noise-Exclusion Window<a class="headerlink" href="#pnr-formulation-noise-exclusion-window" title="Permanent link">&para;</a></h4>
+<p>To verify whether a correlation peak reflects true signal alignment or a random noise fluctuation, the Peak-to-Noise Ratio (PNR) is computed[cite: 2]. </p>
+<p>The background noise floor is estimated by averaging all magnitude bins across the snapshot window, excluding a local window of <span class="arithmatex">\(\pm W\)</span> bins around the detected peak (<span class="arithmatex">\(W = 16\text{ bins}\)</span>)[cite: 2]:
+$<span class="arithmatex">\(\text{NoiseFloor} = \frac{1}{N - (2W + 1)} \sum_{m \notin [p - W, p + W]} \vert{}R_{12}[m]\vert{}\)</span>$
+[cite: 2]</p>
+<p>Where <span class="arithmatex">\(p\)</span> is the circular peak index[cite: 2]. The exclusion window of <span class="arithmatex">\(\pm 16\text{ bins}\)</span> (<span class="arithmatex">\(\pm 1.6\ \mu\text{s}\)</span>) prevents the main lobe and sinc ringing artifacts—introduced by the receiver's 8.0 MHz analog IF filter and digital decimation stages—from artificially inflating the background noise floor[cite: 2].</p>
+<p>The PNR in decibels is defined as:
+$<span class="arithmatex">\(\text{PNR} = 20 \log_{10}\left(\frac{\max \vert{}R_{12}\vert{}}{\text{NoiseFloor} + \epsilon}\right)\)</span>$
+[cite: 2]</p>
+<p>A snapshot is marked valid if <span class="arithmatex">\(\text{PNR} \ge 10.0\text{ dB}\)</span>[cite: 2].</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Magnitude |R12|
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>   ▲
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>   │                           Peak: max |R12|
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>   │                                 │
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>   │                                ┌┴┐
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>   │                                │ │
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>   │                                │ │
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>   │                  Exclusion     │ │
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>   │               │◄─── 32 bins ──►│ │
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>   │               ┌────────────────┴─┴────────────────┐
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>───┴───────────────┴───────────────────────────────────┴───────────────► Lag Index (k)
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>   [----------- Noise Baseline Floor Calculation Area ------------]
+</code></pre></div>
+[cite: 2]</p>
+<h4 id="theoretical-upper-bound-of-pnr">Theoretical Upper Bound of PNR<a class="headerlink" href="#theoretical-upper-bound-of-pnr" title="Permanent link">&para;</a></h4>
+<p>For an ideal white Gaussian noise input of length <span class="arithmatex">\(N\)</span>, the coherent peak amplitude scales as <span class="arithmatex">\(N\)</span>[cite: 7]. The expected envelope of the uncorrelated noise baseline scales with the Rayleigh distribution parameter <span class="arithmatex">\(\sigma \sqrt{\pi/2}\)</span>, where <span class="arithmatex">\(\sigma \propto \sqrt{N}\)</span>[cite: 7]. The theoretical upper bound for the PNR over an <span class="arithmatex">\(N = 65,536\)</span> point snapshot is:
+$<span class="arithmatex">\(\text{PNR}_{\max} = 20 \log_{10}\left(\frac{N}{\sqrt{N}}\right) = 20 \log_{10}(\sqrt{N}) = 10 \log_{10}(N)\)</span>$
+[cite: 7]
+$<span class="arithmatex">\(\text{PNR}_{\max} = 10 \log_{10}(65,536) = 10 \times 4.8164 \approx 48.16\text{ dB}\)</span>$
+[cite: 7]</p>
+<p>The experimental value of <span class="arithmatex">\(44\text{ dB}\)</span> observed on the lab bench approaches this theoretical limit, confirming that the broadband noise source generates high-entropy Gaussian noise with negligible spurious coupling[cite: 2, 7].</p>
+<hr />
+<h3 id="35-ring-buffer-bitwise-indexing-math">3.5. Ring Buffer Bitwise Indexing Math<a class="headerlink" href="#35-ring-buffer-bitwise-indexing-math" title="Permanent link">&para;</a></h3>
+<p>To support high write rates during SDR callback processing, the circular buffer capacity is constrained to a power of two[cite: 2]:
+$<span class="arithmatex">\(C = 2^p = 2^{22} = 4,194,304\text{ complex samples}\)</span>$
+[cite: 2]</p>
+<p>This constraint enables fast modulo indexing using bitwise masking, avoiding expensive integer division instructions on the CPU[cite: 2]:
+$<span class="arithmatex">\(\text{mask} = C - 1 = 0x003FFFFF\)</span>$
+[cite: 2]
+$<span class="arithmatex">\(\text{index} = (\text{pointer} + \text{offset}) \ \&amp; \ \text{mask}\)</span>$
+[cite: 2]</p>
+<p>Because <span class="arithmatex">\(C = 2^{22}\)</span>, the 32-bit unsigned head and tail pointers can wrap around at <span class="arithmatex">\(2^{32} - 1\)</span> without corrupting buffer logic, as <span class="arithmatex">\((2^{32} \pmod C) = 0\)</span>[cite: 2]. The number of unread samples in the buffer remains valid across pointer wrap-around[cite: 2]:
+$<span class="arithmatex">\(\text{Available} = \text{head} - \text{tail}\)</span>$
+[cite: 2]</p>
+<hr />
+<h2 id="4-inter-process-communication-memory-architecture">4. Inter-Process Communication &amp; Memory Architecture<a class="headerlink" href="#4-inter-process-communication-memory-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="41-multi-process-concurrency-model-fork">4.1. Multi-Process Concurrency Model (<code>fork()</code>)<a class="headerlink" href="#41-multi-process-concurrency-model-fork" title="Permanent link">&para;</a></h3>
+<p>The SDRplay API v3 runtime (<code>libsdrplay_api.so</code>) maintains process-global static state machines that are not thread-safe across multiple concurrent hardware instances[cite: 2, 6]. Attempting to initialize two RSPdx devices using in-process threading (<code>std::thread</code> or <code>pthread</code>) causes driver mutex deadlocks, corrupted internal DMA structures, and driver aborts[cite: 6].</p>
+<p>Module 2 addresses this by isolating device handlers across operating system process boundaries via <code>fork()</code>[cite: 2, 6]:
+* <strong>Child Producer 1 (PID 1):</strong> Attaches exclusively to RSPdx Serial A, streams Channel 1 baseband data, and writes to <code>/shm_sdr_ch1</code>[cite: 2].
+* <strong>Child Producer 2 (PID 2):</strong> Attaches exclusively to RSPdx Serial B, streams Channel 2 baseband data, and writes to <code>/shm_sdr_ch2</code>[cite: 2].
+* <strong>Parent DSP Master (Consumer):</strong> Manages process synchronization, reads both shared memory regions, performs time alignment, and processes correlation[cite: 2].</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>                              ┌───────────────────────────────────┐
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                              │       Parent Master Process       │
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                              │       (Alignment &amp; FX DSP)        │
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                              └───────┬───────────────────┬───────┘
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                                      │ fork()            │ fork()
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                     ┌────────────────┴─────┐       ┌─────┴────────────────┐
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                     │ Child Producer 1     │       │ Child Producer 2     │
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                     │ (sdrplay Device 0)   │       │ (sdrplay Device 1)   │
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                     └──────────┬───────────┘       └──────────┬───────────┘
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>                                │                              │
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>                        write() │                      write() │
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>                                ▼                              ▼
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>                     ┌──────────────────────┐       ┌──────────────────────┐
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>                     │ /shm_sdr_ch1 (RAM)   │       │ /shm_sdr_ch2 (RAM)   │
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>                     │ Lock-free SPSC Ring  │       │ Lock-free SPSC Ring  │
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>                     └──────────────────────┘       └──────────────────────┘
+</code></pre></div>
+[cite: 2, 6]</p>
+<hr />
+<h3 id="42-posix-shared-memory-architecture-devshm">4.2. POSIX Shared Memory Architecture (<code>/dev/shm</code>)<a class="headerlink" href="#42-posix-shared-memory-architecture-devshm" title="Permanent link">&para;</a></h3>
+<p>To avoid inter-process socket serialization overhead, IPC transport is implemented using POSIX Shared Memory backed by <code>/dev/shm</code> (Linux tmpfs)[cite: 2]. Data is mapped directly into each process's virtual address space using <code>shm_open()</code>, <code>ftruncate()</code>, and <code>mmap()</code>[cite: 2].</p>
+<h4 id="memory-sizing-buffer-horizon">Memory Sizing &amp; Buffer Horizon<a class="headerlink" href="#memory-sizing-buffer-horizon" title="Permanent link">&para;</a></h4>
+<p>Each baseband sample consists of two 16-bit signed integers (<span class="arithmatex">\(I\)</span> and <span class="arithmatex">\(Q\)</span>), requiring 4 bytes of memory[cite: 1, 2]:
+$<span class="arithmatex">\(\text{Sample Size} = 2 \times \text{sizeof}(\text{int16\_t}) = 4\text{ bytes}\)</span>$
+[cite: 1, 2]</p>
+<p>For a buffer capacity of <span class="arithmatex">\(C = 2^{22}\text{ samples}\)</span>:
+$<span class="arithmatex">\(\text{Channel Memory} = \text{sizeof}(\text{RingBufferControlBlock}) + (4,194,304 \times 4\text{ bytes}) \approx 64\text{ B} + 16.78\text{ MB} \approx 16.78\text{ MB}\)</span>$
+[cite: 2]
+$<span class="arithmatex">\(\text{Total Allocation (Dual Channel)} \approx 33.55\text{ MB}\)</span>$
+[cite: 2]</p>
+<p>The time horizon buffered in memory at 10.0 MSPS is:
+$<span class="arithmatex">\(T_{\text{horizon}} = \frac{4,194,304\text{ samples}}{10,000,000\text{ samples/s}} \approx 0.4194\text{ seconds} \quad (419.4\text{ ms})\)</span>$
+[cite: 2]</p>
+<p>This ~420 ms buffer provides sufficient headroom to absorb Linux kernel scheduling jitter, CPU frequency transitions, and multi-frame processing delays without overflowing[cite: 2]. On a Raspberry Pi 5 with 4 GB of RAM (where <code>/dev/shm</code> defaults to 2.0 GB), the 33.55 MB allocation consumes less than <span class="arithmatex">\(1.7\%\)</span> of available shared memory[cite: 2].</p>
+<hr />
+<h3 id="43-lock-free-single-producer-single-consumer-spsc-ring-buffer">4.3. Lock-Free Single-Producer Single-Consumer (SPSC) Ring Buffer<a class="headerlink" href="#43-lock-free-single-producer-single-consumer-spsc-ring-buffer" title="Permanent link">&para;</a></h3>
+<h4 id="weakly-ordered-memory-model-armv8-a-cortex-a76">Weakly-Ordered Memory Model (ARMv8-A Cortex-A76)<a class="headerlink" href="#weakly-ordered-memory-model-armv8-a-cortex-a76" title="Permanent link">&para;</a></h4>
+<p>The Raspberry Pi 5 uses an ARM Cortex-A76 processor based on the ARMv8-A architecture, which implements a weakly-ordered memory model[cite: 2]. Unlike x86 architectures, the CPU and memory interconnect may reorder load and store instructions to optimize pipeline execution[cite: 2]. </p>
+<p>To prevent race conditions without expensive mutex locks, pointer operations are synchronized using explicit C++11 atomic memory orders[cite: 2]:
+* <strong>Producer Updates (<code>head</code>):</strong> After writing new I/Q data blocks into <code>data_buffer_</code>, the producer updates the <code>head</code> pointer using <code>std::memory_order_release</code>[cite: 2]. This creates a release barrier, ensuring all sample writes complete in RAM before the updated <code>head</code> index becomes visible to the consumer[cite: 2].
+* <strong>Consumer Updates (<code>tail</code>):</strong> When reading or skipping samples, the consumer updates the <code>tail</code> pointer using <code>std::memory_order_release</code>[cite: 2].
+* <strong>Pointer Reads:</strong> The producer inspects <code>tail</code> and the consumer inspects <code>head</code> using <code>std::memory_order_acquire</code>, ensuring subsequent memory reads access updated data rather than stale cache contents[cite: 2].</p>
+<h4 id="preventing-false-sharing-alignas64">Preventing False Sharing (<code>alignas(64)</code>)<a class="headerlink" href="#preventing-false-sharing-alignas64" title="Permanent link">&para;</a></h4>
+<p>The Cortex-A76 processor manages L1/L2 caches using 64-byte cache lines[cite: 2]. If independently updated atomic variables share the same 64-byte memory slice, cache coherency protocols (MESI/MOESI) repeatedly invalidate cache lines across cores—an effect known as false sharing[cite: 2].</p>
+<p>The <code>RingBufferControlBlock</code> isolates shared control variables across distinct cache lines using explicit alignment[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">RingBufferControlBlock</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">head</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tail</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">overflow_cnt</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">is_ready</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="k">alignas</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">start_stream</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">capacity</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">mask</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">};</span>
+</code></pre></div>
+[cite: 2]</p>
+<p>This structure ensures that high-frequency write operations to <code>head</code> by the SDR callback core do not invalidate the cache line containing <code>tail</code>, preserving maximum bus throughput[cite: 2].</p>
+<hr />
+<h2 id="5-software-architecture-implementation-details">5. Software Architecture &amp; Implementation Details<a class="headerlink" href="#5-software-architecture-implementation-details" title="Permanent link">&para;</a></h2>
+<h3 id="51-source-code-modularization">5.1. Source Code Modularization<a class="headerlink" href="#51-source-code-modularization" title="Permanent link">&para;</a></h3>
+<p>The Module 2 codebase is organized into four decoupled components[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>solar_correlator/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>├── src/
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>│   ├── config.hpp             # Central configuration constants and operational parameters
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>│   ├── ring_buffer.hpp        # Lock-free SPSC POSIX shared memory ring buffer implementation
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>│   ├── time_alignment.hpp     # Aligner class declaration and alignment data structures
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>│   └── time_alignment.cpp     # FFTW3-accelerated cross-correlation and sample-skipping logic
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>└── tests/
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    └── alignment_test.cpp     # Test harness and stability benchmark
+</code></pre></div>
+[cite: 2]</p>
+<ul>
+<li><code>config.hpp</code>: Centralizes tuning parameters, eliminating hardcoded constants[cite: 2].</li>
+<li><code>ring_buffer.hpp</code>: Encapsulates low-level POSIX SHM allocation, mapping, atomic head/tail operations, and error-handling utilities[cite: 2].</li>
+<li><code>time_alignment.hpp</code> / <code>.cpp</code>: Implements the <code>TimeAligner</code> class, managing pre-allocated FFTW plans and alignment routines[cite: 2].</li>
+<li><code>alignment_test.cpp</code>: Provides the multi-process test harness, process lifetime management, benchmark execution, and logging[cite: 2].</li>
+</ul>
+<hr />
+<h3 id="52-real-time-t_0-synchronization-via-flush-barrier">5.2. Real-Time <span class="arithmatex">\(T_0\)</span> Synchronization via Flush Barrier<a class="headerlink" href="#52-real-time-t_0-synchronization-via-flush-barrier" title="Permanent link">&para;</a></h3>
+<p>Immediately following process launch, raw USB packets experience transient timing variations[cite: 1, 2]. Hardware PLL synthesizers require up to 200 ms to settle, and the operating system may delay process launch times, producing an initial sample offset that exceeds <span class="arithmatex">\(150,000\text{ samples}\)</span> (<span class="arithmatex">\(&gt;15\text{ ms}\)</span>)[cite: 1, 2]. </p>
+<p>If cross-correlation is evaluated across this large initial skew using an <span class="arithmatex">\(N = 65,536\)</span> snapshot window, the true correlation peak falls outside the snapshot, resulting in circular wrap-around errors[cite: 1, 2].</p>
+<p>To resolve this, Module 2 applies an explicit <strong>Flush Barrier at <span class="arithmatex">\(T_0\)</span></strong>[cite: 1, 2]:
+1. Both SDR child processes are started and stream baseband data for a 500 ms warm-up period to settle the hardware[cite: 1, 2].
+2. The parent process executes simultaneous atomic flush commands on both ring buffers[cite: 1, 2]:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">rb1</span><span class="p">.</span><span class="n">flush</span><span class="p">();</span><span class="w"> </span><span class="c1">// Sets tail = head</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">rb2</span><span class="p">.</span><span class="n">flush</span><span class="p">();</span><span class="w"> </span><span class="c1">// Sets tail = head</span>
+</code></pre></div>
+  [cite: 2]
+3. This synchronization barrier clears all unread startup samples and forces both consumer pointers to a common real-time reference epoch <span class="arithmatex">\(T_0\)</span>[cite: 1, 2].
+4. Any remaining temporal offset between the streams is reduced to the minimal jitter between back-to-back atomic store operations (typically <span class="arithmatex">\(&lt; 2,000\text{ samples}\)</span>), placing the offset comfortably within the <span class="arithmatex">\(N = 65,536\)</span> snapshot window[cite: 1, 2].</p>
+<hr />
+<h3 id="53-non-destructive-snapshot-inspection">5.3. Non-Destructive Snapshot Inspection<a class="headerlink" href="#53-non-destructive-snapshot-inspection" title="Permanent link">&para;</a></h3>
+<p>Calculating the offset requires reading a window of <span class="arithmatex">\(N = 65,536\text{ samples}\)</span> from both channels simultaneously[cite: 2]. If standard destructive reads (<code>read()</code>) were used, consuming samples for the test would advance the buffer pointers unevenly if one channel temporarily held fewer samples, introducing new alignment offsets[cite: 2].</p>
+<p>To avoid this, the buffer provides a non-destructive inspection method (<code>peek_from_tail()</code>)[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kt">uint32_t</span><span class="w"> </span><span class="nf">peek_from_tail</span><span class="p">(</span><span class="n">ComplexSample</span><span class="o">*</span><span class="w"> </span><span class="n">dest</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">num_samples</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">current_tail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctrl_</span><span class="o">-&gt;</span><span class="n">tail</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_relaxed</span><span class="p">);</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">current_head</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctrl_</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">);</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">available</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_head</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">current_tail</span><span class="p">;</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">available</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_samples</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// Insufficient data; abort without advancing pointers</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_samples</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">current_tail</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">mask_</span><span class="p">;</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">        </span><span class="n">dest</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">data_buffer_</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">num_samples</span><span class="p">;</span><span class="w"> </span><span class="c1">// Samples copied; tail pointer remains unchanged</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="p">}</span>
+</code></pre></div>
+[cite: 2]</p>
+<p>This method copies samples into a temporary processing buffer while leaving the ring buffer pointers unchanged[cite: 2].</p>
+<hr />
+<h3 id="54-single-shot-skip-algorithm-exception-handling">5.4. Single-Shot Skip Algorithm &amp; Exception Handling<a class="headerlink" href="#54-single-shot-skip-algorithm-exception-handling" title="Permanent link">&para;</a></h3>
+<h4 id="single-shot-alignment-logic">Single-Shot Alignment Logic<a class="headerlink" href="#single-shot-alignment-logic" title="Permanent link">&para;</a></h4>
+<p>Once the initial offset <span class="arithmatex">\(k_{\text{offset}}\)</span> is measured, the system performs a one-time adjustment by discarding samples from the leading channel[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">initial_res</span><span class="p">.</span><span class="n">is_valid</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">initial_res</span><span class="p">.</span><span class="n">lag_samples</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">        </span><span class="c1">// Channel 1 leads Channel 2 -&gt; Discard samples from Channel 1</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">        </span><span class="n">rb1</span><span class="p">.</span><span class="n">skip</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">initial_res</span><span class="p">.</span><span class="n">lag_samples</span><span class="p">));</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">initial_res</span><span class="p">.</span><span class="n">lag_samples</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="c1">// Channel 2 leads Channel 1 -&gt; Discard samples from Channel 2</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">        </span><span class="n">rb2</span><span class="p">.</span><span class="n">skip</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="o">-</span><span class="n">initial_res</span><span class="p">.</span><span class="n">lag_samples</span><span class="p">));</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">}</span>
+</code></pre></div>
+[cite: 2]</p>
+<p>Calling <code>skip(n)</code> advances the target ring buffer's <code>tail</code> pointer forward by <span class="arithmatex">\(n\)</span> samples, discarding the leading data and bringing the temporal streams into alignment (<span class="arithmatex">\(k = 0\)</span>)[cite: 2, 4].</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Before skip(38):
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>CH1 Buffer: [S0][S1] ... [S37][S38][S39][S40] ...
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>                               ▲ tail1
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>CH2 Buffer: [S0][S1][S2] ...
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>            ▲ tail2
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>After rb1.skip(38):
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>CH1 Buffer: [S0] ... [S37][S38][S39][S40] ...
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>                          ▲ tail1 (Aligned to CH2 S0)
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>CH2 Buffer: [S0][S1][S2] ...
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>            ▲ tail2
+</code></pre></div>
+[cite: 2, 4]</p>
+<h4 id="design-rationale-single-shot-vs-continuous-auto-skip">Design Rationale: Single-Shot vs. Continuous Auto-Skip<a class="headerlink" href="#design-rationale-single-shot-vs-continuous-auto-skip" title="Permanent link">&para;</a></h4>
+<p>Because both hardware receivers share an external 24.0 MHz reference clock, their sampling rates are phase-locked (<span class="arithmatex">\(f_{s1} \equiv f_{s2}\)</span>), eliminating long-term sample drift[cite: 2, 3]. Consequently, time alignment only needs to be performed once at startup[cite: 2]. </p>
+<p>Implementing continuous auto-skipping during active operations introduces operational risks: transient interference or brief signal dropouts can degrade the PNR, causing the peak detector to identify false lags and trigger unnecessary buffer trims[cite: 2]. The alignment algorithm therefore executes once during initialization; the subsequent 60-second operational loop operates in a passive monitoring mode to confirm stability[cite: 2].</p>
+<h4 id="exception-handling-edge-cases">Exception Handling &amp; Edge Cases<a class="headerlink" href="#exception-handling-edge-cases" title="Permanent link">&para;</a></h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>                  ┌───────────────────────────────┐
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>                  │ Extract Snapshot (N = 65,536) │
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>                  └───────────────┬───────────────┘
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>                                  │
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>                                  ▼
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>                     /─────────────────────────\
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>                    &lt;   Is PNR &gt;= 10.0 dB?      &gt;
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>                     \─────────────────────────/
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>                             │         │
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>                    Yes      │         │ No (LOW SNR)
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>         ┌───────────────────┘         └───────────────────┐
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>         ▼                                                 ▼
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>/─────────────────────────────\               ┌───────────────────────────────┐
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>&lt;  Is |k_offset| &lt;= N / 2 ?    &gt;              │ Abort Skip Action             │
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>\─────────────────────────────/               │ Log [LOW SNR] Warning         │
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>       │               │                      │ Hold Buffer State             │
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>  Yes  │               │ No                   └───────────────────────────────┘
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>  ┌────┘               └─────────────┐
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>  ▼                                  ▼
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>┌──────────────────────────────┐   ┌──────────────────────────────────────────┐
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>│ Execute Single-Shot skip()   │   │ Trigger Flush Barrier Recovery           │
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>│ Adjust Leading Buffer Tail   │   │ Re-establish T0 &amp; Re-acquire Snapshot    │
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>└──────────────────────────────┘   └──────────────────────────────────────────┘
+</code></pre></div>
+[cite: 2]</p>
+<ul>
+<li><strong>Low PNR Detection (<code>LOW SNR</code>):</strong> If <span class="arithmatex">\(\text{PNR} &lt; 10.0\text{ dB}\)</span> (caused by an unpowered noise source or loose RF cabling), the alignment routine aborts the skip operation and logs a warning, preventing erroneous buffer trims[cite: 2].</li>
+<li><strong>Snapshot Wrap-Around:</strong> If the measured peak falls too close to the snapshot boundary (<span class="arithmatex">\(\vert{}k\vert{} &gt; N/2\)</span>), the system triggers a new Flush Barrier to reset the baseline[cite: 2].</li>
+<li><strong>Buffer Underrun Protection:</strong> If a channel contains fewer than <span class="arithmatex">\(N\)</span> samples when a snapshot is requested, the routine yields execution for <span class="arithmatex">\(500\ \mu\text{s}\)</span> until the required samples accumulate[cite: 2].</li>
+</ul>
+<hr />
+<h3 id="55-process-lifecycle-posix-signal-handling-and-clean-teardown">5.5. Process Lifecycle, POSIX Signal Handling, and Clean Teardown<a class="headerlink" href="#55-process-lifecycle-posix-signal-handling-and-clean-teardown" title="Permanent link">&para;</a></h3>
+<p>To prevent orphaned processes and memory leaks in <code>/dev/shm</code>, the system handles termination signals systematically[cite: 2]:
+1. <strong>Signal Interception:</strong> The parent process installs signal handlers for <code>SIGINT</code> (Ctrl+C) and <code>SIGTERM</code>[cite: 2].
+2. <strong>Coordinated Shutdown:</strong> Upon receiving a termination signal, the parent sends <code>SIGTERM</code> to both child PIDs[cite: 2].
+3. <strong>Hardware Teardown:</strong> Each child catches the signal, exits its streaming loop, and invokes the vendor teardown sequence (<code>sdrplay_api_Uninit()</code>, <code>sdrplay_api_ReleaseDevice()</code>, and <code>sdrplay_api_Close()</code>) to release the USB interfaces cleanly[cite: 2].
+4. <strong>Process Reaping:</strong> The parent process reaps both child processes using <code>waitpid()</code> to prevent zombie processes[cite: 2].
+5. <strong>Shared Memory Unlinking:</strong> The parent unmaps the memory buffers (<code>munmap()</code>) and removes the shared memory nodes from the filesystem using <code>shm_unlink("/shm_sdr_ch1")</code> and <code>shm_unlink("/shm_sdr_ch2")</code>[cite: 2].</p>
+<hr />
+<h2 id="6-experimental-verification-stability-benchmarking">6. Experimental Verification &amp; Stability Benchmarking<a class="headerlink" href="#6-experimental-verification-stability-benchmarking" title="Permanent link">&para;</a></h2>
+<h3 id="61-four-stage-benchmarking-methodology">6.1. Four-Stage Benchmarking Methodology<a class="headerlink" href="#61-four-stage-benchmarking-methodology" title="Permanent link">&para;</a></h3>
+<p>The validation sequence runs automatically in <code>alignment_test.cpp</code> across four stages[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>[STAGE 0: Warm-up &amp; Flush Barrier]
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>├── Allow SDR streams to stabilize (500 ms)
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>└── Execute simultaneous atomic flush() to establish reference T0
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>       │
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>[STAGE 1: Initial Delay Measurement]
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>├── Capture N = 65,536 non-destructive snapshot
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>└── Evaluate FFTW3 cross-correlation to measure initial k_offset, Delta_t, and PNR
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>       │
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>[STAGE 2: Single-Shot Delay Correction]
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>└── Apply skip(|k_offset|) to advance leading channel buffer tail
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>       │
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>[STAGE 3: Verification Snapshot]
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>├── Capture fresh post-alignment snapshot
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>└── Confirm lag collapses to |k| &lt;= 1 sample with PNR &gt;= 10.0 dB
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>       │
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>[STAGE 4: 60-Second Stability Benchmark]
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>├── Maintain concurrent buffer reads at 80 MB/s
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>├── Sample cross-correlation every 5 seconds (12 rounds)
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>└── Verify zero drift (Delta k = 0) and zero buffer drops across the run
+</code></pre></div>
+[cite: 1, 2]</p>
+<hr />
+<h3 id="62-empirical-execution-logs-terminal-output">6.2. Empirical Execution Logs &amp; Terminal Output<a class="headerlink" href="#62-empirical-execution-logs-terminal-output" title="Permanent link">&para;</a></h3>
+<p>The following terminal log records an experimental benchmark run on the Raspberry Pi 5 under full dual-channel load[cite: 2]:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>===================================================================
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a> SOLAR INTERFEROMETER - MODULE 2: POSIX SHM &amp; TIME ALIGNMENT TEST
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>===================================================================
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>[Hardware] Detected 2 devices:
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>  - Ch 1 Serial: 223802EC48
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>  - Ch 2 Serial: 223802EE48
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>[DSP Engine] Awaiting dual RSPdx hardware initialization...
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>[DSP Engine] Both receivers ready. Enabling streaming gates.
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>[DSP Engine] Settling USB pipelines and analog filters (500ms)...
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>&gt;&gt;&gt; [STEP 0] ESTABLISHING SYNCHRONIZATION EPOCH T0 (FLUSH BARRIER)...
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>Buffers flushed successfully.
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>&gt;&gt;&gt; [STEP 1] MEASURING INITIAL STARTUP SAMPLE SKEW (N = 65536)...
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>  + Initial Peak Lag    : k_offset = +38 samples
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>  + Time Delay Skew     : Delta_t  = 3.800 us
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>  + Peak-to-Noise Ratio : PNR      = 44.12 dB
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>&gt;&gt;&gt; [STEP 2] EXECUTING SAMPLE DELAY CORRECTION...
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>  -&gt; Discarded 38 leading samples from CHANNEL 1 ring buffer.
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>&gt;&gt;&gt; [STEP 3] VERIFYING POST-ALIGNMENT LOCK...
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>  + Residual Peak Lag   : k = 0 samples (0.000 us)
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>  + Post-Alignment PNR  : 44.08 dB
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>  =&gt; STATUS: [PASS] SAMPLE-ALIGNED AT k=0
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>&gt;&gt;&gt; [STEP 4] COMMENCING 60-SECOND PHASE-LOCK STABILITY RUN...
+<a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>------------------------------------------------------------------------------------------------------
+<a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a> Elapsed  | Round | Peak Lag (k) | Delay (us) |   PNR (dB)   | Peak Mag | Noise Flr | Buffer Ch1/Ch2 | Drops Ch1/Ch2 | Status
+<a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>------------------------------------------------------------------------------------------------------
+<a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>  [T+05s] |  #01  |      0 smp   |  0.000 us  |   43.95 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>  [T+10s] |  #02  |      0 smp   |  0.000 us  |   44.10 dB   |  2.5e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a>  [T+15s] |  #03  |      0 smp   |  0.000 us  |   44.02 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a>  [T+20s] |  #04  |      0 smp   |  0.000 us  |   43.88 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a>  [T+25s] |  #05  |      0 smp   |  0.000 us  |   44.15 dB   |  2.5e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a>  [T+30s] |  #06  |      0 smp   |  0.000 us  |   44.05 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-38" name="__codelineno-13-38" href="#__codelineno-13-38"></a>  [T+35s] |  #07  |      0 smp   |  0.000 us  |   43.92 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-39" name="__codelineno-13-39" href="#__codelineno-13-39"></a>  [T+40s] |  #08  |      0 smp   |  0.000 us  |   44.11 dB   |  2.5e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-40" name="__codelineno-13-40" href="#__codelineno-13-40"></a>  [T+45s] |  #09  |      0 smp   |  0.000 us  |   44.03 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-41" name="__codelineno-13-41" href="#__codelineno-13-41"></a>  [T+50s] |  #10  |      0 smp   |  0.000 us  |   43.99 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-42" name="__codelineno-13-42" href="#__codelineno-13-42"></a>  [T+55s] |  #11  |      0 smp   |  0.000 us  |   44.07 dB   |  2.4e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-43" name="__codelineno-13-43" href="#__codelineno-13-43"></a>  [T+60s] |  #12  |      0 smp   |  0.000 us  |   44.12 dB   |  2.5e+07 |  1.5e+05  |   128k/  128k  |    0 /   0    | [LOCKED]
+<a id="__codelineno-13-44" name="__codelineno-13-44" href="#__codelineno-13-44"></a>------------------------------------------------------------------------------------------------------
+<a id="__codelineno-13-45" name="__codelineno-13-45" href="#__codelineno-13-45"></a>
+<a id="__codelineno-13-46" name="__codelineno-13-46" href="#__codelineno-13-46"></a>===================================================================
+<a id="__codelineno-13-47" name="__codelineno-13-47" href="#__codelineno-13-47"></a> CONCLUSION: MODULE 2 ACCEPTANCE TEST PASSED
+<a id="__codelineno-13-48" name="__codelineno-13-48" href="#__codelineno-13-48"></a> - Initial USB startup skew (+38 samples) successfully locked to k = 0.
+<a id="__codelineno-13-49" name="__codelineno-13-49" href="#__codelineno-13-49"></a> - 24.0 MHz reference clock maintained zero relative drift across 60 seconds.
+<a id="__codelineno-13-50" name="__codelineno-13-50" href="#__codelineno-13-50"></a> - Zero sample drops observed under sustained 80 MB/s streaming.
+<a id="__codelineno-13-51" name="__codelineno-13-51" href="#__codelineno-13-51"></a>===================================================================
+</code></pre></div>
+[cite: 2, 4]</p>
+<hr />
+<h3 id="63-perturbation-sanity-test-coaxial-cable-delay-insertion">6.3. Perturbation Sanity Test (Coaxial Cable Delay Insertion)<a class="headerlink" href="#63-perturbation-sanity-test-coaxial-cable-delay-insertion" title="Permanent link">&para;</a></h3>
+<p>To confirm that the correlation engine reflects real physical propagation delays rather than numerical artifacts, an experimental sanity check was performed using an added transmission line[cite: 1, 2]:
+1. With the system confirmed locked at <span class="arithmatex">\(k = 0\)</span>, an additional <span class="arithmatex">\(L = 20.0\text{ m}\)</span> length of RG-58 coaxial cable was inserted between the RF splitter and Port C of Channel 2[cite: 1, 2].
+2. For RG-58 cable with a solid polyethylene dielectric, the nominal velocity factor is <span class="arithmatex">\(VF = 0.66\)</span>[cite: 3]. The propagation speed is:
+   $<span class="arithmatex">\(v = VF \times c = 0.66 \times (3.0 \times 10^8\text{ m/s}) = 1.98 \times 10^8\text{ m/s} \approx 0.20\text{ m/ns}\)</span>$
+3. The expected physical delay introduced by the cable is:
+   $<span class="arithmatex">\(\Delta\tau_{\text{cable}} = \frac{L}{v} = \frac{20.0\text{ m}}{0.198\text{ m/ns}} \approx 101.0\text{ ns}\)</span>$
+4. At a sampling rate of <span class="arithmatex">\(f_s = 10.0\text{ MSPS}\)</span> (<span class="arithmatex">\(T_s = 100\text{ ns/sample}\)</span>), this physical propagation delay corresponds to an integer shift of:
+   $<span class="arithmatex">\(\Delta k_{\text{expected}} = \frac{\Delta\tau_{\text{cable}}}{T_s} = \frac{101.0\text{ ns}}{100\text{ ns/sample}} = +1.01\text{ samples} \approx +1\text{ sample}\)</span>$
+5. <strong>Experimental Result:</strong> Upon evaluating a new snapshot, the correlation peak shifted immediately from <span class="arithmatex">\(k = 0\)</span> to <span class="arithmatex">\(k = -1\text{ sample}\)</span> (indicating Channel 2 was delayed relative to Channel 1 by 1 sample), with <span class="arithmatex">\(\text{PNR} = 43.8\text{ dB}\)</span>[cite: 2]. Removing the cable returned the peak to <span class="arithmatex">\(k = 0\)</span>, confirming physical calibration accuracy down to single samples[cite: 2].</p>
+<hr />
+<h3 id="64-handover-contract-to-module-3-fx-correlator">6.4. Handover Contract to Module 3 (FX Correlator)<a class="headerlink" href="#64-handover-contract-to-module-3-fx-correlator" title="Permanent link">&para;</a></h3>
+<p>Upon completing initialization, Module 2 transitions the pipeline to the Module 3 FX Correlator under the following interface contract[cite: 1, 2]:
+* <strong>Alignment State:</strong> Baseband streams in both ring buffers are synchronized to within an integer sample error of <span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ sample}\)</span> (<span class="arithmatex">\(\le 100\text{ ns}\)</span>)[cite: 1, 2].
+* <strong>Resource Preservation:</strong> The POSIX shared memory files (<code>/shm_sdr_ch1</code> and <code>/shm_sdr_ch2</code>) remain active and mapped in RAM; the consumer process transitions directly to executing the correlation loop without reallocating buffers[cite: 2].
+* <strong>Sub-Sample and Geometric Phase Correction Handover:</strong> Residual fractional sample delays (<span class="arithmatex">\(|\tau| &lt; 100\text{ ns}\)</span>) and time-dependent astronomical geometric delays <span class="arithmatex">\(\tau_g(t)\)</span> are handed over to Module 3, where they are corrected via frequency-domain phase rotation (<span class="arithmatex">\(e^{-j 2\pi f \tau_g}\)</span>) within the F-Engine prior to cross-multiplication[cite: 1, 3].</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
