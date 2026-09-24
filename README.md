@@ -1,4 +1,4 @@
-# Decametric Solar Radio Interferometer (30.0 – 40.0 MHz)
+# Solar Radio Interferometer (30.0 – 40.0 MHz)
 
 
 
