@@ -39,19 +39,19 @@ Building a coherent radio interferometer with low-cost commercial SDRs presents 
 
 ## 3. Key Specifications
 
-| Parameter | Specification | Notes / Verification Status |
-| :--- | :--- | :--- |
-| **RF Operating Band** | 30.0 – 40.0 MHz | Center frequency $f_{\text{LO}} = 35.0\text{ MHz}$ |
-| **Analog IF Bandwidth** | 8.0 MHz analog filter | SDRplay `BW_8_000` configuration |
-| **Sampling Rate ($f_s$)** | 10.0 MSPS complex I/Q | $100\text{ ns}$ sample period, sustaining 80 MB/s total USB throughput |
-| **Clock Synchronization** | External 24.0 MHz reference clock | Common distribution to dual `REFin` ports, zero sample drift verified |
-| **RF Input Port** | 2x Antenna Port C (50 $\Omega$ BNC) | Matched impedance, manual gain locked to 30 dB (IF AGC disabled) |
-| **Inter-Process Buffer** | POSIX Shared Memory (`/dev/shm`) | Lock-free SPSC circular ring buffers ($2^{22}$ complex samples / 16.7 MB per channel) |
-| **Coarse Time Alignment** | Fast cross-correlation via FFTW3 | Snapshot $N = 65,536$, startup delay resolved to $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$) |
-| **Spectral Engine (F-Engine)**| 2048-point 1D Complex FFT | Hanning-windowed, 50% overlap, ARM NEON SIMD accelerated via FFTW3 |
-| **Cross-Engine (X-Engine)** | Cross-power $S_{12}(f) = X_1(f) X_2^*(f)$ | Autospectra $S_{11}, S_{22}$ computed concurrently for power normalization |
-| **Time Integration ($\tau$)** | Welch vector accumulation ($\tau = 200\text{ ms}$) | Configurable $M = 1953$ to 2441 frames; output refresh rate $\sim 5\text{ FPS}$ |
-| **Network Telemetry** | Flat binary UDP datagrams | Custom header + 2048 float32 array sent to port 9999 |
+| Parameter                      | Specification                                      | Notes / Verification Status                                                                                      |
+| :----------------------------- | :------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| **RF Operating Band**          | 30.0 – 40.0 MHz                                    | Center frequency $f_{\text{LO}} = 35.0\text{ MHz}$                                                               |
+| **Analog IF Bandwidth**        | 8.0 MHz analog filter                              | SDRplay `BW_8_000` configuration                                                                                 |
+| **Sampling Rate ($f_s$)**      | 10.0 MSPS complex I/Q                              | $100\text{ ns}$ sample period, sustaining 80 MB/s total USB throughput                                           |
+| **Clock Synchronization**      | External 24.0 MHz reference clock                  | Common distribution to dual `REFin` ports, zero sample drift verified                                            |
+| **RF Input Port**              | 2x Antenna Port C (50 $\Omega$ BNC)                | Matched impedance, manual gain locked to 30 dB (IF AGC disabled)                                                 |
+| **Inter-Process Buffer**       | POSIX Shared Memory (`/dev/shm`)                   | Lock-free SPSC circular ring buffers ($2^{22}$ complex samples / 16.7 MB per channel)                            |
+| **Coarse Time Alignment**      | Fast cross-correlation via FFTW3                   | Snapshot $N = 65,536$, startup delay resolved to $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$) |
+| **Spectral Engine (F-Engine)** | 2048-point 1D Complex FFT                          | Hanning-windowed, 50% overlap, ARM NEON SIMD accelerated via FFTW3                                               |
+| **Cross-Engine (X-Engine)**    | Cross-power $S_{12}(f) = X_1(f) X_2^*(f)$          | Autospectra $S_{11}, S_{22}$ computed concurrently for power normalization                                       |
+| **Time Integration ($\tau$)**  | Welch vector accumulation ($\tau = 200\text{ ms}$) | Configurable $M = 1953$ to 2441 frames; output refresh rate $\sim 5\text{ FPS}$                                  |
+| **Network Telemetry**          | Flat binary UDP datagrams                          | Custom header + 2048 float32 array sent to port 9999                                                             |
 
 ---
 

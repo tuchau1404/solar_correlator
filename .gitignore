@@ -10,3 +10,22 @@ logs/
 solar_data/
 .vscode/
 docs/recommended_docs/
+
+# Giữ nguyên các phần khác của repo (src/, tests/, docs/, v.v.)
+# ...
+
+# --- Cấu hình riêng cho firmware/10_24MHz_PLL ---
+firmware/10_24MHz_PLL/*
+
+# Giữ lại các file cấu hình và CMakeLists.txt
+!firmware/10_24MHz_PLL/.gitignore
+!firmware/10_24MHz_PLL/*.ioc
+!firmware/10_24MHz_PLL/CMakeLists.txt
+
+# Giữ lại Core/Inc và Core/Src
+!firmware/10_24MHz_PLL/Core/
+firmware/10_24MHz_PLL/Core/*
+!firmware/10_24MHz_PLL/Core/Inc/
+!firmware/10_24MHz_PLL/Core/Inc/**
+!firmware/10_24MHz_PLL/Core/Src/
+!firmware/10_24MHz_PLL/Core/Src/**

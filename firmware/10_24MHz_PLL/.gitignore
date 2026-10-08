@@ -1,0 +1,15 @@
+# 1. Bỏ qua toàn bộ mọi file và thư mục con
+*
+
+# 2. Giữ lại các file cấu hình cốt lõi
+!.gitignore
+!*.ioc
+!CMakeLists.txt
+
+# 3. Mở khóa thư mục Core nhưng chỉ giữ Inc và Src
+!Core/
+Core/*
+!Core/Inc/
+!Core/Inc/**
+!Core/Src/
+!Core/Src/**
