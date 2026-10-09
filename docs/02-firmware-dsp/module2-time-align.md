@@ -15,7 +15,7 @@ The primary engineering objectives of Module 2 are:
 
 ---
 
-### 1.2. Problem Formulation: The Startup Sample Skew ($k_{\text{offset}}$)
+### 1.2. Problem Formulation: The Startup Sample Skew (k_offset)
 
 #### 1.2.1. Clock Frequency Locking vs. Trigger Epoch Ambiguity
 To eliminate independent local oscillator drift, both SDRplay RSPdx receivers are fed a common 24.0 MHz reference clock at their respective `REFin` ports. This locks the internal phase-locked loops (PLLs) and analog-to-digital converters (ADCs), ensuring identical sampling rates:
@@ -40,24 +40,34 @@ This architecture introduces non-deterministic temporal jitter due to:
 
 An OS scheduling differential of merely $10\ \mu\text{s}$ between the two child processes calling `sdrplay_api_Init()` causes one receiver to start ingesting baseband samples 100 samples ahead of the other. Without software-level compensation, this startup skew persists indefinitely.
 
-```
-Receiver 1 Timeline: [Sample 0][Sample 1][Sample 2][Sample 3] ...
-                              ▲
-                              │ k_offset (Initial Hardware/USB Delay Skew)
-                              ▼
-Receiver 2 Timeline: ---------[Sample 0][Sample 1][Sample 2] ...
-```
+![Receiver Startup Sample Skew Timeline](../assets/plots/time_alignment/timeline_skew.svg)
 
 #### 1.2.2. Empirical Verification via Zero-Baseline Bench Test
+
 The existence of $k_{\text{offset}}$ was empirically confirmed on the test bench:
 
-* **Test Topology:** A common broadband noise source was coupled to a 1:2 resistive RF power divider and routed to Port C of both RSPdx receivers through two coaxial cables cut to identical physical lengths ($\Delta L = 0\text{ cm} \to \Delta\tau_{\text{cable}} = 0\text{ ns}$).
-* **Observation:** When evaluating the cross-correlation function $R_{12}[k]$ over an initial snapshot window of $N = 65,536\text{ samples}$ immediately following driver startup, the correlation peak never appeared at index $k = 0$.
-* **Stochastic Behavior:** Cold-boot iterations yielded varying integer offsets (e.g., $k_{\text{offset}} = +38\text{ samples}$ on Run 1, $k_{\text{offset}} = -120\text{ samples}$ on Run 2, $k_{\text{offset}} = +215\text{ samples}$ on Run 3), all exhibiting high Peak-to-Noise Ratios ($\text{PNR} > 20\text{ dB}$).
+- **Test Topology:** A common broadband noise source was coupled to a 1:2 resistive RF power divider and routed to Port C of both RSPdx receivers through two coaxial cables cut to identical physical lengths ($\Delta L = 0\text{ cm} \to \Delta\tau_{\text{cable}} = 0\text{ ns}$).
+
+- **Observation:** When evaluating the cross-correlation function $R_{12}[k]$ over an initial snapshot window ($N = 131,072\text{ samples}$) immediately following driver startup, the correlation peak never appeared at index $k = 0$.
+  
+- **Stochastic Behavior:** Cold-boot iterations yielded varying integer offsets ranging from thousands to tens of thousands of samples, while consistently exhibiting very high Peak-to-Noise Ratios ($\text{PNR} \ge 45.5\text{ dB}$).
+  
+The table below summarizes five consecutive cold-boot verification iterations recorded on the laboratory test bench at $f_s = 10.0\text{ MSPS}$ ($T_s = 100\text{ ns/sample}$):
+
+| Run (#) | Boot Type | Measured Offset ($k_{\text{offset}}$) | Time Delay ($\Delta t$) | Measured PNR | Compensation Action (`skip`) | Residual Offset ($k_{\text{residual}}$) | Status |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Run 1** | Cold-Boot | $+1,815\text{ samples}$ | $+181.50\ \mu\text{s}$ | $48.651\text{ dB}$ | Channel 1 ($1,815\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| **Run 2** | Cold-Boot | $-57,543\text{ samples}$ | $-5,754.30\ \mu\text{s}$ | $45.582\text{ dB}$ | Channel 2 ($57,543\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| **Run 3** | Cold-Boot | $+38,821\text{ samples}$ | $+3,882.10\ \mu\text{s}$ | $47.700\text{ dB}$ | Channel 1 ($38,821\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| **Run 4** | Cold-Boot | $-38,830\text{ samples}$ | $-3,883.00\ \mu\text{s}$ | $47.244\text{ dB}$ | Channel 2 ($38,830\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| **Run 5** | Cold-Boot | $+38,629\text{ samples}$ | $+3,862.90\ \mu\text{s}$ | $46.025\text{ dB}$ | Channel 1 ($38,629\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+
+*(Note: Target acceptance threshold is $\vert{}k_{\text{residual}}\vert{} \le 1\text{ sample}$ with $\text{PNR} \ge 10.0\text{ dB}$. A positive offset indicates Channel 1 leads Channel 2; a negative offset indicates Channel 2 leads Channel 1).*
 
 This confirmed that while the hardware clock locks sampling rates, initial data ingestion timelines exhibit random offsets that must be actively aligned.
 
 #### 1.2.3. Physical Impact on Radio Interferometry
+
 In a two-element radio interferometer, an uncompensated time offset $\Delta t = k_{\text{offset}} \cdot T_s$ produces a linear phase slope across the observing bandwidth:
 
 $$
@@ -69,6 +79,7 @@ For an uncorrected offset of $k_{\text{offset}} = 38\text{ samples}$ ($\Delta t 
 ---
 
 ### 1.3. Scope and Quantitative Acceptance Criteria
+
 Module 2 is evaluated against four quantitative criteria:
 
 | Acceptance Metric | Quantitative Threshold | Verification Methodology |
