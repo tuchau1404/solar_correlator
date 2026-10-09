@@ -9,7 +9,7 @@
 
 ---
 
-A real-time, dual-channel coherent radio interferometer designed for decametric solar radio burst observation (Solar Type II and Type III events). The system couples two SDRplay RSPdx software-defined radio receivers synchronized via an external 24 MHz reference clock to a Raspberry Pi 5 edge compute node running a multi-process C++17 FX correlator pipeline, streaming real-time visibilities via UDP to a host visualization workstation.
+> A real-time, dual-channel coherent radio interferometer designed for decametric solar radio burst observation (Solar Type II and Type III events) across the 30.0 – 40.0 MHz band using synchronized SDRplay RSPdx receivers and Raspberry Pi 5.
 
 ---
 
