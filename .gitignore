@@ -10,7 +10,7 @@ logs/
 solar_data/
 .vscode/
 docs/recommended_docs/
-
+docs/plan.md
 # Giữ nguyên các phần khác của repo (src/, tests/, docs/, v.v.)
 # ...
 
