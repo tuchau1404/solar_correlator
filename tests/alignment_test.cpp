@@ -13,14 +13,19 @@
 #include "config.hpp"
 #include "ring_buffer.hpp"
 #include "time_alignment.hpp"
+#include "hardware_control.hpp"
 
 static std::atomic<bool> g_child_running{true};
+static std::atomic<bool> g_parent_running{true};
 
 static void child_sig_handler(int) {
     g_child_running.store(false);
 }
 
-// Callback thu thập mẫu I/Q từ phần cứng SDR cho từng thiết bị
+static void parent_sig_handler(int) {
+    g_parent_running.store(false);
+}
+
 static void ChildStreamCallback(short *xi, short *xq, 
                                 [[maybe_unused]] sdrplay_api_StreamCbParamsT *params, 
                                 unsigned int numSamples, 
@@ -41,7 +46,6 @@ static void ChildDummyEventCallback([[maybe_unused]] sdrplay_api_EventT eventId,
                                     [[maybe_unused]] sdrplay_api_EventParamsT *params, 
                                     [[maybe_unused]] void *cbContext) {}
 
-// Hàm thu thập dữ liệu độc lập chạy trên tiến trình con (Producer)
 static void run_sdr_producer(int dev_idx, const std::string& target_serno, const std::string& shm_name) {
     std::signal(SIGTERM, child_sig_handler);
     std::signal(SIGINT, child_sig_handler);
@@ -85,13 +89,10 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
     auto *chParams = deviceParams->rxChannelA;
     chParams->tunerParams.rfFreq.rfHz   = SolarConfig::SDR::RF_CENTER_FREQ_HZ;
     chParams->tunerParams.bwType        = SolarConfig::SDR::IF_BW;
-    
-    // Nạp cấu hình Gain từ file config
     chParams->ctrlParams.agc.enable     = SolarConfig::SDR::AGC_MODE;
     chParams->tunerParams.gain.LNAstate = SolarConfig::SDR::LNA_STATE;
     chParams->tunerParams.gain.gRdB     = SolarConfig::SDR::GAIN_GRDB;
 
-    // Cấu hình phần cứng chung
     deviceParams->devParams->fsFreq.fsHz            = SolarConfig::SDR::SAMPLE_RATE_HZ;
     deviceParams->devParams->rspDxParams.antennaSel = SolarConfig::SDR::ANTENNA_PORT;
 
@@ -149,6 +150,9 @@ int main() {
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
 
+    std::signal(SIGTERM, parent_sig_handler);
+    std::signal(SIGINT, parent_sig_handler);
+
     pid_t pid1 = fork();
     if (pid1 == 0) {
         run_sdr_producer(0, ser0, SolarConfig::SHM::CH1_NAME);
@@ -159,6 +163,9 @@ int main() {
         run_sdr_producer(1, ser1, SolarConfig::SHM::CH2_NAME);
     }
 
+    // Tiến trình cha bật GPIO 6 và 26 theo cấu hình SolarConfig::Hardware
+    HardwareGuard hw_guard;
+
     std::cout << "\n[DSP Engine] Đang đợi cả 2 phần cứng RSPdx hoàn tất khởi tạo Init...\n";
 
     try {
@@ -167,20 +174,19 @@ int main() {
         TimeAligner aligner(SolarConfig::Alignment::SNAPSHOT_SIZE);
 
         int wait_count = 0;
-        while ((!rb1.is_ready() || !rb2.is_ready()) && wait_count < 100) {
+        while ((!rb1.is_ready() || !rb2.is_ready()) && wait_count < 100 && g_parent_running.load(std::memory_order_relaxed)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             wait_count++;
         }
 
-        if (!rb1.is_ready() || !rb2.is_ready()) {
-            throw std::runtime_error("Quá thời gian chờ khởi tạo phần cứng!");
+        if (!g_parent_running.load(std::memory_order_relaxed) || !rb1.is_ready() || !rb2.is_ready()) {
+            throw std::runtime_error("Quá thời gian chờ khởi tạo phần cứng hoặc nhận lệnh ngắt!");
         }
 
         std::cout << "[DSP Engine] Cả 2 phần cứng đã sẵn sàng. Bật cổng stream đồng thời!\n";
         rb1.set_start_stream(true);
         rb2.set_start_stream(true);
 
-        // Chống tràn bộ đệm: Chỉ chờ 200ms để ổn định luồng (2 triệu mẫu < 4.19M dung lượng SHM)
         std::cout << "[DSP Engine] Đang chờ luồng USB và bộ lọc DC nội bộ ổn định (200ms)...\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
@@ -191,10 +197,14 @@ int main() {
         rb1.flush();
         rb2.flush();
 
-        // Chờ cả 2 bộ đệm nạp đủ SNAPSHOT_SIZE mẫu từ đúng mốc T0
-        while (rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
-               rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) {
+        while ((rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
+                rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) &&
+               g_parent_running.load(std::memory_order_relaxed)) {
             std::this_thread::sleep_for(std::chrono::microseconds(500));
+        }
+
+        if (!g_parent_running.load(std::memory_order_relaxed)) {
+            throw std::runtime_error("Đã ngắt bởi người dùng.");
         }
 
         // ===================================================================
@@ -224,9 +234,9 @@ int main() {
                 std::cout << "  -> Hai kênh đã trùng khớp từ đầu (k = 0).\n";
             }
 
-            // CHỐNG RACE CONDITION: Chờ cả 2 bộ đệm nạp đủ lại mẫu sau khi xả trước khi sang Bước 3
-            while (rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
-                   rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) {
+            while ((rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
+                    rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) &&
+                   g_parent_running.load(std::memory_order_relaxed)) {
                 std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
         } else {
@@ -264,7 +274,7 @@ int main() {
         int check_round = 1;
         int failed_rounds = 0;
 
-        while (true) {
+        while (g_parent_running.load(std::memory_order_relaxed)) {
             auto now = std::chrono::steady_clock::now();
             double elapsed_total = std::chrono::duration<double>(now - start_time).count();
             if (elapsed_total >= SolarConfig::Test::DURATION_SEC) {
@@ -300,7 +310,6 @@ int main() {
                 }
             }
 
-            // Tiêu thụ đồng đều lượng mẫu vượt mức snapshot ở cả 2 kênh để duy trì mốc k = 0
             uint32_t common_avail = std::min(av1, av2);
             if (common_avail > SolarConfig::Alignment::SNAPSHOT_SIZE) {
                 uint32_t to_read = std::min(common_avail - SolarConfig::Alignment::SNAPSHOT_SIZE, 
@@ -314,7 +323,7 @@ int main() {
         std::cout << "------------------------------------------------------------------------------------------------------\n";
 
         std::cout << "\n===================================================================\n";
-        if (pass_step3 && failed_rounds == 0) {
+        if (pass_step3 && failed_rounds == 0 && g_parent_running.load(std::memory_order_relaxed)) {
             std::cout << " \033[32mKẾT LUẬN: BÀI KIỂM TRA MODULE 2 ĐẠT CHUẨN XUẤT SẮC (PASS)\033[0m\n";
             std::cout << " - Hai luồng I/Q đã khóa đồng bộ mẫu (|k| <= 1 sample ~ 100 ns).\n";
             std::cout << " - Xung REFin 24 MHz giữ ổn định 100% trong suốt 60 giây (Zero Drift).\n";
@@ -326,6 +335,8 @@ int main() {
     } catch (const std::exception& e) {
         std::cerr << "[Exception] " << e.what() << "\n";
     }
+
+    hw_guard.turn_off();
 
     kill(pid1, SIGTERM);
     kill(pid2, SIGTERM);

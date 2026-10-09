@@ -9,9 +9,9 @@ namespace SolarConfig {
 namespace SDR {
     // Tần số và bộ lọc băng thông
     constexpr double RF_CENTER_FREQ_HZ                      = 35000000.0;           // 35.0 MHz (Phủ dải 30-40 MHz)
-    constexpr sdrplay_api_Bw_MHzT IF_BW                     = sdrplay_api_BW_8_000; // 8.0 MHz Analog Filter[cite: 3]
-    constexpr double SAMPLE_RATE_HZ                         = 10000000.0;           // 10.0 MSPS (100 ns/mẫu)[cite: 3]
-    constexpr sdrplay_api_RspDx_AntennaSelectT ANTENNA_PORT = sdrplay_api_RspDx_ANTENNA_A; // Cổng C BNC[cite: 3]
+    constexpr sdrplay_api_Bw_MHzT IF_BW                     = sdrplay_api_BW_8_000; // 8.0 MHz Analog Filter
+    constexpr double SAMPLE_RATE_HZ                         = 10000000.0;           // 10.0 MSPS (100 ns/mẫu)
+    constexpr sdrplay_api_RspDx_AntennaSelectT ANTENNA_PORT = sdrplay_api_RspDx_ANTENNA_A; // Cổng A BNC
 
     // =========================================================================
     // CẤU HÌNH ĐỘ LỢI (GAIN CONTROL) - KHÓA CỨNG ĐỐI XỨNG CẢ 2 KÊNH
@@ -62,5 +62,12 @@ namespace Network {
     constexpr uint16_t UDP_DEST_PORT                   = 9999;
     constexpr uint32_t TELEMETRY_MAGIC                 = 0x534F4C52;             // "SOLR"
 }
+
+namespace Hardware {
+        constexpr int PIN_RF_SWITCH       = 6;   // GPIO 6: RF SPDT Switch
+        constexpr int PIN_NOISE_SOURCE    = 26;  // GPIO 26: Nguồn 15V Noise Source
+        constexpr int WARMUP_DELAY_MS     = 200; // Thời gian chờ ổn định DC bias (ms)
+        constexpr int SWITCH_SETTLE_MS    = 100; // Thời gian trễ gạt tiếp điểm RF (ms)
+    }
 
 } // namespace SolarConfig
