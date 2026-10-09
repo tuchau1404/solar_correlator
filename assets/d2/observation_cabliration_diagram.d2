@@ -1,0 +1,121 @@
+direction: right
+
+classes: {
+  node_box: {
+    style: {
+      stroke-width: 1
+      border-radius: 6
+    }
+  }
+}
+
+# ================= CHẾ ĐỘ 1: OBSERVATION =================
+obs: "OPERATING MODE: OBSERVATION" {
+  style: {
+    fill: "#EFF6FF"
+    stroke: "#2563EB"
+    stroke-width: 2
+    border-radius: 12
+  }
+
+  # --- HAI CHÂN GPIO RIÊNG BIỆT ---
+  gpio_sw_obs: "GPIO 1 (RF Switch):\nLOW (0V)" {
+    class: node_box
+    style: {fill: "#DBEAFE"; stroke: "#3B82F6"; font-color: "#1E40AF"; bold: true}
+  }
+
+  gpio_pwr_obs: "GPIO 2 (Noise Gate):\nLOW (0V)" {
+    class: node_box
+    style: {fill: "#E2E8F0"; stroke: "#64748B"; font-color: "#334155"; bold: true}
+  }
+
+  # --- NHÁNH 1: RF SWITCH ---
+  rf_obs: "RF Switch Routing:\nAntenna → Receiver OUT\n(RFC ↔ RF1)" {
+    class: node_box
+    style: {fill: "#FFFFFF"; stroke: "#93C5FD"; font-color: "#1E3A8A"}
+  }
+
+  # --- NHÁNH 2: NOISE SOURCE DC POWER ---
+  pwr_obs: "Noise Source DC Power:\nOFF (0V, Gated)\n[P-MOSFET Cutoff]" {
+    class: node_box
+    style: {fill: "#FEE2E2"; stroke: "#F87171"; font-color: "#991B1B"; bold: true}
+  }
+
+  # --- HỘI TỤ VÀO CORRELATOR ---
+  dsp_obs: "Correlator Function:\nSolar Fringe Acquisition\n(Module 3)" {
+    class: node_box
+    style: {fill: "#EDE9FE"; stroke: "#A78BFA"; font-color: "#5B21B6"; bold: true}
+  }
+
+  # Liên kết điều khiển riêng rẽ
+  gpio_sw_obs -> rf_obs
+  gpio_pwr_obs -> pwr_obs
+
+  # Hội tụ vào trạng thái hệ thống
+  rf_obs -> dsp_obs
+  pwr_obs -> dsp_obs
+}
+
+# ================= ĐIỀU KIỆN CHUYỂN TRẠNG THÁI =================
+obs -> cal: "Trigger Calibration Sequence\n1. GPIO 2 = HIGH (Warm-up)\n2. GPIO 1 = HIGH (Switch to Cal)" {
+  style: {
+    stroke: "#DC2626"
+    stroke-width: 2
+    stroke-dash: 4
+  }
+}
+
+cal -> obs: "Resume Sky Observation\n1. GPIO 1 = LOW (Switch to Ant)\n2. GPIO 2 = LOW (Power Off Noise)" {
+  style: {
+    stroke: "#2563EB"
+    stroke-width: 2
+    stroke-dash: 4
+  }
+}
+
+# ================= CHẾ ĐỘ 2: CALIBRATION =================
+cal: "OPERATING MODE: CALIBRATION" {
+  style: {
+    fill: "#FFFBEB"
+    stroke: "#D97706"
+    stroke-width: 2
+    border-radius: 12
+  }
+
+  # --- HAI CHÂN GPIO RIÊNG BIỆT ---
+  gpio_sw_cal: "GPIO 1 (RF Switch):\nHIGH (3.3V)" {
+    class: node_box
+    style: {fill: "#FEF08A"; stroke: "#EAB308"; font-color: "#854D0E"; bold: true}
+  }
+
+  gpio_pwr_cal: "GPIO 2 (Noise Gate):\nHIGH (3.3V)" {
+    class: node_box
+    style: {fill: "#FEF08A"; stroke: "#EAB308"; font-color: "#854D0E"; bold: true}
+  }
+
+  # --- NHÁNH 1: RF SWITCH ---
+  rf_cal: "RF Switch Routing:\nNoise Splitter → Receiver OUT\n(RFC ↔ RF2)" {
+    class: node_box
+    style: {fill: "#FFFFFF"; stroke: "#FDE68A"; font-color: "#78350F"}
+  }
+
+  # --- NHÁNH 2: NOISE SOURCE DC POWER ---
+  pwr_cal: "Noise Source DC Power:\nON (+15V, Active)\n[P-MOSFET Saturated]" {
+    class: node_box
+    style: {fill: "#DCFCE7"; stroke: "#4ADE80"; font-color: "#166534"; bold: true}
+  }
+
+  # --- HỘI TỤ VÀO CORRELATOR ---
+  dsp_cal: "Correlator Function:\nDelay & Phase Locking\n(Module 2)" {
+    class: node_box
+    style: {fill: "#EDE9FE"; stroke: "#A78BFA"; font-color: "#5B21B6"; bold: true}
+  }
+
+  # Liên kết điều khiển riêng rẽ
+  gpio_sw_cal -> rf_cal
+  gpio_pwr_cal -> pwr_cal
+
+  # Hội tụ vào trạng thái hệ thống
+  rf_cal -> dsp_cal
+  pwr_cal -> dsp_cal
+}

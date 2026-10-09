@@ -1,0 +1,1861 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/plan/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../workflow/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Next plan - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#next-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Next plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Next plan
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Next plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-tong-quan-kien-truc-he-thong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📌 1. Tổng quan Kiến trúc Hệ thống
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-hien-trang-du-an-lo-trinh-thuc-hien-status-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📍 2. Hiện trạng Dự án &amp; Lộ trình Thực hiện (Status &amp; Roadmap)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📍 2. Hiện trạng Dự án &amp; Lộ trình Thực hiện (Status &amp; Roadmap)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-lab-benchtop-instrumentation-a-hoan-thanh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Lab Benchtop Instrumentation (ĐÃ HOÀN THÀNH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-core-dsp-field-infrastructure-ke-hoach-hien-tai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Core DSP &amp; Field Infrastructure (KẾ HOẠCH HIỆN TẠI)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Core DSP &amp; Field Infrastructure (KẾ HOẠCH HIỆN TẠI)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-module-3-fx-correlator-engine-tinh-toan-3-pho" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Module 3: FX Correlator Engine &amp; Tính toán 3 Phổ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-module-4-giao-thuc-mang-host-gui-pyqtgraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Module 4: Giao thức Mạng &amp; Host GUI (PyQtGraph)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-outdoor-science-deployment-ke-hoach-tuong-lai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Outdoor Science Deployment (KẾ HOẠCH TƯƠNG LAI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-chien-luoc-mang-debug-hien-truong-khong-dung-tailscale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🌐 3. Chiến lược Mạng &amp; Debug Hiện trường (KHÔNG DÙNG TAILSCALE)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🌐 3. Chiến lược Mạng &amp; Debug Hiện trường (KHÔNG DÙNG TAILSCALE)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ly-do-ky-thuat-loai-bo-tailscale-va-web-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lý do kỹ thuật loại bỏ Tailscale và Web Dashboard:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phuong-an-ket-noi-tai-tram-o" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phương án kết nối tại trạm đo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quan-ly-phien-lam-viec-ngoai-bai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quản lý phiên làm việc ngoài bãi:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-phap-luu-tru-ong-bo-am-may-storage-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 4. Giải pháp Lưu trữ &amp; Đồng bộ Đám mây (Storage Pipeline)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="💾 4. Giải pháp Lưu trữ &amp; Đồng bộ Đám mây (Storage Pipeline)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nguyen-tac-an-toan-luu-tru" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nguyên tắc an toàn lưu trữ:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#co-che-chia-file-cuon-chieu-tai-len-google-drive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cơ chế chia file cuốn chiếu &amp; Tải lên Google Drive:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-ban-o-lien-ket-tai-lieu-documentation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📚 5. Bản đồ Liên kết Tài liệu (Documentation Map)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-huong-dan-van-hanh-nhanh-quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ 6. Hướng dẫn Vận hành Nhanh (Quick Start)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🛠️ 6. Hướng dẫn Vận hành Nhanh (Quick Start)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-khoi-chay-tren-raspberry-pi-5-backend-edge-dsp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Khởi chạy trên Raspberry Pi 5 (Backend Edge DSP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-khoi-chay-tren-may-tinh-giam-sat-host-pc-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Khởi chạy trên Máy tính Giám sát (Host PC GUI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-firmware-dsp/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-firmware-dsp/module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-firmware-dsp/module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-firmware-dsp/module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module3 fx correlator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-firmware-dsp/module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-tong-quan-kien-truc-he-thong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📌 1. Tổng quan Kiến trúc Hệ thống
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-hien-trang-du-an-lo-trinh-thuc-hien-status-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📍 2. Hiện trạng Dự án &amp; Lộ trình Thực hiện (Status &amp; Roadmap)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📍 2. Hiện trạng Dự án &amp; Lộ trình Thực hiện (Status &amp; Roadmap)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-lab-benchtop-instrumentation-a-hoan-thanh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Lab Benchtop Instrumentation (ĐÃ HOÀN THÀNH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-core-dsp-field-infrastructure-ke-hoach-hien-tai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Core DSP &amp; Field Infrastructure (KẾ HOẠCH HIỆN TẠI)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Core DSP &amp; Field Infrastructure (KẾ HOẠCH HIỆN TẠI)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-module-3-fx-correlator-engine-tinh-toan-3-pho" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Module 3: FX Correlator Engine &amp; Tính toán 3 Phổ
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-module-4-giao-thuc-mang-host-gui-pyqtgraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Module 4: Giao thức Mạng &amp; Host GUI (PyQtGraph)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-outdoor-science-deployment-ke-hoach-tuong-lai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Outdoor Science Deployment (KẾ HOẠCH TƯƠNG LAI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-chien-luoc-mang-debug-hien-truong-khong-dung-tailscale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🌐 3. Chiến lược Mạng &amp; Debug Hiện trường (KHÔNG DÙNG TAILSCALE)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🌐 3. Chiến lược Mạng &amp; Debug Hiện trường (KHÔNG DÙNG TAILSCALE)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ly-do-ky-thuat-loai-bo-tailscale-va-web-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lý do kỹ thuật loại bỏ Tailscale và Web Dashboard:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phuong-an-ket-noi-tai-tram-o" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phương án kết nối tại trạm đo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quan-ly-phien-lam-viec-ngoai-bai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quản lý phiên làm việc ngoài bãi:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-giai-phap-luu-tru-ong-bo-am-may-storage-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 4. Giải pháp Lưu trữ &amp; Đồng bộ Đám mây (Storage Pipeline)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="💾 4. Giải pháp Lưu trữ &amp; Đồng bộ Đám mây (Storage Pipeline)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nguyen-tac-an-toan-luu-tru" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nguyên tắc an toàn lưu trữ:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#co-che-chia-file-cuon-chieu-tai-len-google-drive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cơ chế chia file cuốn chiếu &amp; Tải lên Google Drive:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-ban-o-lien-ket-tai-lieu-documentation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📚 5. Bản đồ Liên kết Tài liệu (Documentation Map)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-huong-dan-van-hanh-nhanh-quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ 6. Hướng dẫn Vận hành Nhanh (Quick Start)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🛠️ 6. Hướng dẫn Vận hành Nhanh (Quick Start)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-khoi-chay-tren-raspberry-pi-5-backend-edge-dsp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Khởi chạy trên Raspberry Pi 5 (Backend Edge DSP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-khoi-chay-tren-may-tinh-giam-sat-host-pc-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Khởi chạy trên Máy tính Giám sát (Host PC GUI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="next-plan">Next plan<a class="headerlink" href="#next-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Hệ thống giao thoa kế vô tuyến đồng pha 2 kênh thời gian thực dải Decametric trên nền tảng Raspberry Pi 5 và SDRplay RSPdx phục vụ quan sát bùng nổ bức xạ Mặt Trời (Type II, Type III)[cite: 1, 4].</p>
+</blockquote>
+<hr />
+<h2 id="1-tong-quan-kien-truc-he-thong">📌 1. Tổng quan Kiến trúc Hệ thống<a class="headerlink" href="#1-tong-quan-kien-truc-he-thong" title="Permanent link">&para;</a></h2>
+<p>Hệ thống được thiết kế theo mô hình phân tách hai tầng: <strong>Edge DSP Backend (Raspberry Pi 5)</strong> chịu trách nhiệm thu gom và xử lý số hiệu năng cao, kết hợp <strong>Host GUI Frontend (Máy tính cá nhân)</strong> để hiển thị phổ và thác nước thời gian thực[cite: 1, 4].</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>       [ Anten 1 ]                 [ Anten 2 ]
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │                           │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>            ▼                           ▼
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>     [ RSPdx SDR #1 ]            [ RSPdx SDR #2 ]
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>     (REFin 24 MHz) ◄─────┬─────► (REFin 24 MHz) [Khóa phần cứng 24 MHz]
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │             │             │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            └─────────┐   │   ┌─────────┘
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>              (USB 3.0)   │   (USB 3.0)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                      ▼   ▼   ▼
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        ┌────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        │       RASPBERRY PI 5 (Edge DSP - Headless CLI)         │
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        │                                                        │
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        │  [Module 1] Thu 2x 10 MSPS -&gt; POSIX SHM (80 MB/s)      │
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        │  [Module 2] Flush Barrier &amp; Căn chỉnh trễ mẫu (k = 0)  │
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        │  [Module 3] FX Correlator (FFTW3 NEON, τ = 200 ms)     │
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        │             ├── Phổ tự tương quan S11, S22             │
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        │             └── Phổ giao thoa chéo S12                 │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        │  [Lưu trữ]  Ghi file HDF5 cuốn chiếu (15 phút/file)    │
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        │  [Cloud]    rclone background sync -&gt; Google Drive     │
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        └──────────────────────────┬─────────────────────────────┘
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>                                   │
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>              [Direct LAN Cat6 STP / Local Phone Hotspot]
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>                      (Gói tin UDP Flat Binary)
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>                                   │
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>                                   ▼
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        ┌────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        │            WORKSTATION / LAPTOP (GUI Viewer)           │
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>        │                                                        │
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>        │  [Module 4] viewer.py (PyQtGraph)                      │
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        │             ├── Đồ thị 3 phổ tức thời (S11, S22, S12)  │
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        │             └── Thác nước Waterfall dải 30 - 40 MHz    │
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        └────────────────────────────────────────────────────────┘
+</code></pre></div>
+[cite: 1, 4]</p>
+<hr />
+<h2 id="2-hien-trang-du-an-lo-trinh-thuc-hien-status-roadmap">📍 2. Hiện trạng Dự án &amp; Lộ trình Thực hiện (Status &amp; Roadmap)<a class="headerlink" href="#2-hien-trang-du-an-lo-trinh-thuc-hien-status-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-lab-benchtop-instrumentation-a-hoan-thanh">Phase 1: Lab Benchtop Instrumentation (ĐÃ HOÀN THÀNH)<a class="headerlink" href="#phase-1-lab-benchtop-instrumentation-a-hoan-thanh" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] <strong>Khóa pha phần cứng (Hardware Phase-Locking):</strong> Cấp nguồn xung chuẩn 24 MHz ngoài qua cổng <code>REFin</code> cho cả hai thiết bị RSPdx, triệt tiêu hoàn toàn hiện tượng trôi mẫu tương đối giữa 2 ADC[cite: 1, 2, 4].</li>
+<li>[x] <strong>Thu nhận kép 10 MSPS (Module 1):</strong> Kiến trúc đa tiến trình (<code>fork()</code>) với bộ đệm vòng không khóa (Lock-free SPSC Ring Buffer) trên POSIX Shared Memory (<code>/dev/shm</code>), duy trì thông lượng <span class="arithmatex">\(80\text{ MB/s}\)</span> không rớt gói (<code>reset_count = 0</code>)[cite: 1, 4].</li>
+<li>[x] <strong>Căn chỉnh trễ mẫu khởi động (Module 2):</strong> Đo tương quan chéo miền thời gian nhanh qua FFTW3 IFFT, xác định độ trễ khởi động USB <span class="arithmatex">\(k_{\text{offset}}\)</span> và tự động xả mẫu bù trễ về mốc <span class="arithmatex">\(k = 0\)</span> tuyệt đối (<span class="arithmatex">\(\vert{}k\vert{} \le 1\text{ mẫu} \approx 100\text{ ns}\)</span>, <span class="arithmatex">\(\text{PNR} \ge 20\text{ dB}\)</span>), giữ khóa ổn định liên tục qua bài test 60 giây[cite: 2, 4].</li>
+</ul>
+<hr />
+<h3 id="phase-2-core-dsp-field-infrastructure-ke-hoach-hien-tai">Phase 2: Core DSP &amp; Field Infrastructure (KẾ HOẠCH HIỆN TẠI)<a class="headerlink" href="#phase-2-core-dsp-field-infrastructure-ke-hoach-hien-tai" title="Permanent link">&para;</a></h3>
+<h4 id="a-module-3-fx-correlator-engine-tinh-toan-3-pho">A. Module 3: FX Correlator Engine &amp; Tính toán 3 Phổ<a class="headerlink" href="#a-module-3-fx-correlator-engine-tinh-toan-3-pho" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>F-Engine (Phân rã phổ):</strong></li>
+<li>Chia dòng mẫu I/Q thành các khối <span class="arithmatex">\(N = 2048\text{ điểm}\)</span> (<span class="arithmatex">\(\Delta f \approx 4.88\text{ kHz/bin}\)</span>)[cite: 1, 4].</li>
+<li>Nhân cửa sổ Hanning chống rò rỉ phổ[cite: 1, 4].</li>
+<li>Biến đổi Fourier thuận 1D qua <code>fftw3f</code> tối ưu tập lệnh vector ARM NEON trên Pi 5[cite: 1, 4].</li>
+<li><strong>X-Engine (Nhân tương quan &amp; Tích lũy Welch):</strong></li>
+<li>Tính phổ giao thoa chéo: <span class="arithmatex">\(S_{12}(f) = X_1(f) \cdot X_2^*(f)\)</span>[cite: 1, 4].</li>
+<li><strong>Tính thêm 2 phổ tự tương quan để chẩn đoán kênh:</strong><ul>
+<li><span class="arithmatex">\(S_{11}(f) = \vert{}X_1(f)\vert{}^2\)</span> (Giám sát mức tín hiệu SDR 1)[cite: 1, 4]</li>
+<li><span class="arithmatex">\(S_{22}(f) = \vert{}X_2(f)\vert{}^2\)</span> (Giám sát mức tín hiệu SDR 2)[cite: 1, 4]</li>
+</ul>
+</li>
+<li>Tích phân thời gian <span class="arithmatex">\(\tau = 200\text{ ms}\)</span> (<span class="arithmatex">\(M \approx 1953\text{ khung}\)</span>), nén lưu lượng dữ liệu từ <span class="arithmatex">\(80\text{ MB/s}\)</span> thô xuống còn <span class="arithmatex">\(\approx 120\text{ KB/s}\)</span>[cite: 1, 4].</li>
+</ul>
+<h4 id="b-module-4-giao-thuc-mang-host-gui-pyqtgraph">B. Module 4: Giao thức Mạng &amp; Host GUI (PyQtGraph)<a class="headerlink" href="#b-module-4-giao-thuc-mang-host-gui-pyqtgraph" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Cấu trúc gói tin UDP Telemetry (Non-blocking):</strong></li>
+<li>Header 32 bytes (Magic "SOLR", Frame ID, Timestamp UTC micro-giây)[cite: 1, 4].</li>
+<li>Payload chứa <span class="arithmatex">\(3 \times 2048\)</span> số thực float32: <span class="arithmatex">\([S_{11}, S_{22}, S_{12}]\)</span> quy đổi sang thang đo dB[cite: 1, 4].</li>
+<li><strong>Viewer trên Laptop (<code>viewer.py</code>):</strong></li>
+<li>Vẽ đồng thời 3 đường phổ tức thời: SDR 1 (Xanh lam), SDR 2 (Cam), Giao thoa chéo (Đỏ)[cite: 1, 4].</li>
+<li>Biểu đồ thác nước Waterfall cuộn thời gian thực dải <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span> ở tốc độ 5 FPS[cite: 1, 4].</li>
+</ul>
+<hr />
+<h3 id="phase-3-outdoor-science-deployment-ke-hoach-tuong-lai">Phase 3: Outdoor Science Deployment (KẾ HOẠCH TƯƠNG LAI)<a class="headerlink" href="#phase-3-outdoor-science-deployment-ke-hoach-tuong-lai" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] <strong>Lắp đặt mảng ăng-ten:</strong> Dựng cặp ăng-ten Dipole theo trục Đông - Tây (Baseline 10 – 15 m) tối ưu cho dải tần 30.0 – 40.0 MHz[cite: 1, 4].</li>
+<li>[ ] <strong>Chuyển mạch hiệu chuẩn tự động:</strong> Tích hợp công tắc SPDT RF Switch và nguồn tạp âm Avalanche qua chân GPIO để hiệu chuẩn pha vi sai tĩnh <span class="arithmatex">\(\Delta\phi_0(f)\)</span> tại chỗ[cite: 1, 4].</li>
+<li>[ ] <strong>Quan trắc quá cảnh Mặt Trời:</strong> Ghi nhận vân giao thoa (Fringes) và đối chiếu sự kiện bùng nổ vô tuyến với mạng lưới e-CALLISTO/vệ tinh GOES[cite: 1, 4].</li>
+</ul>
+<hr />
+<h2 id="3-chien-luoc-mang-debug-hien-truong-khong-dung-tailscale">🌐 3. Chiến lược Mạng &amp; Debug Hiện trường (KHÔNG DÙNG TAILSCALE)<a class="headerlink" href="#3-chien-luoc-mang-debug-hien-truong-khong-dung-tailscale" title="Permanent link">&para;</a></h2>
+<h3 id="ly-do-ky-thuat-loai-bo-tailscale-va-web-dashboard">Lý do kỹ thuật loại bỏ Tailscale và Web Dashboard:<a class="headerlink" href="#ly-do-ky-thuat-loai-bo-tailscale-va-web-dashboard" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Không dùng Tailscale:</strong> Header mã hóa của WireGuard làm giảm MTU, băm nhỏ gói tin UDP 8–24 KB gây rớt khung Waterfall khi qua Internet; đồng thời tiềm ẩn nguy cơ nghẽn relay DERP và ngốn thêm CPU trên Pi 5[cite: 1].</li>
+<li><strong>Không dùng Web Dashboard:</strong> Render thác nước 2048 cột ở tần số 5 Hz trên trình duyệt web gây lag và tốn tài nguyên; dùng <code>viewer.py</code> (PyQtGraph) tận dụng trực tiếp GPU máy trạm, giúp CPU Pi 5 hoàn toàn giải phóng cho tác vụ DSP[cite: 1, 4].</li>
+</ol>
+<h3 id="phuong-an-ket-noi-tai-tram-o">Phương án kết nối tại trạm đo:<a class="headerlink" href="#phuong-an-ket-noi-tai-tram-o" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Kịch bản</th>
+<th style="text-align: left;">Phương thức kết nối</th>
+<th style="text-align: left;">Đặc tính kỹ thuật</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Debug trực tiếp tại bãi đo (Khuyên dùng)</strong></td>
+<td style="text-align: left;"><strong>Cáp mạng LAN Cat6 STP cắm trực tiếp (PC <span class="arithmatex">\(\leftrightarrow\)</span> Pi 5)</strong>[cite: 1, 4]</td>
+<td style="text-align: left;">• Tự nhận IP Link-local (<code>169.254.x.x</code>)[cite: 1]<br>• SSH: <code>ssh radi02@raspberry1.local</code>[cite: 1]<br>• Rớt gói UDP bằng <span class="arithmatex">\(0\%\)</span>, độ trễ <span class="arithmatex">\(&lt; 1\text{ ms}\)</span>[cite: 1]<br>• Cáp bọc giáp STP triệt tiêu hoàn toàn nhiễu RFI vào dải 35 MHz[cite: 1, 4]</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Kết nối không dây ngoài bãi</strong></td>
+<td style="text-align: left;"><strong>Wi-Fi Hotspot nội bộ từ điện thoại / Laptop</strong>[cite: 1]</td>
+<td style="text-align: left;">• Pi 5 và PC cùng kết nối vào Hotspot cá nhân[cite: 1]<br>• Không bị chặn port 22 (SSH), không bị AP Isolation[cite: 1]<br>• Hoạt động độc lập không phụ thuộc sóng 4G/Internet</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quan-ly-phien-lam-viec-ngoai-bai">Quản lý phiên làm việc ngoài bãi:<a class="headerlink" href="#quan-ly-phien-lam-viec-ngoai-bai" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Thực thi tiến trình trong <strong><code>tmux</code></strong> để tránh trường hợp đứt kết nối mạng làm tắt đột ngột tiến trình C++[cite: 2]:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>tmux<span class="w"> </span>new<span class="w"> </span>-s<span class="w"> </span>solar_run
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./build/solar_correlator
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Nhấn Ctrl + B, rồi nhấn D để tách phiên chạy ngầm</span>
+</code></pre></div>
+ [cite: 2]</li>
+</ul>
+<hr />
+<h2 id="4-giai-phap-luu-tru-ong-bo-am-may-storage-pipeline">💾 4. Giải pháp Lưu trữ &amp; Đồng bộ Đám mây (Storage Pipeline)<a class="headerlink" href="#4-giai-phap-luu-tru-ong-bo-am-may-storage-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="nguyen-tac-an-toan-luu-tru">Nguyên tắc an toàn lưu trữ:<a class="headerlink" href="#nguyen-tac-an-toan-luu-tru" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>TUYỆT ĐỐI KHÔNG ghi dữ liệu thô I/Q (<span class="arithmatex">\(80\text{ MB/s}\)</span>) vào thẻ MicroSD:</strong> Chỉ lưu mảng phổ đã tích phân (<span class="arithmatex">\(\approx 40 - 65\text{ KB/s}\)</span>)[cite: 1, 4].</li>
+<li><strong>Độ bền thẻ nhớ:</strong> Dùng thẻ MicroSD High Endurance[cite: 4]. Tốc độ sinh dữ liệu <span class="arithmatex">\(\approx 235\text{ MB/giờ} \approx 2.8\text{ GB/ngày}\)</span> (cho 12 giờ đo), thẻ 32–64 GB đủ đệm an toàn từ 5 đến 15 ngày[cite: 4].</li>
+</ul>
+<h3 id="co-che-chia-file-cuon-chieu-tai-len-google-drive">Cơ chế chia file cuốn chiếu &amp; Tải lên Google Drive:<a class="headerlink" href="#co-che-chia-file-cuon-chieu-tai-len-google-drive" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>File Rolling 15 phút (C++ Engine):</strong></li>
+<li>Phần mềm tự động đóng file cũ và tạo file mới sau mỗi 15 phút theo định dạng: <code>solar_vis_YYYYMMDD_HHMMSS.h5</code>[cite: 4].</li>
+<li>Kích thước mỗi file: <span class="arithmatex">\(\approx 35 - 50\text{ MB}\)</span> (an toàn khi mất nguồn đột ngột, chỉ mất tối đa 15 phút hiện tại)[cite: 1, 4].</li>
+<li>Cấu trúc HDF5 chuẩn:<ul>
+<li><code>/data/visibilities_real</code>: Ma trận phần thực <span class="arithmatex">\(\text{Re}(S_{12})\)</span>[cite: 1, 4]</li>
+<li><code>/data/visibilities_imag</code>: Ma trận phần ảo <span class="arithmatex">\(\text{Im}(S_{12})\)</span>[cite: 1, 4]</li>
+<li><code>/data/auto_power_ch1</code>: Phổ tự tương quan <span class="arithmatex">\(S_{11}\)</span>[cite: 1, 4]</li>
+<li><code>/data/auto_power_ch2</code>: Phổ tự tương quan <span class="arithmatex">\(S_{22}\)</span>[cite: 1, 4]</li>
+<li><code>/data/timestamps</code>: Mốc thời gian chuẩn UTC (micro-giây)[cite: 1, 4]</li>
+</ul>
+</li>
+<li><strong>Đồng bộ tự động qua <code>rclone</code> (Non-blocking):</strong></li>
+<li>Tác vụ đẩy lên Drive chạy độc lập qua tiến trình riêng, không gọi trực tiếp trong mã C++[cite: 1, 4].</li>
+<li>File script <code>sync_drive.sh</code>:
+     <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>/usr/bin/rclone<span class="w"> </span>copy<span class="w"> </span>/home/radi02/solar_data/<span class="w"> </span>gdrive:SolarInterferometer_Data/<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--include<span class="w"> </span><span class="s2">"*.h5"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--min-age<span class="w"> </span>1m<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--transfers<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span>--log-file<span class="w"> </span>/home/radi02/solar_data/rclone.log
+</code></pre></div>
+    [cite: 1]</li>
+<li>Lập lịch tự động bằng <code>crontab -e</code>:
+     <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>*/15 * * * * /bin/bash /home/radi02/sync_drive.sh
+</code></pre></div>
+    [cite: 1]</li>
+<li><strong>Chính sách dọn dẹp xoay vòng (Circular Purge):</strong></li>
+<li>Tự động xóa các file cục bộ cũ hơn 5 ngày trên thẻ nhớ MicroSD lúc 02:00 AM hàng ngày để thẻ không bao giờ bị đầy[cite: 1, 4].</li>
+</ol>
+<hr />
+<h2 id="5-ban-o-lien-ket-tai-lieu-documentation-map">📚 5. Bản đồ Liên kết Tài liệu (Documentation Map)<a class="headerlink" href="#5-ban-o-lien-ket-tai-lieu-documentation-map" title="Permanent link">&para;</a></h2>
+<p>Cấu trúc chi tiết nằm trong thư mục <code>docs/</code> được xuất bản qua GitHub Pages[cite: 1]:</p>
+<ul>
+<li><strong>Phần cứng &amp; RF Front-End (<code>docs/01-hardware/</code>):</strong></li>
+<li><a href="docs/01-hardware/rf-frontend.md">Thiết kế Ăng-ten &amp; Cáp RF Port C BNC</a>[cite: 1]</li>
+<li><a href="docs/01-hardware/clock-sync.md">Khóa pha đồng bộ 24 MHz REFin</a>[cite: 1, 2]</li>
+<li><a href="docs/01-hardware/rf-switching.md">Mạch nguồn tạp âm Avalanche &amp; SPDT Switch</a>[cite: 1, 2]</li>
+<li><a href="docs/01-hardware/host-interconnect.md">Kết nối Raspberry Pi 5 &amp; Cổng USB 3.0</a>[cite: 1]</li>
+<li><strong>Firmware &amp; DSP Engine (<code>docs/02-firmware-dsp/</code>):</strong></li>
+<li><a href="docs/02-firmware-dsp/architecture.md">Kiến trúc Đa tiến trình &amp; POSIX SHM Ring Buffer</a>[cite: 1, 2]</li>
+<li><a href="docs/02-firmware-dsp/module1-driver.md">Module 1: Driver Ingestion 10 MSPS kép</a>[cite: 1]</li>
+<li><a href="docs/02-firmware-dsp/module2-time-align.md">Module 2: Khóa bù trễ mẫu thời gian thực k=0</a>[cite: 1, 2]</li>
+<li><a href="docs/02-firmware-dsp/module3-fx-correlator.md">Module 3: Lõi FX Correlator &amp; Welch Integration</a>[cite: 1, 4]</li>
+<li><a href="docs/02-firmware-dsp/module4-telemetry.md">Module 4: Giao thức UDP Telemetry &amp; PyQtGraph Viewer</a>[cite: 1, 4]</li>
+<li><strong>Đo kiểm &amp; Nhật ký gỡ lỗi (<code>docs/03-calibration-tests/</code>):</strong></li>
+<li><a href="docs/03-calibration-tests/lab-bench-test.md">Kiểm chuẩn Bàn đo Zero-Baseline trong Lab</a>[cite: 1, 2]</li>
+<li><a href="docs/03-calibration-tests/debug-chronicles.md">Nhật ký Gỡ lỗi Thực nghiệm (Debug Chronicles)</a>[cite: 1, 2]</li>
+</ul>
+<hr />
+<h2 id="6-huong-dan-van-hanh-nhanh-quick-start">🛠️ 6. Hướng dẫn Vận hành Nhanh (Quick Start)<a class="headerlink" href="#6-huong-dan-van-hanh-nhanh-quick-start" title="Permanent link">&para;</a></h2>
+<h3 id="1-khoi-chay-tren-raspberry-pi-5-backend-edge-dsp">1. Khởi chạy trên Raspberry Pi 5 (Backend Edge DSP)<a class="headerlink" href="#1-khoi-chay-tren-raspberry-pi-5-backend-edge-dsp" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Biên dịch hệ thống</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>cmake<span class="w"> </span>--build<span class="w"> </span>build<span class="w"> </span>-j4
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Chạy kiểm tra căn chỉnh trễ mẫu Module 2</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>./build/alignment_test
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Khởi chạy luồng đo chính trong tmux</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>tmux<span class="w"> </span>new<span class="w"> </span>-s<span class="w"> </span>solar_daemon
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>./build/solar_correlator
+</code></pre></div>
+[cite: 1, 2, 4]</p>
+<h3 id="2-khoi-chay-tren-may-tinh-giam-sat-host-pc-gui">2. Khởi chạy trên Máy tính Giám sát (Host PC GUI)<a class="headerlink" href="#2-khoi-chay-tren-may-tinh-giam-sat-host-pc-gui" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Cài đặt thư viện phụ thuộc</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pip<span class="w"> </span>install<span class="w"> </span>pyqtgraph<span class="w"> </span>PyQt5<span class="w"> </span>numpy
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Khởi chạy giao diện hiển thị 3 phổ và Waterfall</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>python<span class="w"> </span>viewer/viewer.py
+</code></pre></div>
+[cite: 1, 4]</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,19 @@
+:root {
+  --md-grid-max-width: 75% !important;
+}
+
+/* Ép khung lưới tổng thể bung rộng 92% chiều ngang màn hình */
+.md-grid {
+  max-width: 75% !important;
+}
+
+/* Cho phép vùng nội dung đọc bài viết tự do co giãn */
+.md-content {
+  max-width: none !important;
+}
+
+/* Mở rộng bảng số liệu theo tỷ lệ khung hình */
+.md-typeset table:not([class]) {
+  display: inline-table;
+  width: 100%;
+}

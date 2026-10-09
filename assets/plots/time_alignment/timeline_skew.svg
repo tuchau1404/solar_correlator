@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" width="100%" height="100%" style="background:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Mũi tên đo kích thước đỏ -->
+    <marker id="arrow-red-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 10 1 L 2 5 L 10 9 z" fill="#DC2626" />
+    </marker>
+    <marker id="arrow-red-end" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#DC2626" />
+    </marker>
+
+    <!-- Mũi tên trục thời gian -->
+    <marker id="axis-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#475569" />
+    </marker>
+  </defs>
+
+  <!-- ================= LƯỚI VÀ TRỤC THỜI GIAN ================= -->
+  <!-- Các đường dóng thời gian 100ns (Gốc x = 240 tương ứng t = 0ns) -->
+  <g stroke="#E2E8F0" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="240" y1="40" x2="240" y2="255" />
+    <line x1="330" y1="40" x2="330" y2="255" />
+    <line x1="420" y1="40" x2="420" y2="255" />
+    <line x1="510" y1="40" x2="510" y2="255" />
+    <line x1="600" y1="40" x2="600" y2="255" />
+    <line x1="690" y1="40" x2="690" y2="255" />
+    <line x1="780" y1="40" x2="780" y2="255" />
+    <line x1="870" y1="40" x2="870" y2="255" />
+  </g>
+
+  <!-- ================= RECEIVER 1 TIMELINE ================= -->
+  <!-- Nhãn Track 1 -->
+  <text x="220" y="70" text-anchor="end" font-size="13" font-weight="700" fill="#1E293B">Receiver 1 Timeline</text>
+  <text x="220" y="88" text-anchor="end" font-size="11" font-style="italic" fill="#2563EB">(Early / USB Leader)</text>
+
+  <!-- Các khối mẫu Receiver 1 (Rộng 90px = 100ns) -->
+  <g>
+    <!-- Sample 0 -->
+    <rect x="240" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="285" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 0</text>
+
+    <!-- Sample 1 -->
+    <rect x="330" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="375" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 1</text>
+
+    <!-- Sample 2 -->
+    <rect x="420" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="465" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 2</text>
+
+    <!-- Sample 3 -->
+    <rect x="510" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="555" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 3</text>
+
+    <!-- Sample 4 -->
+    <rect x="600" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="645" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 4</text>
+
+    <!-- Sample 5 -->
+    <rect x="690" y="55" width="90" height="42" rx="4" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+    <text x="735" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Sample 5</text>
+
+    <!-- Ký hiệu nối dài ... -->
+    <text x="800" y="83" font-size="20" font-weight="700" fill="#94A3B8">...</text>
+  </g>
+
+  <!-- ================= ĐO ĐỘ LỆCH K_OFFSET ================= -->
+  <!-- Đường dóng mốc xuất phát t = 0 -->
+  <line x1="240" y1="45" x2="240" y2="200" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4 3" />
+  <!-- Đường dóng mốc bắt đầu của Receiver 2 (t = 300ns) -->
+  <line x1="510" y1="45" x2="510" y2="200" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4 3" />
+
+  <!-- Mũi tên 2 chiều đo độ lệch -->
+  <line x1="244" y1="125" x2="506" y2="125" stroke="#DC2626" stroke-width="2" marker-start="url(#arrow-red-start)" marker-end="url(#arrow-red-end)" />
+  <rect x="270" y="112" width="210" height="26" rx="4" fill="#FFFFFF" fill-opacity="0.95" />
+  <text x="375" y="129" text-anchor="middle" font-size="12" font-weight="700" fill="#DC2626">k_offset = 3 samples (Δt = 300 ns)</text>
+
+  <!-- ================= RECEIVER 2 TIMELINE ================= -->
+  <!-- Nhãn Track 2 -->
+  <text x="220" y="170" text-anchor="end" font-size="13" font-weight="700" fill="#1E293B">Receiver 2 Timeline</text>
+  <text x="220" y="188" text-anchor="end" font-size="11" font-style="italic" fill="#DC2626">(Delayed Stream)</text>
+
+  <g>
+    <!-- Khối trễ khởi động USB (Vùng chờ vô định hình) -->
+    <rect x="240" y="155" width="270" height="42" rx="4" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.8" stroke-dasharray="5 4" />
+    <text x="375" y="181" text-anchor="middle" font-size="11.5" font-style="italic" font-weight="600" fill="#991B1B">Hardware / USB Startup Latency</text>
+
+    <!-- Sample 0 -->
+    <rect x="510" y="155" width="90" height="42" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="2" />
+    <text x="555" y="181" text-anchor="middle" font-size="12" font-weight="700" fill="#166534">Sample 0</text>
+
+    <!-- Sample 1 -->
+    <rect x="600" y="155" width="90" height="42" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="2" />
+    <text x="645" y="181" text-anchor="middle" font-size="12" font-weight="700" fill="#166534">Sample 1</text>
+
+    <!-- Sample 2 -->
+    <rect x="690" y="155" width="90" height="42" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="2" />
+    <text x="735" y="181" text-anchor="middle" font-size="12" font-weight="700" fill="#166534">Sample 2</text>
+
+    <!-- Ký hiệu nối dài ... -->
+    <text x="800" y="183" font-size="20" font-weight="700" fill="#94A3B8">...</text>
+  </g>
+
+  <!-- ================= TRỤC THỜI GIAN THỰC (TIME SCALE) ================= -->
+  <!-- Đường trục chính -->
+  <line x1="240" y1="245" x2="890" y2="245" stroke="#475569" stroke-width="1.5" marker-end="url(#axis-arrow)" />
+
+  <!-- Vạch chia (Ticks) và Giá trị nano-giây -->
+  <g font-size="11" fill="#475569" text-anchor="middle" font-weight="500">
+    <line x1="240" y1="245" x2="240" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="240" y="267">0 ns</text>
+
+    <line x1="330" y1="245" x2="330" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="330" y="267">100 ns</text>
+
+    <line x1="420" y1="245" x2="420" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="420" y="267">200 ns</text>
+
+    <line x1="510" y1="245" x2="510" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="510" y="267">300 ns</text>
+
+    <line x1="600" y1="245" x2="600" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="600" y="267">400 ns</text>
+
+    <line x1="690" y1="245" x2="690" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="690" y="267">500 ns</text>
+
+    <line x1="780" y1="245" x2="780" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="780" y="267">600 ns</text>
+
+    <line x1="870" y1="245" x2="870" y2="252" stroke="#475569" stroke-width="1.5" />
+    <text x="870" y="267">700 ns</text>
+  </g>
+
+  <!-- Nhãn trục hoành -->
+  <text x="565" y="295" text-anchor="middle" font-size="12" font-weight="600" fill="#334155">
+    Continuous Timeline t (Nanoseconds) — Ts = 100 ns per sample (fs = 10.0 MSPS)
+  </text>
+</svg>
