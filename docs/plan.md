@@ -1,4 +1,4 @@
-# 🛰️ Solar Radio Interferometer (30.0 – 40.0 MHz)
+# Next plan
 > Hệ thống giao thoa kế vô tuyến đồng pha 2 kênh thời gian thực dải Decametric trên nền tảng Raspberry Pi 5 và SDRplay RSPdx phục vụ quan sát bùng nổ bức xạ Mặt Trời (Type II, Type III)[cite: 1, 4].
 
 ---

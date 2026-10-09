@@ -3,7 +3,7 @@
 
 
 
-> **Weekly Report:** Week 3 (21.09.2026 – 27.09.2026)
+> **Weekly Report:** Week 5 (05.10.2026 – 11.10.2026)
 > 
 > **Current Focus:** RF Switch Matrix VNA Validation & Backend Integration [Jump to Weekly Log](#weekly-log)
 
@@ -17,9 +17,15 @@ A real-time, dual-channel coherent radio interferometer designed for decametric 
 
 ## 1. System Overview & Architecture
 
-The instrumentation is structured across two physical nodes: an **Embedded Edge DSP Node** (Raspberry Pi 5) responsible for high-throughput USB 3.0 ingestion, sample-accurate alignment, and FX correlation; and a **Host Visualization Node** (PC) providing real-time GPU-accelerated waterfall rendering and scientific archiving.
+The instrumentation is designed as a high-performance, phase-coherent radio astronomy instrument centered around a dedicated **Hardware RF/Clock Front-End** and an **Embedded Edge DSP Backend** (Raspberry Pi 5). The architecture ingests dual continuous baseband I/Q streams at an aggregate bandwidth of $80\text{ MB/s}$ ($640\text{ Mbps}$), enforces integer-sample alignment in real time, and computes the cross-power visibility spectrum via an embedded FX Correlator before streaming compressed spectral frames to a lightweight remote visualization client.
 
+### 1.1. Logical Architecture & Signal Dataflow
 ![System Architecture](docs/assets/architecture.svg)
+*Figure 1.1: End-to-end system architecture detailing hardware RF/clock conditioning, POSIX Shared Memory IPC pipelines, and host telemetry streaming.*
+
+### 1.2. Laboratory Benchtop Implementation
+![Laboratory Benchtop Test Setup](docs/assets/photos/lab_bench_setup.jpg)
+*Figure 1.2: Physical benchtop validation setup featuring the Raspberry Pi 5 host controller, dual SDRplay RSPdx receivers, 24 MHz reference clock distribution, avalanche noise source, and the dual-channel RF switching matrix.*
 
 ---
 ## 2. Key Engineering Challenges & Design Rationale
@@ -88,7 +94,42 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
 
 ### 5.1. Weekly Progress & Deliverables <a id="weekly-log"></a>
 
-#### Week 3 (21.09.2026 – 27.09.2026) (Current Sprint)
+
+#### Week 5 (05.10.2026 – 11.10.2026) (Current Sprint)
+
+- **End-to-End System Hardware Integration:**
+    * Integrated all physical sub-modules: 24 MHz reference clock distribution, avalanche noise source, dual-channel RF switching matrix, and dual SDRplay RSPdx receivers.
+    * Interfaced hardware control lines with the Raspberry Pi 5 GPIO header (GPIO 6 for RF switch routing and GPIO 26 for noise source DC power gating).
+
+- **Module 2 DSP Pipeline & Automated GPIO Control:**
+    * Updated the Module 2 Time Alignment Engine with an automated hardware Finite State Machine (FSM).
+    * Implemented synchronous switching sequences: calibration mode (GPIO 6/26 HIGH, warm-up settle, execute snapshot cross-correlation to achieve $k=0$ sample lock) transitioning to observation mode (GPIO 26/6 LOW to isolate the noise source and route sky antennas).
+    * Integrated RAII-based GPIO cleanup and POSIX signal handlers (`SIGINT`/`SIGTERM`) to ensure fail-safe power shutdown for the noise source.
+
+<!-- - **Technical Documentation Deliverables:**
+    * [`module2-time-align.md`](docs/02-firmware-dsp/module2-time-align.md) `[Complete]`: Updated with GPIO control logic, automated FSM sequence timing, and zero-baseline benchtop validation logs.
+    * [`system-integration.md`](docs/03-calibration-tests/system-integration.md) `[Work in Progress]`: Documented end-to-end hardware wiring topology, pinout definitions, and full-chain operational workflows.
+   -->
+<details markdown="1">
+<summary><b>View Archived Progress (Week 0 – Week 4)</b></summary>
+
+#### Week 4 (28.09.2026 – 04.10.2026)
+
+- **10–24 MHz PLL Clock Synthesizer Hardware & Firmware:**
+    * Assembled and hand-soldered the 10–24 MHz PLL clock synthesizer prototype PCB.
+    * Developed and debugged firmware control routines for register initialization and lock detection.
+    * Characterized VCO tuning sensitivity ($K_{\text{vco}}$) across the control voltage range.
+    * Tuned and optimized the loop filter bandwidth to minimize phase jitter and improve settling time.
+
+- **Avalanche Noise Source Hardware & Thermal Profiling:**
+    * Completed component assembly and hand-soldering of the avalanche noise source PCB.
+    * Conducted laboratory thermal measurements on the MMIC buffer amplifier (GALI-74) under continuous DC bias to evaluate thermal equilibrium and gain stability.
+
+<!-- - **Technical Documentation Deliverables:**
+    * [`clock-sync.md`](docs/01-hardware/clock-sync.md) `[Complete]`: Documented PLL schematic architecture, register configuration code, measured $K_{\text{vco}}$ curves, and loop filter calculations.
+    * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Complete]`: Finalized assembly documentation, output power verification records, and MMIC amplifier thermal measurement logs. -->
+
+#### Week 3 (21.09.2026 – 27.09.2026)
 
 * **RF Switching Matrix Hardware:**
     * Assembled and hand-soldered the dual-channel RF switch prototype PCB.
@@ -98,11 +139,6 @@ Detailed technical documentation, mathematical derivations, schematics, and lab 
     * [`rf-switching.md`](docs/01-hardware/rf-switching.md) `[Complete]`: Documented circuit schematics, layout implementation, and laboratory VNA measurement records.
     * [`module1-driver.md`](docs/02-firmware-dsp/module1-driver.md) `[Complete]`: Completed documentation for dual-receiver ingestion, process isolation, and continuous streaming benchmarks.
     * [`noise-source.md`](docs/01-hardware/noise-source.md) `[Work in Progress]`: Updated with avalanche breakdown principles, active current-mirror topology, and preliminary breadboard test results.
-
-<details markdown="1">
-<summary><b>View Archived Progress (Week 0 – Week 2)</b></summary>
-
-
 
 #### Week 2 (14.09.2026 – 20.09.2026)
 
