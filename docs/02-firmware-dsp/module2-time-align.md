@@ -6,8 +6,11 @@
 Module 2 provides the inter-process data transport and real-time temporal synchronization infrastructure for the dual-channel decametric solar radio interferometer. By establishing a zero-copy POSIX Shared Memory (SHM) bus, the module bridges two isolated high-throughput ingestion workers with the downstream digital signal processing (DSP) backend.
 
 The primary engineering objectives of Module 2 are:
+
 * **High-Throughput IPC Transport:** Maintain a sustained aggregate throughput of 80 MB/s (10.0 MSPS per channel, 16-bit complex I/Q, dual-channel) over Linux virtual memory without ring buffer overflows or sample drops.
+  
 * **Integer Sample-Accurate Alignment:** Algorithmically identify and eliminate the non-deterministic initial hardware/USB startup delay skew ($k_{\text{offset}}$), locking the temporal alignment of both baseband streams to within $\vert{}k\vert{} \le 1\text{ sample}$ ($\approx 100\text{ ns}$ at 10.0 MSPS).
+  
 * **Phase-Locked Stability Verification:** Confirm that an external 24.0 MHz clock reference completely suppresses sample drift over extended observation runs (Zero Drift over $\ge 60\text{ seconds}$).
 
 ---
@@ -16,14 +19,21 @@ The primary engineering objectives of Module 2 are:
 
 #### 1.2.1. Clock Frequency Locking vs. Trigger Epoch Ambiguity
 To eliminate independent local oscillator drift, both SDRplay RSPdx receivers are fed a common 24.0 MHz reference clock at their respective `REFin` ports. This locks the internal phase-locked loops (PLLs) and analog-to-digital converters (ADCs), ensuring identical sampling rates:
-$$f_{s1} = f_{s2} = 10.000000\text{ MSPS}$$
+
+$$
+f_{s1} = f_{s2} = 10.000000\text{ MSPS}
+$$
 
 Consequently, the temporal duration of a single baseband sample is:
-$$T_s = \frac{1}{f_s} = \frac{1}{10,000,000\text{ Hz}} = 100\text{ ns} \quad (0.1\ \mu\text{s})$$
+
+$$
+T_s = \frac{1}{f_s} = \frac{1}{10,000,000\text{ Hz}} = 100\text{ ns} \quad (0.1\ \mu\text{s})
+$$
 
 However, the hardware architecture lacks a hardware trigger or Pulse-Per-Second (PPS) acquisition gate line. Because the vendor `libsdrplay_api.so` runtime restricts multi-receiver operation to isolated OS processes, sample streaming must be initiated via two independent POSIX `fork()` worker processes. 
 
 This architecture introduces non-deterministic temporal jitter due to:
+
 1. Linux operating system task scheduler latencies and kernel context-switch variations.
 2. Independent USB 3.0 xHCI controller endpoint enumeration, DMA transfer handshakes, and packet queue initialization.
 3. Tuner firmware decimation and digital filter initialization latencies inside each receiver.
@@ -40,6 +50,7 @@ Receiver 2 Timeline: ---------[Sample 0][Sample 1][Sample 2] ...
 
 #### 1.2.2. Empirical Verification via Zero-Baseline Bench Test
 The existence of $k_{\text{offset}}$ was empirically confirmed on the test bench:
+
 * **Test Topology:** A common broadband noise source was coupled to a 1:2 resistive RF power divider and routed to Port C of both RSPdx receivers through two coaxial cables cut to identical physical lengths ($\Delta L = 0\text{ cm} \to \Delta\tau_{\text{cable}} = 0\text{ ns}$).
 * **Observation:** When evaluating the cross-correlation function $R_{12}[k]$ over an initial snapshot window of $N = 65,536\text{ samples}$ immediately following driver startup, the correlation peak never appeared at index $k = 0$.
 * **Stochastic Behavior:** Cold-boot iterations yielded varying integer offsets (e.g., $k_{\text{offset}} = +38\text{ samples}$ on Run 1, $k_{\text{offset}} = -120\text{ samples}$ on Run 2, $k_{\text{offset}} = +215\text{ samples}$ on Run 3), all exhibiting high Peak-to-Noise Ratios ($\text{PNR} > 20\text{ dB}$).
@@ -48,7 +59,10 @@ This confirmed that while the hardware clock locks sampling rates, initial data 
 
 #### 1.2.3. Physical Impact on Radio Interferometry
 In a two-element radio interferometer, an uncompensated time offset $\Delta t = k_{\text{offset}} \cdot T_s$ produces a linear phase slope across the observing bandwidth:
-$$\frac{d(\Delta\phi)}{df} = 2\pi \Delta t$$
+
+$$
+\frac{d(\Delta\phi)}{df} = 2\pi \Delta t
+$$
 
 For an uncorrected offset of $k_{\text{offset}} = 38\text{ samples}$ ($\Delta t = 3.8\ \mu\text{s}$) across the 8.0 MHz analog IF passband, the relative phase wraps across 30.4 complete cycles ($60.8\pi\text{ radians}$) between the band edges. When summing spectral channels or performing time integration in Module 3, this rapid phase rotation causes severe decorrelation (phase washing), degrading the cross-correlation amplitude.
 
@@ -108,16 +122,25 @@ Selecting an appropriate test waveform is essential for robust time-domain cross
 
 #### Mathematical Limitation of Continuous-Wave (CW) Tones
 When a monochromatic sinusoidal test signal $s(t) = A \cos(2\pi f_0 t)$ is injected into both channels, the cross-correlation function is:
-$$R_{12}(\tau) = \frac{A^2}{2} \cos(2\pi f_0 (\tau - \Delta t))$$
+
+$$
+R_{12}(\tau) = \frac{A^2}{2} \cos(2\pi f_0 (\tau - \Delta t))
+$$
 
 This periodic autocorrelation spreads across the entire correlation array. Because energy is distributed across periodic lobes rather than localized at a single sample, the effective background floor remains elevated. Under a discrete $N$-point search with a local exclusion window, a pure sinusoid yields a theoretical ceiling of:
-$$\text{PNR}_{\text{CW}} \approx 3.92\text{ dB}$$
+
+$$
+\text{PNR}_{\text{CW}} \approx 3.92\text{ dB}
+$$
 
 This low PNR consistently trips the `LOW SNR` detector ($\text{PNR} < 10.0\text{ dB}$), making CW tones unsuitable for sample-level alignment.
 
 #### Advantages of Broadband Avalanche Noise
 Broadband white Gaussian noise has high entropy and a wide frequency spectrum. By the Wiener-Khinchin theorem, its autocorrelation function approaches a Dirac delta function:
-$$R_{ss}(\tau) = \mathcal{F}^{-1}\{S_{ss}(f)\} \approx N_0 \cdot \delta(\tau)$$
+
+$$
+R_{ss}(\tau) = \mathcal{F}^{-1}\{S_{ss}(f)\} \approx N_0 \cdot \delta(\tau)
+$$
 
 When cross-correlating broadband noise, the array values cancel to near zero at all non-matching offsets ($k \neq k_0$) due to random phase distribution. At the true offset ($k = k_0$), all spectral components add coherently, producing a distinct, sharp impulse. On the physical test bench, an avalanche noise source (reverse-biased 2N2222 B-E junction with MMIC amplification) produces an experimental $\text{PNR}$ of $44\text{ dB}$, providing reliable peak detection.
 
@@ -127,8 +150,14 @@ When cross-correlating broadband noise, the array values cancel to near zero at 
 
 ### 3.1. Mathematical Signal Model
 Let $s[n] \in \mathbb{C}$ denote the common baseband analytical signal from the calibration noise source. The digitized baseband discrete-time sequences at the output of the two receivers are expressed as:
-$$x_1[n] = s[n] + w_1[n]$$
-$$x_2[n] = s[n - k_0] \cdot e^{-j\theta_0} + w_2[n]$$
+
+$$
+x_1[n] = s[n] + w_1[n]
+$$
+
+$$
+x_2[n] = s[n - k_0] \cdot e^{-j\theta_0} + w_2[n]
+$$
 
 Where:
 * $k_0 \in \mathbb{Z}$ is the unknown integer sample delay skew ($k_{\text{offset}}$) resulting from asynchronous startup.
