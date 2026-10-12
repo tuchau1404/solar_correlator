@@ -15,6 +15,8 @@
 #include "time_alignment.hpp"
 #include "hardware_control.hpp"
 
+static_assert(std::atomic<bool>::is_always_lock_free, "signal flags must be lock-free");
+
 static std::atomic<bool> g_child_running{true};
 static std::atomic<bool> g_parent_running{true};
 
@@ -26,24 +28,50 @@ static void parent_sig_handler(int) {
     g_parent_running.store(false);
 }
 
-static void ChildStreamCallback(short *xi, short *xq, 
-                                [[maybe_unused]] sdrplay_api_StreamCbParamsT *params, 
-                                unsigned int numSamples, 
-                                [[maybe_unused]] unsigned int reset, 
+struct StreamContext {
+    SharedMemoryRingBuffer* ring;
+    uint32_t expected_sample{0};
+    bool have_expected{false}; // Sole serialized producer callback owns these.
+};
+
+static void ChildStreamCallback(short *xi, short *xq,
+                                sdrplay_api_StreamCbParamsT *params,
+                                unsigned int numSamples,
+                                unsigned int reset,
                                 void *cbContext) {
-    auto* ring_buffer = static_cast<SharedMemoryRingBuffer*>(cbContext);
-    if (ring_buffer == nullptr || numSamples == 0) return;
+    auto* ctx = static_cast<StreamContext*>(cbContext);
+    if (!ctx || !ctx->ring) return;
+    auto* ring_buffer = ctx->ring;
+    if (!g_child_running.load(std::memory_order_relaxed)) return;
 
     if (!ring_buffer->is_stream_started()) {
         return;
     }
 
-    ring_buffer->write(xi, xq, numSamples);
+    // Fail closed on loss: ring positions cannot encode missing hardware time.
+    auto fail_stream = [&] {
+        ring_buffer->set_ready(false);
+        g_child_running.store(false, std::memory_order_relaxed);
+    };
+    if (reset || !params) { fail_stream(); return; }
+    if (numSamples == 0) return;
+    if (ctx->have_expected && params->firstSampleNum != ctx->expected_sample) {
+        fail_stream();
+        return;
+    }
+    ctx->expected_sample = static_cast<uint32_t>(params->firstSampleNum + numSamples);
+    ctx->have_expected = true;
+    try {
+        if (ring_buffer->write(xi, xq, numSamples) != numSamples)
+            fail_stream();
+    } catch (...) {
+        fail_stream();
+    }
 }
 
-static void ChildDummyEventCallback([[maybe_unused]] sdrplay_api_EventT eventId, 
-                                    [[maybe_unused]] sdrplay_api_TunerSelectT tuner, 
-                                    [[maybe_unused]] sdrplay_api_EventParamsT *params, 
+static void ChildDummyEventCallback([[maybe_unused]] sdrplay_api_EventT eventId,
+                                    [[maybe_unused]] sdrplay_api_TunerSelectT tuner,
+                                    [[maybe_unused]] sdrplay_api_EventParamsT *params,
                                     [[maybe_unused]] void *cbContext) {}
 
 static void run_sdr_producer(int dev_idx, const std::string& target_serno, const std::string& shm_name) {
@@ -60,7 +88,10 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
 
     sdrplay_api_DeviceT devs[SDRPLAY_MAX_DEVICES];
     unsigned int numDevs = 0;
-    sdrplay_api_GetDevices(devs, &numDevs, SDRPLAY_MAX_DEVICES);
+    if (sdrplay_api_GetDevices(devs, &numDevs, SDRPLAY_MAX_DEVICES) != sdrplay_api_Success) {
+        sdrplay_api_Close();
+        throw std::runtime_error("GetDevices failed");
+    }
 
     int selected_idx = -1;
     for (unsigned int i = 0; i < numDevs; ++i) {
@@ -84,7 +115,12 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
     }
 
     sdrplay_api_DeviceParamsT *deviceParams = nullptr;
-    sdrplay_api_GetDeviceParams(devs[selected_idx].dev, &deviceParams);
+    if (sdrplay_api_GetDeviceParams(devs[selected_idx].dev, &deviceParams) != sdrplay_api_Success ||
+        !deviceParams || !deviceParams->rxChannelA || !deviceParams->devParams) {
+        sdrplay_api_ReleaseDevice(&devs[selected_idx]);
+        sdrplay_api_Close();
+        throw std::runtime_error("GetDeviceParams failed");
+    }
 
     auto *chParams = deviceParams->rxChannelA;
     chParams->tunerParams.rfFreq.rfHz   = SolarConfig::SDR::RF_CENTER_FREQ_HZ;
@@ -100,7 +136,8 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
     cbFns.StreamACbFn = ChildStreamCallback;
     cbFns.EventCbFn   = ChildDummyEventCallback;
 
-    err = sdrplay_api_Init(devs[selected_idx].dev, &cbFns, &producer_rb);
+    StreamContext context{&producer_rb};
+    err = sdrplay_api_Init(devs[selected_idx].dev, &cbFns, &context);
     if (err != sdrplay_api_Success) {
         std::cerr << "[Tiến trình " << dev_idx << "] Lỗi Init: " << sdrplay_api_GetErrorString(err) << "\n";
         sdrplay_api_ReleaseDevice(&devs[selected_idx]);
@@ -114,6 +151,7 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
+    producer_rb.set_ready(false);
     sdrplay_api_Uninit(devs[selected_idx].dev);
     sdrplay_api_ReleaseDevice(&devs[selected_idx]);
     sdrplay_api_Close();
@@ -132,7 +170,10 @@ int main() {
 
     sdrplay_api_DeviceT devs[SDRPLAY_MAX_DEVICES];
     unsigned int numDevs = 0;
-    sdrplay_api_GetDevices(devs, &numDevs, SDRPLAY_MAX_DEVICES);
+    if (sdrplay_api_GetDevices(devs, &numDevs, SDRPLAY_MAX_DEVICES) != sdrplay_api_Success) {
+        sdrplay_api_Close();
+        throw std::runtime_error("GetDevices failed");
+    }
 
     if (numDevs < 2) {
         std::cerr << "[Lỗi] Cần tối thiểu 2 thiết bị RSPdx! Tìm thấy: " << numDevs << "\n";
@@ -147,20 +188,32 @@ int main() {
     std::cout << "  - Ch 2 Serial: " << ser1 << "\n";
     sdrplay_api_Close();
 
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
+    const std::string ch1_name = SolarConfig::SHM::CH1_NAME + "_audit_" + std::to_string(getpid());
+    const std::string ch2_name = SolarConfig::SHM::CH2_NAME + "_audit_" + std::to_string(getpid());
+    SharedMemoryRingBuffer::unlink_shm(ch1_name);
+    SharedMemoryRingBuffer::unlink_shm(ch2_name);
 
     std::signal(SIGTERM, parent_sig_handler);
     std::signal(SIGINT, parent_sig_handler);
 
+    int exit_code = 1;
     pid_t pid1 = fork();
     if (pid1 == 0) {
-        run_sdr_producer(0, ser0, SolarConfig::SHM::CH1_NAME);
+        try { run_sdr_producer(0, ser0, ch1_name); } catch (...) { _exit(1); }
     }
+
+    if (pid1 < 0) { std::cerr << "fork CH1 failed\n"; return 1; }
 
     pid_t pid2 = fork();
     if (pid2 == 0) {
-        run_sdr_producer(1, ser1, SolarConfig::SHM::CH2_NAME);
+        try { run_sdr_producer(1, ser1, ch2_name); } catch (...) { _exit(1); }
+    }
+
+    if (pid2 < 0) {
+        kill(pid1, SIGTERM);
+        while (waitpid(pid1, nullptr, 0) < 0 && errno == EINTR) {}
+        SharedMemoryRingBuffer::unlink_shm(ch1_name);
+        return 1;
     }
 
     // Tiến trình cha bật GPIO 6 và 26 theo cấu hình SolarConfig::Hardware
@@ -169,8 +222,8 @@ int main() {
     std::cout << "\n[DSP Engine] Đang đợi cả 2 phần cứng RSPdx hoàn tất khởi tạo Init...\n";
 
     try {
-        SharedMemoryRingBuffer rb1(SolarConfig::SHM::CH1_NAME, SolarConfig::SHM::BUFFER_CAPACITY, false);
-        SharedMemoryRingBuffer rb2(SolarConfig::SHM::CH2_NAME, SolarConfig::SHM::BUFFER_CAPACITY, false);
+        SharedMemoryRingBuffer rb1(ch1_name, SolarConfig::SHM::BUFFER_CAPACITY, false);
+        SharedMemoryRingBuffer rb2(ch2_name, SolarConfig::SHM::BUFFER_CAPACITY, false);
         TimeAligner aligner(SolarConfig::Alignment::SNAPSHOT_SIZE);
 
         int wait_count = 0;
@@ -184,6 +237,23 @@ int main() {
         }
 
         std::cout << "[DSP Engine] Cả 2 phần cứng đã sẵn sàng. Bật cổng stream đồng thời!\n";
+        auto require_healthy = [&] {
+            if (!rb1.is_ready() || !rb2.is_ready() ||
+                rb1.get_overflow_count() != 0 || rb2.get_overflow_count() != 0)
+                throw std::runtime_error("producer stopped or stream discontinuity detected");
+        };
+        auto wait_snapshot = [&] {
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+            while (rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
+                   rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) {
+                require_healthy();
+                if (!g_parent_running.load(std::memory_order_relaxed) ||
+                    std::chrono::steady_clock::now() >= deadline)
+                    throw std::runtime_error("snapshot wait interrupted or timed out");
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
+            }
+            require_healthy();
+        };
         rb1.set_start_stream(true);
         rb2.set_start_stream(true);
 
@@ -191,17 +261,13 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         // ===================================================================
-        // BƯỚC 0: FLUSH ĐỒNG THỜI ĐỂ THIẾT LẬP MỐC T0 THỜI GIAN THỰC
+        // BƯỚC 0: DISCARD CÁC MẪU ĐÃ CÔNG BỐ; KHÔNG PHẢI HARDWARE T0
         // ===================================================================
-        std::cout << "\n>>> [BƯỚC 0] THIẾT LẬP MỐC ĐỒNG BỘ THỜI GIAN THỰC T0 (FLUSH BARRIER)...\n";
+        std::cout << "\n>>> [BƯỚC 0] XẢ CÁC MẪU ĐÃ CÔNG BỐ (KHÔNG ĐỒNG BỘ HARDWARE T0)...\n";
         rb1.flush();
         rb2.flush();
 
-        while ((rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
-                rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) &&
-               g_parent_running.load(std::memory_order_relaxed)) {
-            std::this_thread::sleep_for(std::chrono::microseconds(500));
-        }
+        wait_snapshot();
 
         if (!g_parent_running.load(std::memory_order_relaxed)) {
             throw std::runtime_error("Đã ngắt bởi người dùng.");
@@ -210,7 +276,7 @@ int main() {
         // ===================================================================
         // BƯỚC 1: ĐO ĐỘ LỆCH MẪU KHỞI ĐỘNG BAN ĐẦU
         // ===================================================================
-        std::cout << "\n>>> [BƯỚC 1] ĐO ĐỘ LỆCH MẪU KHỞI ĐỘNG BAN ĐẦU (N = " 
+        std::cout << "\n>>> [BƯỚC 1] ĐO ĐỘ LỆCH MẪU KHỞI ĐỘNG BAN ĐẦU (N = "
                   << SolarConfig::Alignment::SNAPSHOT_SIZE << ")...\n";
         AlignmentResult initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
 
@@ -225,20 +291,18 @@ int main() {
         std::cout << "\n>>> [BƯỚC 2] THỰC HIỆN CĂN CHỈNH XẢ MẪU BÙ TRỄ...\n";
         if (initial_res.is_valid) {
             if (initial_res.lag_samples > 0) {
-                rb1.skip(static_cast<uint32_t>(initial_res.lag_samples));
+                if (rb1.skip(static_cast<uint32_t>(initial_res.lag_samples)) != static_cast<uint32_t>(initial_res.lag_samples))
+                    throw std::runtime_error("short CH1 alignment skip");
                 std::cout << "  -> Đã xả đúng " << initial_res.lag_samples << " mẫu ở KÊNH 1.\n";
             } else if (initial_res.lag_samples < 0) {
-                rb2.skip(static_cast<uint32_t>(-initial_res.lag_samples));
+                if (rb2.skip(static_cast<uint32_t>(-initial_res.lag_samples)) != static_cast<uint32_t>(-initial_res.lag_samples))
+                    throw std::runtime_error("short CH2 alignment skip");
                 std::cout << "  -> Đã xả đúng " << -initial_res.lag_samples << " mẫu ở KÊNH 2.\n";
             } else {
                 std::cout << "  -> Hai kênh đã trùng khớp từ đầu (k = 0).\n";
             }
 
-            while ((rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
-                    rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) &&
-                   g_parent_running.load(std::memory_order_relaxed)) {
-                std::this_thread::sleep_for(std::chrono::microseconds(500));
-            }
+            wait_snapshot();
         } else {
             std::cerr << "  [Cảnh báo] Không thể căn chỉnh do PNR dưới ngưỡng cho phép!\n";
         }
@@ -248,7 +312,7 @@ int main() {
         // ===================================================================
         std::cout << "\n>>> [BƯỚC 3] XÁC NHẬN ĐỒNG BỘ SAU CĂN CHỈNH...\n";
         AlignmentResult verify_res = aligner.measure_offset_from_buffers(rb1, rb2);
-        std::cout << "  + Tọa độ đỉnh mới  : k = " << verify_res.lag_samples << " mẫu (" 
+        std::cout << "  + Tọa độ đỉnh mới  : k = " << verify_res.lag_samples << " mẫu ("
                   << verify_res.delay_microsec << " us)\n";
         std::cout << "  + PNR sau căn chỉnh : " << verify_res.pnr_db << " dB\n";
 
@@ -270,12 +334,18 @@ int main() {
         std::vector<ComplexSample> drain_buf1(SolarConfig::Test::DRAIN_CHUNK_SIZE);
         std::vector<ComplexSample> drain_buf2(SolarConfig::Test::DRAIN_CHUNK_SIZE);
         auto start_time = std::chrono::steady_clock::now();
-        auto last_check = start_time;
+        auto last_drain = start_time;
+        uint64_t drained_samples = 0;
         int check_round = 1;
         int failed_rounds = 0;
+        constexpr int required_rounds = 11; // t=5,10,...,55 for the 60 s test
+        static_assert(SolarConfig::Test::DURATION_SEC == 60.0 && SolarConfig::Test::CHECK_INTERVAL_SEC == 5.0);
 
         while (g_parent_running.load(std::memory_order_relaxed)) {
+            require_healthy();
             auto now = std::chrono::steady_clock::now();
+            if (now - last_drain > std::chrono::seconds(3))
+                throw std::runtime_error("stream made no consumer progress for 3 seconds");
             double elapsed_total = std::chrono::duration<double>(now - start_time).count();
             if (elapsed_total >= SolarConfig::Test::DURATION_SEC) {
                 break;
@@ -284,10 +354,12 @@ int main() {
             uint32_t av1 = rb1.available_read();
             uint32_t av2 = rb2.available_read();
 
-            if (std::chrono::duration<double>(now - last_check).count() >= SolarConfig::Test::CHECK_INTERVAL_SEC) {
+            if (elapsed_total >= check_round * SolarConfig::Test::CHECK_INTERVAL_SEC + 1.0)
+                throw std::runtime_error("missed measurement deadline");
+            if (elapsed_total >= check_round * SolarConfig::Test::CHECK_INTERVAL_SEC) {
                 if (av1 >= SolarConfig::Alignment::SNAPSHOT_SIZE && av2 >= SolarConfig::Alignment::SNAPSHOT_SIZE) {
                     AlignmentResult check_res = aligner.measure_offset_from_buffers(rb1, rb2);
-                    
+
                     std::cout << "  [T+" << std::setw(2) << std::setfill(' ') << static_cast<int>(elapsed_total) << "s]   | "
                               << "#" << std::setw(2) << std::setfill('0') << check_round++ << "  | "
                               << std::setw(6) << std::setfill(' ') << check_res.lag_samples << "      | "
@@ -301,21 +373,24 @@ int main() {
                     if (std::abs(check_res.lag_samples) <= 1 && check_res.is_valid) {
                         std::cout << "\033[32m[LOCKED]\033[0m\n";
                     } else if (!check_res.is_valid) {
+                        failed_rounds++;
                         std::cout << "\033[33m[LOW SNR]\033[0m\n";
                     } else {
                         std::cout << "\033[31m[DRIFTED " << check_res.lag_samples << "smp]\033[0m\n";
                         failed_rounds++;
                     }
-                    last_check = now;
                 }
             }
 
             uint32_t common_avail = std::min(av1, av2);
             if (common_avail > SolarConfig::Alignment::SNAPSHOT_SIZE) {
-                uint32_t to_read = std::min(common_avail - SolarConfig::Alignment::SNAPSHOT_SIZE, 
+                uint32_t to_read = std::min(common_avail - SolarConfig::Alignment::SNAPSHOT_SIZE,
                                             static_cast<uint32_t>(SolarConfig::Test::DRAIN_CHUNK_SIZE));
-                rb1.read(drain_buf1.data(), to_read);
-                rb2.read(drain_buf2.data(), to_read);
+                if (rb1.read(drain_buf1.data(), to_read) != to_read ||
+                    rb2.read(drain_buf2.data(), to_read) != to_read)
+                    throw std::runtime_error("unequal paired drain");
+                drained_samples += to_read;
+                last_drain = std::chrono::steady_clock::now();
             } else {
                 std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
@@ -323,10 +398,21 @@ int main() {
         std::cout << "------------------------------------------------------------------------------------------------------\n";
 
         std::cout << "\n===================================================================\n";
-        if (pass_step3 && failed_rounds == 0 && g_parent_running.load(std::memory_order_relaxed)) {
+        require_healthy();
+        // Include a final observation at/after 60 s; elapsed time is checked too.
+        wait_snapshot();
+        const auto final_res = aligner.measure_offset_from_buffers(rb1, rb2);
+        if (!final_res.is_valid || std::abs(final_res.lag_samples) > 1) failed_rounds++;
+        require_healthy();
+        std::cout << "Paired samples drained: " << drained_samples << "\n";
+        const bool full_duration = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count()
+                                   >= SolarConfig::Test::DURATION_SEC;
+        if (initial_res.is_valid && pass_step3 && failed_rounds == 0 &&
+            check_round - 1 >= required_rounds && full_duration && g_parent_running.load(std::memory_order_relaxed)) {
+            exit_code = 0;
             std::cout << " \033[32mKẾT LUẬN: BÀI KIỂM TRA MODULE 2 ĐẠT CHUẨN XUẤT SẮC (PASS)\033[0m\n";
             std::cout << " - Hai luồng I/Q đã khóa đồng bộ mẫu (|k| <= 1 sample ~ 100 ns).\n";
-            std::cout << " - Xung REFin 24 MHz giữ ổn định 100% trong suốt 60 giây (Zero Drift).\n";
+            std::cout << " - Các snapshot kiểm tra đạt tiêu chí integer-lag; không đo trực tiếp độ ổn định REFin.\n";
         } else {
             std::cout << " \033[31mKẾT LUẬN: BÀI KIỂM TRA MODULE 2 CHƯA ĐẠT (FAIL)\033[0m\n";
         }
@@ -342,11 +428,11 @@ int main() {
     kill(pid2, SIGTERM);
 
     int status;
-    waitpid(pid1, &status, 0);
-    waitpid(pid2, &status, 0);
+    while (waitpid(pid1, &status, 0) < 0 && errno == EINTR) {}
+    while (waitpid(pid2, &status, 0) < 0 && errno == EINTR) {}
 
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
+    SharedMemoryRingBuffer::unlink_shm(ch1_name);
+    SharedMemoryRingBuffer::unlink_shm(ch2_name);
 
-    return 0;
+    return exit_code;
 }
