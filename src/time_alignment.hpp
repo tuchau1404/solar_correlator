@@ -7,7 +7,7 @@
 #include "ring_buffer.hpp"
 
 struct AlignmentResult {
-    int32_t lag_samples{0};      // >0: CH1 chạy trước CH2; <0: CH2 chạy trước CH1; =0: Khóa hoàn toàn
+    int32_t lag_samples{0};      // IFFT(X1*conj(X2)): >0 skip CH1; <0 skip CH2; 0 = integer-lag zero
     double delay_microsec{0.0};  // Độ trễ thời gian (us)
     float peak_mag{0.0f};        // Biên độ đỉnh tương quan
     float noise_floor{0.0f};     // Mức sàn nhiễu
@@ -15,6 +15,8 @@ struct AlignmentResult {
     bool is_valid{false};        // Đạt ngưỡng PNR
 };
 
+// One DSP thread per instance. Serialize ALL FFTW plan creation/destruction
+// process-wide, including FXCorrelator; execute uses this instance's arrays.
 class TimeAligner {
 public:
     explicit TimeAligner(uint32_t snapshot_size = SolarConfig::Alignment::SNAPSHOT_SIZE);
@@ -27,7 +29,9 @@ public:
     AlignmentResult measure_offset_from_buffers(const SharedMemoryRingBuffer& rb1, const SharedMemoryRingBuffer& rb2);
 
 private:
+    void release_fftw() noexcept;
     uint32_t n_fft_;
+    std::vector<float> magnitudes_;
     fftwf_complex* in_ch1_{nullptr};
     fftwf_complex* in_ch2_{nullptr};
     fftwf_complex* out_ch1_{nullptr};
