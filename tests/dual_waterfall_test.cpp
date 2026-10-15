@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
                 primed = false;
                 ++id; // invalid integration leaves an explicit display gap
                 child1.check(); child2.check();
-                if (++consecutive_failures >= 3 || ++total_failures >= 10) throw;
+                if (++consecutive_failures >= 5) throw;
                 std::cerr << "DSP recovery " << consecutive_failures << ": " << e.what() << '\n';
                 std::this_thread::sleep_for(20ms);
                 continue;
