@@ -243,6 +243,16 @@ public:
         return available;
     }
 
+    // Producer-only capacity snapshot. With one producer, a stale tail only
+    // underestimates space. Do not use consumer-only available_read in feeder.
+    uint32_t available_write() const {
+        const uint32_t head = ctrl_->head.load(std::memory_order_relaxed);
+        const uint32_t tail = ctrl_->tail.load(std::memory_order_acquire);
+        const uint32_t used = head - tail;
+        if (used > capacity_) throw std::runtime_error("SPSC ownership/invariant violated");
+        return capacity_ - used;
+    }
+
     uint32_t get_overflow_count() const {
         return ctrl_->overflow_cnt.load(std::memory_order_relaxed);
     }

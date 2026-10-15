@@ -1,54 +1,53 @@
 #pragma once
-
-#include <vector>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <vector>
 #include <fftw3.h>
-#include "config.hpp"
 #include "ring_buffer.hpp"
 
+// Single DSP-owner object. Serialize FFTW plan creation/destruction with all other
+// FFTW users in the process. Separate objects may execute independent plans.
 class FXCorrelator {
 public:
+    struct Options {
+        uint32_t fft_size = 2048;
+        uint32_t frames = 1953;
+        std::chrono::milliseconds timeout{5000}; // whole prime/cycle deadline
+        const std::atomic<bool>* running = nullptr; // false requests cancellation
+    };
     FXCorrelator();
+    explicit FXCorrelator(Options options);
     ~FXCorrelator();
-
-    // Vô hiệu hóa copy
     FXCorrelator(const FXCorrelator&) = delete;
     FXCorrelator& operator=(const FXCorrelator&) = delete;
-
-    // Nạp trước nửa bộ đệm để bắt đầu cơ chế cửa sổ trượt
-    void prime_buffers(SharedMemoryRingBuffer& rb1, SharedMemoryRingBuffer& rb2);
-
-    // Xử lý 1 chu kỳ tích phân trọn vẹn (M = 1953 khung)
-    // Các mảng out_ db, phase, coherence phải được cấp phát trước với kích thước N = 2048
-    void process_integration_cycle(SharedMemoryRingBuffer& rb1, 
-                                   SharedMemoryRingBuffer& rb2,
-                                   const std::vector<float>& fringe_phase_rad,
-                                   std::vector<float>& out_spectrum_db,
-                                   std::vector<float>& out_phase_rad,
-                                   std::vector<float>& out_coherence);
-
+    void prime_buffers(SharedMemoryRingBuffer&, SharedMemoryRingBuffer&);
+    // phi: UNSHIFTED FFT order, predicted arg(X1*conj(X2)), constant in cycle.
+    // Output: shifted order; 10log10(|cross power| / 1 ADC-count^2), power/bin.
+    // Sum of linear auto powers equals window-weighted mean-square power.
+    // Zero power: -120 dB display floor, phase/coherence = 0 (invalid estimate).
+    // A timeout/drop/cancel invalidates state: resynchronize streams then re-prime.
+    void process_integration_cycle(SharedMemoryRingBuffer&, SharedMemoryRingBuffer&,
+        const std::vector<float>& phi, std::vector<float>& db,
+        std::vector<float>& phase, std::vector<float>& coherence);
+    const std::vector<double>& auto_power1() const { return power1_; }
+    const std::vector<double>& auto_power2() const { return power2_; }
+    double window_energy() const { return s2_; }
 private:
-    const uint32_t n_fft_;
-    const uint32_t hop_size_;
-    const uint32_t m_frames_;
-    float window_power_norm_;
-
-    // Bộ đệm trượt trên L1/L2 Cache
-    std::vector<ComplexSample> slide_buf1_;
-    std::vector<ComplexSample> slide_buf2_;
-    std::vector<float> window_; // Mảng Hanning
-
-    // Vùng nhớ ARM NEON SIMD cho FFTW3
-    fftwf_complex* in1_{nullptr};
-    fftwf_complex* in2_{nullptr};
-    fftwf_complex* out1_{nullptr};
-    fftwf_complex* out2_{nullptr};
-    fftwf_plan plan1_{nullptr};
-    fftwf_plan plan2_{nullptr};
-
-    // Vector Accumulators (Chuẩn Welch)
-    std::vector<float> accum_s12_real_;
-    std::vector<float> accum_s12_imag_;
-    std::vector<float> accum_s11_;
-    std::vector<float> accum_s22_;
+    using Clock = std::chrono::steady_clock;
+    void cleanup() noexcept;
+    void check(SharedMemoryRingBuffer&, SharedMemoryRingBuffer&, Clock::time_point);
+    void read_pair(SharedMemoryRingBuffer&, SharedMemoryRingBuffer&,
+                   uint32_t offset, Clock::time_point);
+    Options options_;
+    uint32_t n_, hop_, old_offset_ = 0;
+    uint32_t drops1_ = 0, drops2_ = 0;
+    bool primed_ = false;
+    double s2_ = 0;
+    std::vector<ComplexSample> samples1_, samples2_;
+    std::vector<float> window_;
+    std::vector<double> re_, im_, a1_, a2_, power1_, power2_;
+    fftwf_complex *in1_ = nullptr, *in2_ = nullptr;
+    fftwf_complex *out1_ = nullptr, *out2_ = nullptr;
+    fftwf_plan plan1_ = nullptr, plan2_ = nullptr;
 };

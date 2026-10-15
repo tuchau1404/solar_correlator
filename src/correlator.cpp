@@ -1,145 +1,154 @@
 #include "correlator.hpp"
-#include <cmath>
-#include <cstring>
+#include "dsp_config.hpp"
 #include <algorithm>
-
-FXCorrelator::FXCorrelator()
-    : n_fft_(SolarConfig::Correlator::FFT_SIZE),
-      hop_size_(SolarConfig::Correlator::HOP_SIZE),
-      m_frames_(SolarConfig::Correlator::INTEGRATION_FRAMES),
-      slide_buf1_(n_fft_), slide_buf2_(n_fft_), window_(n_fft_),
-      accum_s12_real_(n_fft_, 0.0f), accum_s12_imag_(n_fft_, 0.0f),
-      accum_s11_(n_fft_, 0.0f), accum_s22_(n_fft_, 0.0f) 
-{
-    // 1. Tính trước mảng cửa sổ Hanning và hệ số chuẩn hóa năng lượng (S2)
-    float s2 = 0.0f;
-    for (uint32_t n = 0; n < n_fft_; ++n) {
-        window_[n] = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * n / (n_fft_ - 1)));
-        s2 += window_[n] * window_[n];
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+#include <thread>
+#if defined(__aarch64__) && !defined(SOLAR_DISABLE_NEON)
+#include <arm_neon.h>
+#endif
+#if defined(__FAST_MATH__) || (defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__ > 0)
+#error "FXCorrelator requires finite/NaN-aware arithmetic; disable fast-math"
+#endif
+namespace {
+constexpr double pi = 3.141592653589793238462643383279502884;
+constexpr float input_scale = 1.0f / 32768.0f;
+constexpr double adc_scale2 = 32768.0 * 32768.0;
+// Loop iterations are independent; compiler can vectorize conversion/windowing.
+void window_half(const ComplexSample* src, const float* w,
+                 fftwf_complex* dst, uint32_t length) {
+    for (uint32_t j = 0; j < length; ++j) {
+        const float weight = w[j] * input_scale;
+        dst[j][0] = float(src[j].i) * weight;
+        dst[j][1] = float(src[j].q) * weight;
     }
-    window_power_norm_ = s2;
-
-    // 2. Cấp phát bộ nhớ căn chỉnh chuẩn SIMD 64-byte cho FFTW3
-    in1_  = fftwf_alloc_complex(n_fft_);
-    in2_  = fftwf_alloc_complex(n_fft_);
-    out1_ = fftwf_alloc_complex(n_fft_);
-    out2_ = fftwf_alloc_complex(n_fft_);
-
-    // 3. Khởi tạo Kế hoạch (Plans) với cờ FFTW_MEASURE tận dụng tối đa ARM NEON
-    plan1_ = fftwf_plan_dft_1d(n_fft_, in1_, out1_, FFTW_FORWARD, FFTW_MEASURE);
-    plan2_ = fftwf_plan_dft_1d(n_fft_, in2_, out2_, FFTW_FORWARD, FFTW_MEASURE);
 }
-
-FXCorrelator::~FXCorrelator() {
-    if (plan1_) fftwf_destroy_plan(plan1_);
-    if (plan2_) fftwf_destroy_plan(plan2_);
-    if (in1_) fftwf_free(in1_);
-    if (in2_) fftwf_free(in2_);
-    if (out1_) fftwf_free(out1_);
-    if (out2_) fftwf_free(out2_);
+void accumulate(const fftwf_complex* x, const fftwf_complex* y,
+                double* re, double* im, double* a, double* b, uint32_t n) {
+    uint32_t k = 0;
+#if defined(__aarch64__) && !defined(SOLAR_DISABLE_NEON)
+    for (; k + 1 < n; k += 2) {
+        // Two complex bins, deinterleave FP32 then widen BEFORE multiplying.
+        const float32x2x2_t xx = vld2_f32(&x[k][0]);
+        const float32x2x2_t yy = vld2_f32(&y[k][0]);
+        const float64x2_t r = vcvt_f64_f32(xx.val[0]), i = vcvt_f64_f32(xx.val[1]);
+        const float64x2_t s = vcvt_f64_f32(yy.val[0]), t = vcvt_f64_f32(yy.val[1]);
+        vst1q_f64(re+k, vaddq_f64(vld1q_f64(re+k), vaddq_f64(vmulq_f64(r,s), vmulq_f64(i,t))));
+        vst1q_f64(im+k, vaddq_f64(vld1q_f64(im+k), vsubq_f64(vmulq_f64(i,s), vmulq_f64(r,t))));
+        vst1q_f64(a+k, vaddq_f64(vld1q_f64(a+k), vaddq_f64(vmulq_f64(r,r), vmulq_f64(i,i))));
+        vst1q_f64(b+k, vaddq_f64(vld1q_f64(b+k), vaddq_f64(vmulq_f64(s,s), vmulq_f64(t,t))));
+    }
+#endif
+    for (; k < n; ++k) {
+        const double r=x[k][0], i=x[k][1], s=y[k][0], t=y[k][1];
+        re[k] += r*s + i*t;
+        im[k] += i*s - r*t;
+        a[k] += r*r + i*i;
+        b[k] += s*s + t*t;
+    }
 }
-
-void FXCorrelator::prime_buffers(SharedMemoryRingBuffer& rb1, SharedMemoryRingBuffer& rb2) {
-    // Chờ Ring Buffer tích lũy đủ số mẫu khởi tạo
-    while (rb1.available_read() < hop_size_ || rb2.available_read() < hop_size_) {
-        // Block nhẹ để đợi
-    }
-    // Nạp mồi vào nửa sau của bộ đệm trượt
-    rb1.read(&slide_buf1_[hop_size_], hop_size_);
-    rb2.read(&slide_buf2_[hop_size_], hop_size_);
 }
-
-void FXCorrelator::process_integration_cycle(SharedMemoryRingBuffer& rb1, 
-                                             SharedMemoryRingBuffer& rb2,
-                                             const std::vector<float>& fringe_phase_rad,
-                                             std::vector<float>& out_spectrum_db,
-                                             std::vector<float>& out_phase_rad,
-                                             std::vector<float>& out_coherence) 
-{
-    // Reset Vector Accumulators
-    std::fill(accum_s12_real_.begin(), accum_s12_real_.end(), 0.0f);
-    std::fill(accum_s12_imag_.begin(), accum_s12_imag_.end(), 0.0f);
-    std::fill(accum_s11_.begin(), accum_s11_.end(), 0.0f);
-    std::fill(accum_s22_.begin(), accum_s22_.end(), 0.0f);
-
-    for (uint32_t frame = 0; frame < m_frames_; ++frame) {
-        // [CƠ CHẾ SLIDING WINDOW] - Trượt 1024 mẫu cũ lên đầu
-        std::memcpy(&slide_buf1_[0], &slide_buf1_[hop_size_], hop_size_ * sizeof(ComplexSample));
-        std::memcpy(&slide_buf2_[0], &slide_buf2_[hop_size_], hop_size_ * sizeof(ComplexSample));
-
-        // Rút 1024 mẫu MỚI từ Ring Buffers vào nửa sau
-        while (rb1.available_read() < hop_size_ || rb2.available_read() < hop_size_) {
-            // Chờ spin-lock nhẹ - Dữ liệu thực tế 1024 mẫu tốn ~102 us để đến nơi
-        }
-        rb1.read(&slide_buf1_[hop_size_], hop_size_);
-        rb2.read(&slide_buf2_[hop_size_], hop_size_);
-
-        // F-ENGINE: Nhân cửa sổ Hanning & ép kiểu float
-        for (uint32_t n = 0; n < n_fft_; ++n) {
-            float w = window_[n];
-            in1_[n][0] = static_cast<float>(slide_buf1_[n].i) * w;
-            in1_[n][1] = static_cast<float>(slide_buf1_[n].q) * w;
-            
-            in2_[n][0] = static_cast<float>(slide_buf2_[n].i) * w;
-            in2_[n][1] = static_cast<float>(slide_buf2_[n].q) * w;
-        }
-
-        // Thực thi phân rã phổ
-        fftwf_execute(plan1_);
-        fftwf_execute(plan2_);
-
-        // X-ENGINE: Nhân giao thoa, bù trễ vi mô & cộng dồn
-        for (uint32_t m = 0; m < n_fft_; ++m) {
-            float r1 = out1_[m][0], i1 = out1_[m][1];
-            float r2 = out2_[m][0], i2 = out2_[m][1];
-
-            // Phổ tương quan thô: S12_raw = X1 * conj(X2)
-            float s12_raw_re = r1 * r2 + i1 * i2;
-            float s12_raw_im = i1 * r2 - r1 * i2;
-
-            // Xoay pha (Fringe Stopping): S12_corr = S12_raw * exp(-j * Phi)
-            float phi = fringe_phase_rad[m];
-            float cos_phi = std::cos(phi);
-            float sin_phi = std::sin(phi);
-
-            float s12_corr_re = s12_raw_re * cos_phi + s12_raw_im * sin_phi;
-            float s12_corr_im = s12_raw_im * cos_phi - s12_raw_re * sin_phi;
-
-            // Phổ tự tương quan
-            float s11 = r1 * r1 + i1 * i1;
-            float s22 = r2 * r2 + i2 * i2;
-
-            // Accumulate
-            accum_s12_real_[m] += s12_corr_re;
-            accum_s12_imag_[m] += s12_corr_im;
-            accum_s11_[m] += s11;
-            accum_s22_[m] += s22;
-        }
+FXCorrelator::FXCorrelator() : FXCorrelator(Options{
+    SolarConfig::Correlator::FFT_SIZE, SolarConfig::Correlator::INTEGRATION_FRAMES,
+    std::chrono::milliseconds(5000), nullptr}) {}
+FXCorrelator::FXCorrelator(Options o) : options_(o), n_(o.fft_size), hop_(n_/2) {
+    if (n_ < 4 || (n_ & (n_-1)) || n_ > uint32_t(std::numeric_limits<int>::max()) ||
+        o.frames == 0 || o.timeout.count() <= 0)
+        throw std::invalid_argument("invalid FFT size, frame count or deadline");
+    samples1_.resize(n_); samples2_.resize(n_); window_.resize(n_);
+    re_.resize(n_); im_.resize(n_); a1_.resize(n_); a2_.resize(n_);
+    power1_.resize(n_); power2_.resize(n_);
+    for (uint32_t j=0; j<n_; ++j) {
+        window_[j] = float(0.5*(1.0-std::cos(2*pi*j/(n_-1))));
+        s2_ += double(window_[j])*window_[j]; // normalize actual stored window
     }
-
-    // POST-PROCESSING: Chuẩn hóa, FFT Shift, Decibel
-    float norm_factor = 1.0f / (m_frames_ * window_power_norm_);
-    float eps = SolarConfig::Correlator::DYNAMIC_RANGE_EPS;
-
-    for (uint32_t m = 0; m < n_fft_; ++m) {
-        // Dịch FFT đưa bin trung tâm (DC 35.0 MHz) ra giữa trục đồ thị (bin 1024)
-        uint32_t shifted_idx = (m + n_fft_ / 2) % n_fft_;
-
-        float avg_s12_re = accum_s12_real_[m] * norm_factor;
-        float avg_s12_im = accum_s12_imag_[m] * norm_factor;
-        float avg_s11    = accum_s11_[m] * norm_factor;
-        float avg_s22    = accum_s22_[m] * norm_factor;
-
-        float mag_s12 = std::sqrt(avg_s12_re * avg_s12_re + avg_s12_im * avg_s12_im);
-        
-        // P_dB: Chuyển đổi mức hiển thị logarit
-        out_spectrum_db[shifted_idx] = 10.0f * std::log10(mag_s12 + eps);
-        
-        // Góc pha bù trừ (Radians)
-        out_phase_rad[shifted_idx] = std::atan2(avg_s12_im, avg_s12_re);
-        
-        // Độ kết hợp chuẩn hóa (Normalized Coherence)
-        float denominator = std::sqrt(avg_s11 * avg_s22);
-        out_coherence[shifted_idx] = (denominator > eps) ? (mag_s12 / denominator) : 0.0f;
+    try {
+        in1_=fftwf_alloc_complex(n_); in2_=fftwf_alloc_complex(n_);
+        out1_=fftwf_alloc_complex(n_); out2_=fftwf_alloc_complex(n_);
+        if (!in1_ || !in2_ || !out1_ || !out2_) throw std::bad_alloc();
+        plan1_=fftwf_plan_dft_1d(int(n_),in1_,out1_,FFTW_FORWARD,FFTW_MEASURE);
+        plan2_=fftwf_plan_dft_1d(int(n_),in2_,out2_,FFTW_FORWARD,FFTW_MEASURE);
+        if (!plan1_ || !plan2_) throw std::runtime_error("FFTW planning failed");
+    } catch (...) { cleanup(); throw; }
+}
+void FXCorrelator::cleanup() noexcept {
+    if(plan1_) fftwf_destroy_plan(plan1_);
+    if(plan2_) fftwf_destroy_plan(plan2_);
+    fftwf_free(in1_); fftwf_free(in2_); fftwf_free(out1_); fftwf_free(out2_);
+}
+FXCorrelator::~FXCorrelator() { cleanup(); }
+void FXCorrelator::check(SharedMemoryRingBuffer& r1, SharedMemoryRingBuffer& r2,
+                         Clock::time_point deadline) {
+    if ((options_.running && !options_.running->load(std::memory_order_relaxed)) ||
+        Clock::now() >= deadline || r1.get_overflow_count()!=drops1_ ||
+        r2.get_overflow_count()!=drops2_) {
+        primed_=false;
+        throw std::runtime_error("DSP cancelled, deadline expired, or sample drop; resync/re-prime required");
     }
+}
+void FXCorrelator::read_pair(SharedMemoryRingBuffer& r1, SharedMemoryRingBuffer& r2,
+                            uint32_t offset, Clock::time_point deadline) {
+    for (;;) {
+        check(r1,r2,deadline);
+        if(r1.available_read()>=hop_ && r2.available_read()>=hop_) break;
+        std::this_thread::sleep_for(std::chrono::microseconds(20));
+    }
+    if(r1.read(samples1_.data()+offset,hop_)!=hop_ ||
+       r2.read(samples2_.data()+offset,hop_)!=hop_)
+        throw std::runtime_error("SPSC consumer ownership violated");
+}
+void FXCorrelator::prime_buffers(SharedMemoryRingBuffer& r1, SharedMemoryRingBuffer& r2) {
+    primed_=false;
+    drops1_=r1.get_overflow_count(); drops2_=r2.get_overflow_count();
+    old_offset_=0;
+    read_pair(r1,r2,0,Clock::now()+options_.timeout);
+    primed_=true;
+}
+void FXCorrelator::process_integration_cycle(SharedMemoryRingBuffer& r1,
+    SharedMemoryRingBuffer& r2, const std::vector<float>& phi,
+    std::vector<float>& db, std::vector<float>& phase, std::vector<float>& coh) {
+    if (!primed_) throw std::logic_error("prime buffers before processing");
+    if(phi.size()!=n_ || db.size()!=n_ || phase.size()!=n_ || coh.size()!=n_ ||
+       &db==&phase || &db==&coh || &phase==&coh || &phi==&db || &phi==&phase || &phi==&coh)
+        throw std::invalid_argument("FFT vectors must have N elements and be distinct");
+    for(float v:phi) if(!std::isfinite(v)) throw std::invalid_argument("nonfinite fringe phase");
+    std::fill(re_.begin(),re_.end(),0); std::fill(im_.begin(),im_.end(),0);
+    std::fill(a1_.begin(),a1_.end(),0); std::fill(a2_.begin(),a2_.end(),0);
+    const auto deadline=Clock::now()+options_.timeout;
+    try {
+        for(uint32_t frame=0;frame<options_.frames;++frame) {
+            const uint32_t fresh=hop_-old_offset_;
+            read_pair(r1,r2,fresh,deadline);
+            window_half(samples1_.data()+old_offset_,window_.data(),in1_,hop_);
+            window_half(samples2_.data()+old_offset_,window_.data(),in2_,hop_);
+            window_half(samples1_.data()+fresh,window_.data()+hop_,in1_+hop_,hop_);
+            window_half(samples2_.data()+fresh,window_.data()+hop_,in2_+hop_,hop_);
+            old_offset_=fresh;
+            fftwf_execute(plan1_); fftwf_execute(plan2_);
+            accumulate(out1_,out2_,re_.data(),im_.data(),a1_.data(),a2_.data(),n_);
+        }
+        check(r1,r2,deadline);
+        const double norm=adc_scale2/(double(options_.frames)*n_*s2_);
+        // Constant phase rotation commutes with summation. No trig in hot loop.
+        for(uint32_t k=0;k<n_;++k) {
+            const uint32_t j=(k+n_/2)%n_;
+            const double c=std::cos(double(phi[k])), s=std::sin(double(phi[k]));
+            const double real=(re_[k]*c+im_[k]*s)*norm;
+            const double imag=(im_[k]*c-re_[k]*s)*norm;
+            const double mag=std::hypot(real,imag);
+            const double p1=a1_[k]*norm, p2=a2_[k]*norm;
+            const double denom=std::sqrt(p1)*std::sqrt(p2);
+            if(!std::isfinite(mag) || !std::isfinite(denom) || p1<0 || p2<0)
+                throw std::runtime_error("nonfinite/invalid DSP output");
+            const double gamma=denom>0 ? mag/denom : 0;
+            if(!std::isfinite(gamma) || gamma>1.0+1e-9)
+                throw std::runtime_error("Cauchy-Schwarz violation");
+            power1_[j]=p1; power2_[j]=p2;
+            db[j]=float(10*std::log10(std::max(mag,1e-12)));
+            phase[j]=mag>0 ? float(std::atan2(imag,real)) : 0;
+            coh[j]=float(std::clamp(gamma,0.0,1.0));
+        }
+        check(r1,r2,deadline);
+    } catch (...) { primed_=false; throw; }
 }
