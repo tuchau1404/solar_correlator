@@ -4,6 +4,7 @@
 #include <string>
 #include "sdrplay_api.h"
 #include "dsp_config.hpp"
+#include "network_config.hpp"
 
 namespace SolarConfig {
 
@@ -50,11 +51,7 @@ namespace Test {
 
 // BỔ SUNG MODULE 3 & 4
 
-namespace Network {
-    const std::string UDP_DEST_IP                      = "192.168.1.2";        // IP Workstation
-    constexpr uint16_t UDP_DEST_PORT                   = 9999;
-    constexpr uint32_t TELEMETRY_MAGIC                 = 0x534F4C52;             // "SOLR"
-}
+
 
 namespace Hardware {
         constexpr int PIN_RF_SWITCH       = 6;   // GPIO 6: RF SPDT Switch

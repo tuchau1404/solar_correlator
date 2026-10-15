@@ -160,7 +160,8 @@ int main() {
             correlator.process_integration_cycle(rb1, rb2, fringe_phase, spectrum_db, phase_rad, coherence);
             
             auto cycle_end = std::chrono::steady_clock::now();
-            uint64_t ts_us = std::chrono::duration_cast<std::chrono::microseconds>(cycle_end.time_since_epoch()).count();
+            uint64_t ts_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
 
             // Bắn dữ liệu Telemetry (Non-blocking)
             sender.send_spectrum(frame_id, ts_us, spectrum_db);
@@ -182,6 +183,9 @@ int main() {
                           << std::setw(4) << rb1.get_overflow_count() << " | "
                           << std::setw(6) << peak_db << " | " 
                           << std::setw(6) << peak_freq_mhz << " MHz\n";
+                const auto& net = sender.stats();
+                std::cout << " UDP queued=" << net.queued << " failed=" << net.failed
+                          << " last_errno=" << net.last_errno << "\n";
                 last_log = cycle_end;
             }
             frame_id++;
