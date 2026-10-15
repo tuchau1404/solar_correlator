@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdlib>
 #include <iomanip>
 #include <atomic>
 #include <chrono>
@@ -14,6 +15,7 @@
 #include "ring_buffer.hpp"
 #include "time_alignment.hpp"
 #include "hardware_control.hpp"
+#include "startup_alignment.hpp"
 
 static_assert(std::atomic<bool>::is_always_lock_free, "signal flags must be lock-free");
 
@@ -158,7 +160,25 @@ static void run_sdr_producer(int dev_idx, const std::string& target_serno, const
     _exit(0);
 }
 
+static void auto_reset_hardware() {
+    std::cout << "[INIT] Đang tự động reset USB và khởi động lại sdrplay service...\n";
+
+    // Dọn file SHM cũ
+    std::system("rm -f /dev/shm/shm_sdr_ch*");
+
+    // Reset USB các thiết bị có ID 1df7
+    std::system("for dev in $(lsusb -d 1df7: | awk '{print $2\"/\"substr($4,1,3)}'); do sudo usbreset \"$dev\"; done");
+
+    // Restart dịch vụ sdrplay daemon
+    std::system("sudo systemctl restart sdrplay");
+
+    // Chờ 2.5 giây cho firmware và mạch PLL ổn định
+    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+    std::cout << "[INIT] Phần cứng đã sẵn sàng!\n";
+}
+
 int main() {
+    auto_reset_hardware();
     std::cout << "===================================================================\n";
     std::cout << " SOLAR INTERFEROMETER - MODULE 2: POSIX SHM & TIME ALIGNMENT TEST\n";
     std::cout << "===================================================================\n";
@@ -243,6 +263,8 @@ int main() {
                 throw std::runtime_error("producer stopped or stream discontinuity detected");
         };
         auto wait_snapshot = [&] {
+            if (!g_parent_running.load(std::memory_order_relaxed))
+                throw std::runtime_error("alignment interrupted");
             const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
             while (rb1.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE ||
                    rb2.available_read() < SolarConfig::Alignment::SNAPSHOT_SIZE) {
@@ -260,68 +282,10 @@ int main() {
         std::cout << "[DSP Engine] Đang chờ luồng USB và bộ lọc DC nội bộ ổn định (200ms)...\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-        // ===================================================================
-        // BƯỚC 0: DISCARD CÁC MẪU ĐÃ CÔNG BỐ; KHÔNG PHẢI HARDWARE T0
-        // ===================================================================
-        std::cout << "\n>>> [BƯỚC 0] XẢ CÁC MẪU ĐÃ CÔNG BỐ (KHÔNG ĐỒNG BỘ HARDWARE T0)...\n";
-        rb1.flush();
-        rb2.flush();
-
-        wait_snapshot();
-
-        if (!g_parent_running.load(std::memory_order_relaxed)) {
-            throw std::runtime_error("Đã ngắt bởi người dùng.");
-        }
-
-        // ===================================================================
-        // BƯỚC 1: ĐO ĐỘ LỆCH MẪU KHỞI ĐỘNG BAN ĐẦU
-        // ===================================================================
-        std::cout << "\n>>> [BƯỚC 1] ĐO ĐỘ LỆCH MẪU KHỞI ĐỘNG BAN ĐẦU (N = "
-                  << SolarConfig::Alignment::SNAPSHOT_SIZE << ")...\n";
-        AlignmentResult initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
-
-        std::cout << std::fixed << std::setprecision(3);
-        std::cout << "  + Đỉnh tương quan ban đầu : k_offset = " << initial_res.lag_samples << " mẫu\n";
-        std::cout << "  + Độ trễ thời gian         : Delta_t  = " << initial_res.delay_microsec << " us\n";
-        std::cout << "  + Peak-to-Noise Ratio     : PNR      = " << initial_res.pnr_db << " dB\n";
-
-        // ===================================================================
-        // BƯỚC 2: CĂN CHỈNH XẢ MẪU BÙ TRỄ (SAMPLE DROPPING)
-        // ===================================================================
-        std::cout << "\n>>> [BƯỚC 2] THỰC HIỆN CĂN CHỈNH XẢ MẪU BÙ TRỄ...\n";
-        if (initial_res.is_valid) {
-            if (initial_res.lag_samples > 0) {
-                if (rb1.skip(static_cast<uint32_t>(initial_res.lag_samples)) != static_cast<uint32_t>(initial_res.lag_samples))
-                    throw std::runtime_error("short CH1 alignment skip");
-                std::cout << "  -> Đã xả đúng " << initial_res.lag_samples << " mẫu ở KÊNH 1.\n";
-            } else if (initial_res.lag_samples < 0) {
-                if (rb2.skip(static_cast<uint32_t>(-initial_res.lag_samples)) != static_cast<uint32_t>(-initial_res.lag_samples))
-                    throw std::runtime_error("short CH2 alignment skip");
-                std::cout << "  -> Đã xả đúng " << -initial_res.lag_samples << " mẫu ở KÊNH 2.\n";
-            } else {
-                std::cout << "  -> Hai kênh đã trùng khớp từ đầu (k = 0).\n";
-            }
-
-            wait_snapshot();
-        } else {
-            std::cerr << "  [Cảnh báo] Không thể căn chỉnh do PNR dưới ngưỡng cho phép!\n";
-        }
-
-        // ===================================================================
-        // BƯỚC 3: XÁC NHẬN ĐỒNG BỘ SAU CĂN CHỈNH
-        // ===================================================================
-        std::cout << "\n>>> [BƯỚC 3] XÁC NHẬN ĐỒNG BỘ SAU CĂN CHỈNH...\n";
-        AlignmentResult verify_res = aligner.measure_offset_from_buffers(rb1, rb2);
-        std::cout << "  + Tọa độ đỉnh mới  : k = " << verify_res.lag_samples << " mẫu ("
-                  << verify_res.delay_microsec << " us)\n";
-        std::cout << "  + PNR sau căn chỉnh : " << verify_res.pnr_db << " dB\n";
-
-        bool pass_step3 = (std::abs(verify_res.lag_samples) <= 1 && verify_res.is_valid);
-        if (pass_step3) {
-            std::cout << "  => TRẠNG THÁI: \033[32m[PASS] ĐỒNG BỘ MẪU HOÀN TOÀN (SAMPLE-ALIGNED)\033[0m\n";
-        } else {
-            std::cout << "  => TRẠNG THÁI: \033[31m[FAIL] Chưa khóa được đỉnh chính xác!\033[0m\n";
-        }
+        StartupAlignment::Options options;
+        options.snapshot_size = SolarConfig::Alignment::SNAPSHOT_SIZE;
+        StartupAlignment::acquire(rb1, rb2, options, wait_snapshot,
+            [&] { return aligner.measure_offset_from_buffers(rb1, rb2); }, std::cout);
 
         // ===================================================================
         // BƯỚC 4: VÒNG LẶP TEST KHÓA PHA ỔN ĐỊNH VÀ TIÊU THỤ ĐỒNG BỘ (60 GIÂY)
@@ -407,7 +371,7 @@ int main() {
         std::cout << "Paired samples drained: " << drained_samples << "\n";
         const bool full_duration = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count()
                                    >= SolarConfig::Test::DURATION_SEC;
-        if (initial_res.is_valid && pass_step3 && failed_rounds == 0 &&
+        if (failed_rounds == 0 &&
             check_round - 1 >= required_rounds && full_duration && g_parent_running.load(std::memory_order_relaxed)) {
             exit_code = 0;
             std::cout << " \033[32mKẾT LUẬN: BÀI KIỂM TRA MODULE 2 ĐẠT CHUẨN XUẤT SẮC (PASS)\033[0m\n";
@@ -418,6 +382,9 @@ int main() {
         }
         std::cout << "===================================================================\n";
 
+    } catch (const StartupAlignment::Failed& e) {
+        std::cerr << "[AUTO-ALIGN] " << e.what() << "; cleaning up before automatic restart.\n";
+        exit_code = 75; // Launcher retries only alignment exhaustion, not stability failures.
     } catch (const std::exception& e) {
         std::cerr << "[Exception] " << e.what() << "\n";
     }
@@ -434,5 +401,5 @@ int main() {
     SharedMemoryRingBuffer::unlink_shm(ch1_name);
     SharedMemoryRingBuffer::unlink_shm(ch2_name);
 
-    return exit_code;
+    return g_parent_running.load(std::memory_order_relaxed) ? exit_code : 130;
 }
