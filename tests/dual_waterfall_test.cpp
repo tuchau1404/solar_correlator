@@ -1,27 +1,26 @@
-/**
- * @file dual_waterfall_test.cpp
- * @brief Công cụ chẩn đoán phần cứng độc lập: Dual SDR Live Waterfall Spectrogram.
- *        Thu dữ liệu 10 MSPS từ 2 máy thu SDRplay RSPdx, tính phổ tự thân S11 & S22
- *        bằng FXCorrelator (Welch 50% overlap, M = 1953) và phát qua 2 cổng UDP SOL2.
- *        Tuyệt đối không sử dụng Module 2 (TimeAligner).
- */
-
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <vector>
+// Linux-only standalone auto-power diagnostic. No TimeAligner.
+#include <algorithm>
+#include <array>
 #include <atomic>
+#include <cerrno>
 #include <chrono>
-#include <thread>
 #include <cmath>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
-#include <algorithm>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <memory>
 #include <stdexcept>
-#include <type_traits>
-#include <unistd.h>
+#include <string>
+#include <thread>
+#include <vector>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/prctl.h>
 #include <sys/wait.h>
-
+#include <unistd.h>
 #include <sdrplay_api.h>
 #include "config.hpp"
 #include "ring_buffer.hpp"
@@ -29,443 +28,355 @@
 #include "telemetry_sender.hpp"
 
 namespace {
-
-// Cờ điều khiển vòng đời toàn cục cho cả tiến trình cha và tiến trình con
-std::atomic<bool> g_running{true};
-
-void signal_handler(int) noexcept {
-    g_running.store(false, std::memory_order_relaxed);
+using Clock = std::chrono::steady_clock;
+using namespace std::chrono_literals;
+std::atomic<bool> running{true};
+static_assert(std::atomic<bool>::is_always_lock_free);
+void stop_signal(int) noexcept { running.store(false, std::memory_order_relaxed); }
+void signals() {
+    struct sigaction action{};
+    action.sa_handler = stop_signal;
+    sigemptyset(&action.sa_mask);
+    if (sigaction(SIGINT, &action, nullptr) || sigaction(SIGTERM, &action, nullptr))
+        throw std::runtime_error("sigaction failed");
 }
-
-void install_signal_handlers() {
-    struct sigaction sa{};
-    sa.sa_handler = signal_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, nullptr);
-    sigaction(SIGTERM, &sa, nullptr);
+void require(sdrplay_api_ErrT err, const char* operation) {
+    if (err != sdrplay_api_Success)
+        throw std::runtime_error(std::string(operation) + ": " + sdrplay_api_GetErrorString(err));
 }
-
-// SFINAE helper tương thích với các kiểu chữ ký hàm send_spectrum của TelemetrySender
-template <typename S, typename = void>
-struct has_send_4args : std::false_type {};
-
-template <typename S>
-struct has_send_4args<S, std::void_t<decltype(std::declval<S&>().send_spectrum(
-    uint64_t{}, uint64_t{}, std::declval<const std::vector<float>&>(), uint32_t{}))>> : std::true_type {};
-
-template <typename S, typename = void>
-struct has_send_3args : std::false_type {};
-
-template <typename S>
-struct has_send_3args<S, std::void_t<decltype(std::declval<S&>().send_spectrum(
-    uint64_t{}, uint64_t{}, std::declval<const std::vector<float>&>()))>> : std::true_type {};
-
-template <typename Sender>
-bool dispatch_telemetry(Sender& sender,
-                        uint64_t frame_id,
-                        uint64_t timestamp_us,
-                        const std::vector<float>& spectrum_db,
-                        uint32_t integration_frames) {
-    if constexpr (has_send_4args<Sender>::value) {
-        sender.send_spectrum(frame_id, timestamp_us, spectrum_db, integration_frames);
-    } else if constexpr (has_send_3args<Sender>::value) {
-        sender.send_spectrum(frame_id, timestamp_us, spectrum_db);
-    } else {
-        sender.send_spectrum(spectrum_db, frame_id, timestamp_us, integration_frames);
+// A dead parent cannot leave a producer running. Kernel SIGKILL does not run
+// SDK cleanup; stale SHM is deliberately NOT silently replaced on next start.
+void parent_guard(pid_t parent) {
+    if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != parent) _exit(125);
+}
+struct Child {
+    pid_t pid{-1};
+    int status{};
+    bool poll() {
+        if (pid <= 0) return true;
+        pid_t result;
+        do { result = waitpid(pid, &status, WNOHANG); } while (result < 0 && errno == EINTR);
+        if (result == pid || (result < 0 && errno == ECHILD)) { pid = -1; return true; }
+        if (result < 0) throw std::runtime_error("waitpid failed");
+        return false;
     }
-    return true;
-}
-
-// Callback nhận luồng I/Q từ SDRplay Service API trong tiến trình con
-void sdr_stream_callback(short* xi,
-                         short* xq,
-                         [[maybe_unused]] sdrplay_api_StreamCbParamsT* params,
-                         unsigned int numSamples,
-                         [[maybe_unused]] unsigned int reset,
-                         void* cbContext) {
-    auto* rb = static_cast<SharedMemoryRingBuffer*>(cbContext);
-    if (rb == nullptr || numSamples == 0) {
-        return;
+    void check() { if (poll()) throw std::runtime_error("SDR subprocess exited"); }
+    void stop() noexcept {
+        if (pid <= 0) return;
+        try {
+            if (poll()) return;
+            if (pid > 0) kill(pid, SIGTERM);
+            auto deadline = Clock::now() + 1500ms;
+            while (!poll() && Clock::now() < deadline) std::this_thread::sleep_for(10ms);
+            if (pid <= 0) return;
+            kill(pid, SIGKILL);
+            deadline = Clock::now() + 1500ms;
+            while (!poll() && Clock::now() < deadline) std::this_thread::sleep_for(10ms);
+            if (pid > 0) std::cerr << "Child " << pid << " not reaped after SIGKILL; kernel/driver may be blocked\n";
+        } catch (...) { std::cerr << "Child cleanup failed\n"; }
     }
-    if (!rb->is_stream_started()) {
-        return;
+    ~Child() { stop(); }
+};
+struct Api {
+    bool opened{}, locked{}, selected{}, initialized{};
+    sdrplay_api_DeviceT device{};
+    void open() { require(sdrplay_api_Open(), "Open"); opened = true; }
+    void lock() { require(sdrplay_api_LockDeviceApi(), "LockDeviceApi"); locked = true; }
+    void unlock() { require(sdrplay_api_UnlockDeviceApi(), "UnlockDeviceApi"); locked = false; }
+    void close() noexcept {
+        bool failed = false;
+        // Exit without destroying the callback context if Uninit cannot confirm
+        // callbacks have stopped. Parent supervises SDK calls that hang.
+        if (initialized) {
+            const auto e = sdrplay_api_Uninit(device.dev);
+            if (e != sdrplay_api_Success) {
+                std::cerr << "Uninit failed: " << sdrplay_api_GetErrorString(e) << '\n';
+                _exit(3);
+            }
+            initialized = false;
+        }
+        if (selected) {
+            const auto e = sdrplay_api_ReleaseDevice(&device);
+            if (e != sdrplay_api_Success) { std::cerr << "ReleaseDevice failed\n"; failed = true; }
+            selected = false;
+        }
+        if (locked) {
+            if (sdrplay_api_UnlockDeviceApi() != sdrplay_api_Success) failed = true;
+            locked = false;
+        }
+        if (opened) {
+            if (sdrplay_api_Close() != sdrplay_api_Success) { std::cerr << "Close failed\n"; failed = true; }
+            opened = false;
+        }
+        if (failed) _exit(3);
     }
-    rb->write(xi, xq, numSamples);
-}
-
-void sdr_event_callback([[maybe_unused]] sdrplay_api_EventT eventId,
-                        [[maybe_unused]] sdrplay_api_TunerSelectT tuner,
-                        [[maybe_unused]] sdrplay_api_EventParamsT* params,
-                        [[maybe_unused]] void* cbContext) {
-}
-
-// Tiến trình con điều khiển độc lập từng máy thu RSPdx (Producer)
-[[noreturn]] void run_sdr_producer(int ch_index,
-                                   const std::string& target_serial,
-                                   const std::string& shm_name) {
-    install_signal_handlers();
-
+    ~Api() { close(); }
+};
+using Serials = std::array<std::array<char, 128>, 2>;
+Serials discover() {
+    int pipefd[2];
+    if (pipe2(pipefd, O_CLOEXEC | O_NONBLOCK) != 0) throw std::runtime_error("pipe2 failed");
+    Child child;
+    const pid_t parent = getpid();
+    std::cout.flush(); std::cerr.flush();
+    child.pid = fork();
+    if (child.pid < 0) { close(pipefd[0]); close(pipefd[1]); throw std::runtime_error("discovery fork failed"); }
+    if (child.pid == 0) {
+        parent_guard(parent);
+        close(pipefd[0]);
+        try {
+            Serials result{};
+            {
+                Api api;
+                api.open(); api.lock();
+                sdrplay_api_DeviceT devices[SDRPLAY_MAX_DEVICES]{};
+                unsigned count{};
+                require(sdrplay_api_GetDevices(devices, &count, SDRPLAY_MAX_DEVICES), "GetDevices");
+                std::vector<std::string> serials;
+                for (unsigned i = 0; i < count; ++i)
+                    if (devices[i].hwVer == SDRPLAY_RSPdx_ID) serials.emplace_back(devices[i].SerNo);
+                std::sort(serials.begin(), serials.end());
+                if (serials.size() != 2 || serials[0] == serials[1])
+                    throw std::runtime_error("Exactly two RSPdx devices required (RSPdxR2 is not selected)");
+                for (std::size_t i = 0; i < result.size(); ++i) {
+                    if (serials[i].size() >= result[i].size()) throw std::runtime_error("Serial too long");
+                    std::memcpy(result[i].data(), serials[i].c_str(), serials[i].size() + 1);
+                }
+                api.unlock();
+            }
+            const auto n = write(pipefd[1], result.data(), sizeof(result));
+            _exit(n == static_cast<ssize_t>(sizeof(result)) ? 0 : 1);
+        } catch (const std::exception& e) { std::cerr << "Discovery: " << e.what() << '\n'; _exit(1); }
+    }
+    close(pipefd[1]);
+    Serials result{};
+    std::size_t received{};
+    const auto deadline = Clock::now() + 10s;
     try {
-        SharedMemoryRingBuffer producer_rb(shm_name, SolarConfig::SHM::BUFFER_CAPACITY, true);
-
-        sdrplay_api_ErrT err = sdrplay_api_Open();
-        if (err != sdrplay_api_Success) {
-            std::cerr << "[SDR Ch" << ch_index << "] Lỗi sdrplay_api_Open: "
-                      << sdrplay_api_GetErrorString(err) << "\n";
-            _exit(1);
+        while (running.load() && Clock::now() < deadline) {
+            const auto n = read(pipefd[0], reinterpret_cast<char*>(result.data()) + received,
+                                sizeof(result) - received);
+            if (n > 0) received += static_cast<std::size_t>(n);
+            else if (n < 0 && errno != EAGAIN && errno != EINTR) throw std::runtime_error("discovery pipe read failed");
+            if (child.poll()) {
+                // The child can exit between read(EAGAIN) and waitpid.
+                if (received < sizeof(result)) {
+                    const auto remaining = read(pipefd[0], reinterpret_cast<char*>(result.data()) + received,
+                                                sizeof(result) - received);
+                    if (remaining > 0) received += static_cast<std::size_t>(remaining);
+                }
+                if (received != sizeof(result) || !WIFEXITED(child.status) || WEXITSTATUS(child.status) != 0)
+                    throw std::runtime_error("Discovery failed");
+                close(pipefd[0]);
+                return result;
+            }
+            std::this_thread::sleep_for(10ms);
         }
-
-        sdrplay_api_DeviceT devs[SDRPLAY_MAX_DEVICES];
-        unsigned int num_devs = 0;
-        err = sdrplay_api_GetDevices(devs, &num_devs, SDRPLAY_MAX_DEVICES);
-        if (err != sdrplay_api_Success || num_devs == 0) {
-            std::cerr << "[SDR Ch" << ch_index << "] Lỗi sdrplay_api_GetDevices.\n";
-            sdrplay_api_Close();
-            _exit(1);
-        }
-
-        int selected_idx = -1;
-        for (unsigned int i = 0; i < num_devs; ++i) {
-            if (target_serial == devs[i].SerNo) {
-                selected_idx = static_cast<int>(i);
-                break;
+        throw std::runtime_error("Discovery cancelled or timed out");
+    } catch (...) { close(pipefd[0]); throw; }
+}
+struct CallbackContext {
+    SharedMemoryRingBuffer& rb;
+    sdrplay_api_DeviceT* device{nullptr};
+    std::atomic<bool> fatal{false};
+    std::atomic<bool> overload{false};
+    std::atomic<bool> overload_ack{false};
+    bool have_sample{false}; // stream callback thread only
+    std::uint32_t expected_sample{};
+};
+void stream(short* i, short* q, sdrplay_api_StreamCbParamsT* params, unsigned n,
+            unsigned reset, void* opaque) noexcept {
+    auto& ctx = *static_cast<CallbackContext*>(opaque);
+    if (!ctx.rb.is_stream_started() || n == 0) return;
+    if (reset || !params) { ctx.fatal.store(true); return; }
+    if (ctx.have_sample && params->firstSampleNum != ctx.expected_sample) {
+        ctx.fatal.store(true); return;
+    }
+    ctx.expected_sample = params->firstSampleNum + n;
+    ctx.have_sample = true;
+    try { if (n) ctx.rb.write(i, q, n); }
+    catch (...) { ctx.fatal.store(true); }
+}
+void event(sdrplay_api_EventT id, sdrplay_api_TunerSelectT tuner,
+           sdrplay_api_EventParamsT* params, void* opaque) noexcept {
+    auto& ctx = *static_cast<CallbackContext*>(opaque);
+    if (id == sdrplay_api_DeviceRemoved) ctx.fatal.store(true);
+    if (id == sdrplay_api_PowerOverloadChange && params) {
+        ctx.overload.store(params->powerOverloadParams.powerOverloadChangeType == sdrplay_api_Overload_Detected);
+        // SDRplay's reference callback acknowledges each overload notification.
+        if (!ctx.device || sdrplay_api_Update(ctx.device->dev, tuner,
+                sdrplay_api_Update_Ctrl_OverloadMsgAck, sdrplay_api_Update_Ext1_None)
+                != sdrplay_api_Success) ctx.fatal.store(true);
+        ctx.overload_ack.store(true);
+    }
+}
+int producer(const std::string& serial, const std::string& name) {
+    try {
+        SharedMemoryRingBuffer rb(name, SolarConfig::SHM::BUFFER_CAPACITY, false);
+        CallbackContext ctx{rb};
+        Api api; // destroyed before ctx and rb
+        api.open(); api.lock();
+        sdrplay_api_DeviceT devices[SDRPLAY_MAX_DEVICES]{};
+        unsigned count{};
+        require(sdrplay_api_GetDevices(devices, &count, SDRPLAY_MAX_DEVICES), "GetDevices");
+        bool found = false;
+        for (unsigned i = 0; i < count; ++i) {
+            if (serial == devices[i].SerNo && devices[i].hwVer == SDRPLAY_RSPdx_ID) {
+                api.device = devices[i]; found = true; break;
             }
         }
-
-        if (selected_idx < 0) {
-            std::cerr << "[SDR Ch" << ch_index << "] Không tìm thấy thiết bị có Serial: "
-                      << target_serial << "\n";
-            sdrplay_api_Close();
-            _exit(1);
+        if (!found) throw std::runtime_error("Selected serial disappeared");
+        require(sdrplay_api_SelectDevice(&api.device), "SelectDevice");
+        api.selected = true;
+        api.unlock();
+        sdrplay_api_DeviceParamsT* params = nullptr;
+        require(sdrplay_api_GetDeviceParams(api.device.dev, &params), "GetDeviceParams");
+        if (!params || !params->devParams || !params->rxChannelA) throw std::runtime_error("Null device parameters");
+        auto& ch = *params->rxChannelA;
+        ch.tunerParams.rfFreq.rfHz = SolarConfig::SDR::RF_CENTER_FREQ_HZ;
+        ch.tunerParams.bwType = SolarConfig::SDR::IF_BW;
+        ch.tunerParams.ifType = sdrplay_api_IF_Zero;
+        ch.ctrlParams.decimation.enable = 0;
+        ch.ctrlParams.agc.enable = SolarConfig::SDR::AGC_MODE;
+        ch.tunerParams.gain.LNAstate = SolarConfig::SDR::LNA_STATE;
+        ch.tunerParams.gain.gRdB = SolarConfig::SDR::GAIN_GRDB;
+        params->devParams->fsFreq.fsHz = SolarConfig::SDR::SAMPLE_RATE_HZ;
+        params->devParams->rspDxParams.antennaSel = SolarConfig::SDR::ANTENNA_PORT;
+        ctx.device = &api.device;
+        sdrplay_api_CallbackFnsT callbacks{};
+        callbacks.StreamACbFn = stream;
+        callbacks.EventCbFn = event;
+        require(sdrplay_api_Init(api.device.dev, &callbacks, &ctx), "Init");
+        api.initialized = true;
+        rb.set_ready(true);
+        std::cerr << "Streaming serial " << serial << " via " << name << '\n';
+        while (running.load() && !ctx.fatal.load()) {
+            if (ctx.overload_ack.exchange(false)) {
+                std::cerr << serial << (ctx.overload.load() ? " OVERLOAD\n" : " overload cleared\n");
+            }
+            std::this_thread::sleep_for(10ms);
         }
-
-        err = sdrplay_api_SelectDevice(&devs[selected_idx]);
-        if (err != sdrplay_api_Success) {
-            std::cerr << "[SDR Ch" << ch_index << "] Lỗi sdrplay_api_SelectDevice: "
-                      << sdrplay_api_GetErrorString(err) << "\n";
-            sdrplay_api_Close();
-            _exit(1);
-        }
-
-        sdrplay_api_DeviceParamsT* device_params = nullptr;
-        err = sdrplay_api_GetDeviceParams(devs[selected_idx].dev, &device_params);
-        if (err != sdrplay_api_Success || device_params == nullptr) {
-            std::cerr << "[SDR Ch" << ch_index << "] Lỗi sdrplay_api_GetDeviceParams: "
-                      << sdrplay_api_GetErrorString(err) << "\n";
-            sdrplay_api_ReleaseDevice(&devs[selected_idx]);
-            sdrplay_api_Close();
-            _exit(1);
-        }
-
-        // Cấu hình thông số RF & IF cho kênh thu A
-        auto* ch_params = device_params->rxChannelA;
-        ch_params->tunerParams.rfFreq.rfHz = 35.0e6;                     // 35.0 MHz
-        ch_params->tunerParams.bwType      = sdrplay_api_BW_8_000;       // IF BW 8.0 MHz
-        ch_params->ctrlParams.agc.enable   = sdrplay_api_AGC_DISABLE;    // Tắt AGC
-        ch_params->tunerParams.gain.gRdB   = 30;                         // IF Gain Reduction 30 dB
-        ch_params->tunerParams.gain.LNAstate = 4;                        // LNA State 4
-
-        // Cấu hình Sample Rate 10.0 MSPS và cổng Anten C (BNC) cho RSPdx
-        device_params->devParams->fsFreq.fsHz            = 10.0e6;
-        device_params->devParams->rspDxParams.antennaSel = sdrplay_api_RspDx_ANTENNA_C;
-
-        sdrplay_api_CallbackFnsT cb_fns{};
-        cb_fns.StreamACbFn = sdr_stream_callback;
-        cb_fns.EventCbFn   = sdr_event_callback;
-
-        err = sdrplay_api_Init(devs[selected_idx].dev, &cb_fns, &producer_rb);
-        if (err != sdrplay_api_Success) {
-            std::cerr << "[SDR Ch" << ch_index << "] Lỗi sdrplay_api_Init: "
-                      << sdrplay_api_GetErrorString(err) << "\n";
-            sdrplay_api_ReleaseDevice(&devs[selected_idx]);
-            sdrplay_api_Close();
-            _exit(1);
-        }
-
-        producer_rb.set_ready(true);
-
-        while (g_running.load(std::memory_order_relaxed)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        }
-
-        sdrplay_api_Uninit(devs[selected_idx].dev);
-        sdrplay_api_ReleaseDevice(&devs[selected_idx]);
-        sdrplay_api_Close();
-        _exit(0);
-    } catch (const std::exception& e) {
-        std::cerr << "[SDR Ch" << ch_index << "] Ngoại lệ: " << e.what() << "\n";
-        _exit(1);
+        rb.set_ready(false);
+        rb.set_start_stream(false);
+        return ctx.fatal.load() ? 2 : 0;
+    } catch (const std::exception& e) { std::cerr << "Producer: " << e.what() << '\n'; return 1; }
+}
+// Own only SHM objects created by this run. Existing names cause an explicit
+// failure, rather than unlinking a live acquisition's buffers.
+struct ShmOwner {
+    std::unique_ptr<SharedMemoryRingBuffer> one, two;
+    ~ShmOwner() {
+        if (one) SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
+        if (two) SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
     }
+};
+std::uint16_t port(const char* text) {
+    errno = 0;
+    char* end{};
+    const long value = std::strtol(text, &end, 10);
+    if (errno || end == text || *end || value < 1 || value > 65535) throw std::invalid_argument("Invalid port");
+    return static_cast<std::uint16_t>(value);
+}
+bool dispatch(TelemetrySender& sender, std::uint64_t id, std::uint64_t stamp,
+              const std::vector<float>& db) {
+    const auto result = sender.send_spectrum(id, stamp, db);
+    return result.queued && result.datagrams == TelemetrySender::chunks && result.error == 0;
+}
 }
 
-uint16_t parse_port(const char* arg, const char* name) {
-    char* endptr = nullptr;
-    long val = std::strtol(arg, &endptr, 10);
-    if (endptr == arg || *endptr != '\0' || val <= 0 || val > 65535) {
-        throw std::invalid_argument(std::string("Cổng UDP không hợp lệ cho ") + name + ": " + arg);
-    }
-    return static_cast<uint16_t>(val);
-}
-
-} // namespace
-
-int main(int argc, char* argv[]) {
-    install_signal_handlers();
-
-    std::string dest_ip = SolarConfig::Network::UDP_DEST_IP;
-    uint16_t port_ch1 = 9998;
-    uint16_t port_ch2 = 9999;
-
+int main(int argc, char** argv) {
     try {
-        if (argc >= 2) {
-            dest_ip = argv[1];
+        signals();
+        if (argc > 4) throw std::invalid_argument("Usage: dual_waterfall_test [IPv4] [port1] [port2]");
+        const std::string ip = argc > 1 ? argv[1] : SolarConfig::Network::UDP_DEST_IP;
+        const auto port1 = argc > 2 ? port(argv[2]) : std::uint16_t{9998};
+        const auto port2 = argc > 3 ? port(argv[3]) : std::uint16_t{9999};
+        if (port1 == port2) throw std::invalid_argument("Ports must differ");
+        // Parent never opens SDRplay or starts threads before these forks.
+        const auto serials = discover();
+        if (!running.load()) return 0;
+        ShmOwner shm;
+        shm.one = std::make_unique<SharedMemoryRingBuffer>(SolarConfig::SHM::CH1_NAME, SolarConfig::SHM::BUFFER_CAPACITY, true);
+        shm.two = std::make_unique<SharedMemoryRingBuffer>(SolarConfig::SHM::CH2_NAME, SolarConfig::SHM::BUFFER_CAPACITY, true);
+        Child child1, child2; // destroyed before SHM
+        const pid_t parent = getpid();
+        child1.pid = fork();
+        if (child1.pid < 0) throw std::runtime_error("fork ch1 failed");
+        if (child1.pid == 0) { parent_guard(parent); _exit(producer(serials[0].data(), SolarConfig::SHM::CH1_NAME)); }
+        child2.pid = fork();
+        if (child2.pid < 0) throw std::runtime_error("fork ch2 failed");
+        if (child2.pid == 0) { parent_guard(parent); _exit(producer(serials[1].data(), SolarConfig::SHM::CH2_NAME)); }
+        auto& rb1 = *shm.one;
+        auto& rb2 = *shm.two;
+        const auto deadline = Clock::now() + 10s;
+        while (running.load() && (!rb1.is_ready() || !rb2.is_ready())) {
+            child1.check(); child2.check();
+            if (Clock::now() >= deadline) throw std::runtime_error("SDR readiness timeout");
+            std::this_thread::sleep_for(10ms);
         }
-        if (argc >= 3) {
-            port_ch1 = parse_port(argv[2], "port_ch1");
-        }
-        if (argc >= 4) {
-            port_ch2 = parse_port(argv[3], "port_ch2");
-        }
-        if (port_ch1 == port_ch2) {
-            std::cerr << "[Lỗi] port_ch1 và port_ch2 bắt buộc phải khác nhau!\n";
-            return 1;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "[Lỗi CLI] " << e.what() << "\n"
-                  << "Cách dùng: " << argv[0] << " [dest_ip] [port_ch1] [port_ch2]\n";
-        return 1;
-    }
-
-    std::cout << "========================================================================\n"
-              << " SOLAR CORRELATOR - DUAL SDR LIVE WATERFALL DIAGNOSTIC (AUTO-POWER)\n"
-              << "========================================================================\n"
-              << " + Đích UDP Telemetry : " << dest_ip
-              << " (Ch1 Port: " << port_ch1 << " | Ch2 Port: " << port_ch2 << ")\n"
-              << " + Cấu hình F-Engine  : N = " << SolarConfig::Correlator::FFT_SIZE
-              << " bins, M = " << SolarConfig::Correlator::INTEGRATION_FRAMES
-              << " frames (~200 ms, Welch 50%)\n"
-              << " + Chế độ đo          : S11 & S22 độc lập (Bỏ qua TimeAligner Module 2)\n"
-              << "========================================================================\n";
-
-    // 1. Quét bus USB lấy Serial của 2 thiết bị RSPdx trước khi fork()
-    sdrplay_api_ErrT err = sdrplay_api_Open();
-    if (err != sdrplay_api_Success) {
-        std::cerr << "[Lỗi] Không thể mở SDRplay Service API: "
-                  << sdrplay_api_GetErrorString(err) << "\n";
-        return 1;
-    }
-
-    sdrplay_api_DeviceT devs[SDRPLAY_MAX_DEVICES];
-    unsigned int num_devs = 0;
-    err = sdrplay_api_GetDevices(devs, &num_devs, SDRPLAY_MAX_DEVICES);
-    if (err != sdrplay_api_Success || num_devs < 2) {
-        std::cerr << "[Lỗi] Yêu cầu tối thiểu 2 máy thu RSPdx! Số thiết bị tìm thấy: "
-                  << num_devs << "\n";
-        sdrplay_api_Close();
-        return 1;
-    }
-
-    const std::string ser0 = devs[0].SerNo;
-    const std::string ser1 = devs[1].SerNo;
-    sdrplay_api_Close(); // Đóng API ở tiến trình cha trước khi fork()
-
-    std::cout << "[Hardware] Phát hiện 2 máy thu SDRplay RSPdx:\n"
-              << "  -> Kênh 1 (S11, UDP " << port_ch1 << ") : Serial " << ser0 << "\n"
-              << "  -> Kênh 2 (S22, UDP " << port_ch2 << ") : Serial " << ser1 << "\n";
-
-    // 2. Dọn sạch bộ nhớ chia sẻ cũ trước khi khởi tạo
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
-
-    // 3. Fork 2 tiến trình con thu mẫu độc lập
-    pid_t pid1 = fork();
-    if (pid1 < 0) {
-        std::cerr << "[Lỗi] fork() thất bại cho Kênh 1.\n";
-        return 1;
-    }
-    if (pid1 == 0) {
-        run_sdr_producer(1, ser0, SolarConfig::SHM::CH1_NAME);
-    }
-
-    pid_t pid2 = fork();
-    if (pid2 < 0) {
-        std::cerr << "[Lỗi] fork() thất bại cho Kênh 2.\n";
-        kill(pid1, SIGTERM);
-        waitpid(pid1, nullptr, 0);
-        SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
-        return 1;
-    }
-    if (pid2 == 0) {
-        run_sdr_producer(2, ser1, SolarConfig::SHM::CH2_NAME);
-    }
-
-    int exit_code = 0;
-
-    // 4. Tiến trình cha: DSP F-Engine & Dual-Port SOL2 Telemetry
-    try {
-        const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-
-        std::unique_ptr<SharedMemoryRingBuffer> rb1_ptr;
-        std::unique_ptr<SharedMemoryRingBuffer> rb2_ptr;
-
-        // Chờ tiến trình con tạo xong vùng nhớ SHM
-        while (g_running.load(std::memory_order_relaxed)) {
+        if (!running.load()) return 0;
+        constexpr auto n = SolarConfig::Correlator::FFT_SIZE;
+        FXCorrelator::Options options;
+        options.running = &running;
+        options.timeout = 1000ms;
+        // Plan FFTs and allocate all storage while callback writes are gated off.
+        FXCorrelator fx(options);
+        TelemetrySender sender1(ip, port1), sender2(ip, port2);
+        std::vector<float> phi(n), cross(n), phase(n), coherence(n), db1(n), db2(n);
+        rb1.set_start_stream(true); rb2.set_start_stream(true);
+        bool primed = false;
+        unsigned consecutive_failures = 0;
+        unsigned total_failures = 0;
+        std::uint64_t id = 0, ok1 = 0, ok2 = 0;
+        while (running.load()) {
+            child1.check(); child2.check();
+            if (!rb1.is_ready() || !rb2.is_ready()) throw std::runtime_error("SDR lost readiness");
             try {
-                if (!rb1_ptr) {
-                    rb1_ptr = std::make_unique<SharedMemoryRingBuffer>(
-                        SolarConfig::SHM::CH1_NAME, SolarConfig::SHM::BUFFER_CAPACITY, false);
-                }
-                if (!rb2_ptr) {
-                    rb2_ptr = std::make_unique<SharedMemoryRingBuffer>(
-                        SolarConfig::SHM::CH2_NAME, SolarConfig::SHM::BUFFER_CAPACITY, false);
-                }
-                if (rb1_ptr && rb2_ptr) {
-                    break;
-                }
-            } catch (const std::exception&) {
-                if (std::chrono::steady_clock::now() >= wait_deadline) {
-                    throw std::runtime_error("Quá thời gian chờ mở vùng nhớ SHM từ tiến trình con.");
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            }
-        }
-
-        SharedMemoryRingBuffer& rb1 = *rb1_ptr;
-        SharedMemoryRingBuffer& rb2 = *rb2_ptr;
-
-        std::cout << "[Parent DSP] Đang chờ cả 2 RSPdx hoàn tất sdrplay_api_Init()...\n";
-        while (g_running.load(std::memory_order_relaxed) && (!rb1.is_ready() || !rb2.is_ready())) {
-            int status = 0;
-            if (waitpid(pid1, &status, WNOHANG) > 0 || waitpid(pid2, &status, WNOHANG) > 0) {
-                throw std::runtime_error("Một tiến trình con SDRplay đã dừng đột ngột khi khởi tạo.");
-            }
-            if (std::chrono::steady_clock::now() >= wait_deadline) {
-                throw std::runtime_error("Quá thời gian chờ (Timeout) phần cứng SDRplay sẵn sàng.");
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        }
-
-        if (g_running.load(std::memory_order_relaxed)) {
-            // Bật đồng thời cổng đẩy mẫu trên cả 2 kênh
-            rb1.set_start_stream(true);
-            rb2.set_start_stream(true);
-
-            // Chờ 250 ms cho luồng DMA ổn định rồi xả sạch dữ liệu quá độ ban đầu
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-            rb1.flush();
-            rb2.flush();
-
-            const uint32_t fft_size = SolarConfig::Correlator::FFT_SIZE;
-            const uint32_t int_frames = SolarConfig::Correlator::INTEGRATION_FRAMES;
-
-            FXCorrelator::Options fx_opts{};
-            fx_opts.fft_size = fft_size;
-            fx_opts.frames   = int_frames;
-            fx_opts.running  = &g_running;
-
-            FXCorrelator fx(fx_opts);
-            TelemetrySender sender_ch1(dest_ip, port_ch1);
-            TelemetrySender sender_ch2(dest_ip, port_ch2);
-
-            std::vector<float> zero_phi(fft_size, 0.0f);
-            std::vector<float> dummy_db(fft_size, 0.0f);
-            std::vector<float> dummy_phase(fft_size, 0.0f);
-            std::vector<float> dummy_coh(fft_size, 0.0f);
-
-            std::vector<float> s11_db(fft_size, 0.0f);
-            std::vector<float> s22_db(fft_size, 0.0f);
-
-            std::cout << "[Parent DSP] Đang nạp gối đầu bước đầu (prime_buffers)...\n";
-            fx.prime_buffers(rb1, rb2);
-            std::cout << "[Parent DSP] Bắt đầu phát phổ S11 & S22 thời gian thực (Nhấn Ctrl+C để dừng).\n\n";
-
-            uint64_t frame_id = 0;
-            uint64_t udp_ok_ch1 = 0;
-            uint64_t udp_ok_ch2 = 0;
-
-            while (g_running.load(std::memory_order_relaxed)) {
-                try {
-                    fx.process_integration_cycle(rb1, rb2, zero_phi, dummy_db, dummy_phase, dummy_coh);
-                } catch (const std::exception& e) {
-                    if (!g_running.load(std::memory_order_relaxed)) {
-                        break;
-                    }
-                    std::cerr << "\n[Cảnh báo DSP] " << e.what()
-                              << " -> Đang thực hiện flush() và prime_buffers() để tự phục hồi...\n";
-                    rb1.flush();
-                    rb2.flush();
+                if (!primed) {
+                    rb1.flush(); rb2.flush();
                     fx.prime_buffers(rb1, rb2);
-                    continue;
+                    primed = true;
                 }
-
-                const std::vector<double>& p1 = fx.auto_power1();
-                const std::vector<double>& p2 = fx.auto_power2();
-
-                for (uint32_t k = 0; k < fft_size; ++k) {
-                    s11_db[k] = static_cast<float>(10.0 * std::log10(std::max(p1[k], 1e-12)));
-                    s22_db[k] = static_cast<float>(10.0 * std::log10(std::max(p2[k], 1e-12)));
-                }
-
-                const auto now_sys = std::chrono::system_clock::now();
-                const uint64_t timestamp_us = static_cast<uint64_t>(
-                    std::chrono::duration_cast<std::chrono::microseconds>(
-                        now_sys.time_since_epoch()).count());
-
-                ++frame_id;
-
-                if (dispatch_telemetry(sender_ch1, frame_id, timestamp_us, s11_db, int_frames)) {
-                    ++udp_ok_ch1;
-                }
-                if (dispatch_telemetry(sender_ch2, frame_id, timestamp_us, s22_db, int_frames)) {
-                    ++udp_ok_ch2;
-                }
-
-                // Định kỳ mỗi 25 khung (~5 giây) in dòng trạng thái tóm tắt
-                if (frame_id % 25 == 0) {
-                    auto it1 = std::max_element(s11_db.begin(), s11_db.end());
-                    auto it2 = std::max_element(s22_db.begin(), s22_db.end());
-                    const int idx1 = static_cast<int>(std::distance(s11_db.begin(), it1));
-                    const int idx2 = static_cast<int>(std::distance(s22_db.begin(), it2));
-
-                    const double freq1_mhz = 30.0 + static_cast<double>(idx1) * (10.0 / fft_size);
-                    const double freq2_mhz = 30.0 + static_cast<double>(idx2) * (10.0 / fft_size);
-
-                    const uint32_t buf1_k = rb1.available_read() / 1024;
-                    const uint32_t buf2_k = rb2.available_read() / 1024;
-                    const uint32_t drop1  = rb1.get_overflow_count();
-                    const uint32_t drop2  = rb2.get_overflow_count();
-
-                    std::cout << std::fixed
-                              << "[Frame #" << std::setw(5) << frame_id << "] "
-                              << "Ch1 Peak: " << std::setw(5) << std::setprecision(1) << *it1
-                              << " dB @ " << std::setprecision(3) << freq1_mhz << " MHz | "
-                              << "Ch2 Peak: " << std::setw(5) << std::setprecision(1) << *it2
-                              << " dB @ " << std::setprecision(3) << freq2_mhz << " MHz | "
-                              << "Buf: " << buf1_k << "k/" << buf2_k << "k | "
-                              << "Drops: " << drop1 << "/" << drop2 << " | "
-                              << "UDP Ok: " << udp_ok_ch1 << "/" << udp_ok_ch2 << "\n";
-                }
+                fx.process_integration_cycle(rb1, rb2, phi, cross, phase, coherence);
+            } catch (const std::exception& e) {
+                if (!running.load()) break;
+                primed = false;
+                ++id; // invalid integration leaves an explicit display gap
+                child1.check(); child2.check();
+                if (++consecutive_failures >= 3 || ++total_failures >= 10) throw;
+                std::cerr << "DSP recovery " << consecutive_failures << ": " << e.what() << '\n';
+                std::this_thread::sleep_for(20ms);
+                continue;
+            }
+            consecutive_failures = 0;
+            for (std::size_t k = 0; k < n; ++k) {
+                db1[k] = static_cast<float>(10 * std::log10(std::max(fx.auto_power1()[k], 1e-12)));
+                db2[k] = static_cast<float>(10 * std::log10(std::max(fx.auto_power2()[k], 1e-12)));
+            }
+            const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            if (us < 0) throw std::runtime_error("System UTC clock precedes epoch");
+            ++id;
+            ok1 += dispatch(sender1, id, static_cast<std::uint64_t>(us), db1);
+            ok2 += dispatch(sender2, id, static_cast<std::uint64_t>(us), db2);
+            if (id % 25 == 0) {
+                const auto peak1 = std::max_element(db1.begin(), db1.end());
+                const auto peak2 = std::max_element(db2.begin(), db2.end());
+                const double start = (SolarConfig::SDR::RF_CENTER_FREQ_HZ - SolarConfig::SDR::SAMPLE_RATE_HZ / 2) / 1e6;
+                const double step = SolarConfig::SDR::SAMPLE_RATE_HZ / (1e6 * n);
+                std::cout << std::fixed << std::setprecision(3) << "Frame " << id
+                    << " peaks " << *peak1 << " dB @ " << start + (peak1 - db1.begin()) * step
+                    << " MHz / " << *peak2 << " dB @ " << start + (peak2 - db2.begin()) * step
+                    << " MHz; queued " << ok1 << '/' << ok2
+                    << "; UDP failed " << sender1.stats().failed << '/' << sender2.stats().failed
+                    << "; errno " << sender1.stats().last_errno << '/' << sender2.stats().last_errno
+                    << "; overflow events " << rb1.get_overflow_count() << '/' << rb2.get_overflow_count() << '\n';
             }
         }
+        rb1.set_start_stream(false); rb2.set_start_stream(false);
+        return 0;
     } catch (const std::exception& e) {
-        std::cerr << "\n[Lỗi Hệ thống] " << e.what() << "\n";
-        exit_code = 1;
+        std::cerr << "Fatal: " << e.what() << '\n';
+        return running.load() ? 1 : 0;
     }
-
-    // 5. Dọn dẹp tiến trình con và vùng nhớ chia sẻ POSIX SHM
-    std::cout << "\n[Cleanup] Đang dừng 2 tiến trình SDRplay và thu hồi bộ nhớ SHM...\n";
-    kill(pid1, SIGTERM);
-    kill(pid2, SIGTERM);
-
-    int status1 = 0;
-    int status2 = 0;
-    waitpid(pid1, &status1, 0);
-    waitpid(pid2, &status2, 0);
-
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
-    SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
-
-    std::cout << "[Cleanup] Đã kết thúc an toàn.\n";
-    return exit_code;
 }

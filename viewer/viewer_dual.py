@@ -41,7 +41,7 @@ class ChannelPanel:
         self.spectrum.setYRange(10, 95)
         self.spectrum.showGrid(x=True, y=True, alpha=0.2)
 
-        self.waterfall.setLabel('left', 'Frame slots (newest at 0)')
+        self.waterfall.setLabel('left', 'Frame slots (newest row: -1 to 0)')
         self.waterfall.setYRange(-HISTORY, 0, padding=0)
         self.waterfall.setXLink(self.spectrum)
 
@@ -76,47 +76,37 @@ class ChannelPanel:
         self.ring[self.write] = values
         self.write = (self.write + 1) % HISTORY
 
-    def process_receiver(self, receiver):
-        frames, stats, skips, error = receiver.take()
-        for session, frame, stamp, count, values in frames:
-            if session != self.last_session:
-                self.ring.fill(np.nan)
-                self.write = 0
-                self.last_id = None
-                self.last_session = session
-            if self.last_id is not None:
-                gap = min(HISTORY, max(0, frame - self.last_id - 1))
-                if gap == HISTORY:
-                    self.ring.fill(np.nan)
-                else:
-                    for _ in range(gap):
-                        self.append(np.nan)
-            self.append(values)
-            self.last_id = frame
-            self.latest = (frame, stamp, count, values)
-            self.arrived = time.monotonic()
+    def reset(self):
+        self.ring.fill(np.nan)
+        self.write = 0
+        self.latest = None
+        self.arrived = None
+        self.peak_db = self.peak_freq = None
+        self.curve.setData([], [])
+        self.render()
 
-        if frames:
-            n = HISTORY - self.write
-            self.display[:n] = self.ring[self.write:]
-            self.display[n:] = self.ring[:self.write]
-            self.image.setImage(self.display, autoLevels=False)
-
-            frame, stamp, count, values = self.latest
-            self.curve.setData(self.freq, values)
-            peak = int(np.argmax(values))
-            self.peak_db = float(values[peak])
-            self.peak_freq = float(self.freq[peak])
-
-            dt_vn = datetime.fromtimestamp(stamp / 1e6, tz=timezone.utc).astimezone(TZ_VN)
-            time_str = dt_vn.strftime('%H:%M:%S.%f')[:-3]
-
-            self.spectrum.setTitle(
-                f'{self.label_tag} | Frame {frame} (M={count}) | '
-                f'Peak {self.peak_db:.2f} dB @ {self.peak_freq:.6f} MHz | Giờ VN: {time_str}'
-            )
-
-        return stats, skips, error
+    def render(self):
+        n = HISTORY - self.write
+        self.display[:n] = self.ring[self.write:]
+        self.display[n:] = self.ring[:self.write]
+        self.image.setImage(self.display, autoLevels=False)
+        if self.latest is None:
+            self.spectrum.setTitle(f'{self.label_tag} | Waiting / missing paired frame')
+            self.curve.setData([], [])
+            return
+        frame, stamp, count, values = self.latest
+        self.curve.setData(self.freq, values)
+        peak = int(np.argmax(values))
+        self.peak_db = float(values[peak])
+        self.peak_freq = float(self.freq[peak])
+        try:
+            clock = datetime.fromtimestamp(stamp / 1e6, tz=TZ_VN).strftime('%H:%M:%S.%f')[:-3]
+        except (OverflowError, OSError, ValueError):
+            clock = 'invalid timestamp'
+        self.spectrum.setTitle(
+            f'{self.label_tag} | Frame {frame} (M={count}) | '
+            f'Peak {self.peak_db:.2f} dB @ {self.peak_freq:.6f} MHz | VN: {clock}'
+        )
 
 
 class DualViewer(QtWidgets.QMainWindow):
@@ -162,44 +152,130 @@ class DualViewer(QtWidgets.QMainWindow):
         # Khóa trục tần số X giữa cả 4 đồ thị (ch1.waterfall và ch2.waterfall đã link với spectrum của chúng)
         self.ch2.spectrum.setXLink(self.ch1.spectrum)
 
+        self.pending = [{}, {}]
+        self.sessions = [None, None]
+        self.last_received = [None, None]
+        self.last_arrival = [None, None]
+        self.last_committed = None
+        self.delta = None
+        self.pair_wait = 0.35
+        self.local_late = self.unpaired = self.pair_drops = self.metadata_mismatch = 0
+        self.last_status = 0.0
+        self.snapshots = [({}, 0, None), ({}, 0, None)]
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update_data)
         self.timer.start(25)
 
+    def reset_pairing(self):
+        self.pending = [{}, {}]
+        self.last_committed = None
+        self.delta = None
+        for panel in (self.ch1, self.ch2):
+            panel.reset()
+
+    def ingest(self, channel, frames, now):
+        for session, frame, stamp, count, values in frames:
+            if session != self.sessions[channel]:
+                if self.sessions[channel] is not None:
+                    self.reset_pairing()
+                self.sessions[channel] = session
+                self.last_received[channel] = None
+            previous = self.last_received[channel]
+            if previous is not None and frame <= previous:
+                self.local_late += 1
+                continue
+            self.last_received[channel] = frame
+            if self.last_committed is not None and frame <= self.last_committed:
+                self.local_late += 1
+                continue
+            # Receiver has already checked shape/finiteness and integration count.
+            self.pending[channel][frame] = (stamp, count, values, now)
+            self.last_arrival[channel] = now
+            # Receiver.take() returns at most 300 items. Keep only a small tail;
+            # discarded slots appear as NaN when the next frame is committed.
+            while len(self.pending[channel]) > 32:
+                del self.pending[channel][min(self.pending[channel])]
+                self.pair_drops += 1
+
+    def commit_ready(self, now):
+        dirty = False
+        while self.pending[0] or self.pending[1]:
+            frame = min(set(self.pending[0]) | set(self.pending[1]))
+            one = self.pending[0].get(frame)
+            two = self.pending[1].get(frame)
+            matched = one is not None and two is not None and one[:2] == two[:2]
+            arrival = min(item[3] for item in (one, two) if item is not None)
+            if not matched and now - arrival < self.pair_wait:
+                break
+            self.pending[0].pop(frame, None)
+            self.pending[1].pop(frame, None)
+            if self.last_committed is not None and frame <= self.last_committed:
+                self.local_late += 1
+                continue
+            gap = 0 if self.last_committed is None else frame - self.last_committed - 1
+            for panel in (self.ch1, self.ch2):
+                if gap >= HISTORY:
+                    panel.ring.fill(np.nan)
+                    panel.write = 0
+                else:
+                    for _ in range(gap):
+                        panel.append(np.nan)
+            if one is not None and two is not None and not matched:
+                # Equal id but unequal timestamp/count is not the same cycle.
+                self.metadata_mismatch += 1
+                one = two = None
+            for panel, item in zip((self.ch1, self.ch2), (one, two)):
+                if item is None:
+                    panel.append(np.nan)
+                    panel.latest = None
+                    panel.peak_db = panel.peak_freq = None
+                else:
+                    stamp, count, values, arrived = item
+                    panel.append(values)
+                    panel.latest = (frame, stamp, count, values)
+                    panel.arrived = arrived
+            if matched:
+                self.delta = (frame, float(np.max(one[2]) - np.max(two[2])), now)
+            else:
+                self.delta = None
+                self.unpaired += 1
+            self.last_committed = frame
+            dirty = True
+        if dirty:
+            self.ch1.render()
+            self.ch2.render()
+        return dirty
+
     def update_data(self):
-        stats1, skips1, err1 = self.ch1.process_receiver(self.receiver1)
-        stats2, skips2, err2 = self.ch2.process_receiver(self.receiver2)
-
-        age1 = 'wait' if self.ch1.arrived is None else f'{time.monotonic() - self.ch1.arrived:.1f}s'
-        age2 = 'wait' if self.ch2.arrived is None else f'{time.monotonic() - self.ch2.arrived:.1f}s'
-
-        if self.ch1.peak_db is not None and self.ch2.peak_db is not None:
-            delta_peak = self.ch1.peak_db - self.ch2.peak_db
-            delta_str = f'ΔPeak(Ch1-Ch2) = {delta_peak:+.2f} dB'
+        now = time.monotonic()
+        packets = [self.receiver1.take(), self.receiver2.take()]
+        for channel, (frames, stats, skips, error) in enumerate(packets):
+            self.ingest(channel, frames, now)
+            self.snapshots[channel] = (stats, skips, error)
+        dirty = self.commit_ready(now)
+        if not dirty and now - self.last_status < 0.2:
+            return
+        self.last_status = now
+        pieces = []
+        for idx, (receiver, port) in enumerate(((self.receiver1, self.port1),
+                                              (self.receiver2, self.port2))):
+            stats, skips, error = self.snapshots[idx]
+            age = 'wait' if self.last_arrival[idx] is None else f'{now-self.last_arrival[idx]:.1f}s'
+            pieces.append(
+                f'Ch{idx+1}[:{port}] age={age} complete={stats.get("complete", 0)} '
+                f'gaps={stats.get("frame_gaps", 0)} incomplete={stats.get("incomplete", 0)} '
+                f'late={stats.get("late", 0)} invalid={stats.get("invalid", 0)} '
+                f'skips={skips} RCVBUF={receiver.actual_rcvbuf}'
+                + (f' ERROR: {error}' if error else '')
+            )
+        if self.delta is not None and now - self.delta[2] <= 1.0:
+            frame, value, _ = self.delta
+            delta_text = f'ΔPeak={value:+.2f} dB (paired frame {frame})'
         else:
-            delta_str = 'ΔPeak = N/A'
-
-        msg1 = (
-            f'Ch1[:{self.port1}] ({age1}): complete={stats1.get("complete", 0)} '
-            f'gaps={stats1.get("frame_gaps", 0)} incomplete={stats1.get("incomplete", 0)} '
-            f'late={stats1.get("late", 0)} invalid={stats1.get("invalid", 0)} '
-            f'skips={skips1} RCVBUF={self.receiver1.actual_rcvbuf}'
-        )
-        msg2 = (
-            f'Ch2[:{self.port2}] ({age2}): complete={stats2.get("complete", 0)} '
-            f'gaps={stats2.get("frame_gaps", 0)} incomplete={stats2.get("incomplete", 0)} '
-            f'late={stats2.get("late", 0)} invalid={stats2.get("invalid", 0)} '
-            f'skips={skips2} RCVBUF={self.receiver2.actual_rcvbuf}'
-        )
-
-        errors = []
-        if err1:
-            errors.append(f'Ch1 ERR: {err1}')
-        if err2:
-            errors.append(f'Ch2 ERR: {err2}')
-        err_suffix = (' | ' + ' ; '.join(errors)) if errors else ''
-
-        self.statusBar().showMessage(f'{msg1}  ||  {msg2}  ||  {delta_str}{err_suffix}')
+            delta_text = 'ΔPeak=N/A (unpaired/stale)'
+        pieces.append(f'{delta_text}; unpaired={self.unpaired} pair_drops={self.pair_drops} '
+                      f'late_ui={self.local_late} metadata_mismatch={self.metadata_mismatch}')
+        self.statusBar().showMessage(' | '.join(pieces))
 
     def closeEvent(self, event):
         self.timer.stop()
@@ -218,15 +294,18 @@ def main():
     parser.add_argument('--source-ip', help='Accept datagrams only from this sender IPv4')
     args = parser.parse_args()
 
+    if not (1 <= args.port1 <= 65535 and 1 <= args.port2 <= 65535):
+        parser.error('Ports must be in 1..65535')
     if args.port1 == args.port2:
         parser.error('--port1 and --port2 must be distinct UDP ports.')
 
     app = QtWidgets.QApplication(sys.argv[:1])
     pg.setConfigOptions(antialias=False, imageAxisOrder='row-major')
 
-    receiver1 = Receiver(args.bind, args.port1, args.source_ip)
-    receiver2 = Receiver(args.bind, args.port2, args.source_ip)
+    receiver1 = receiver2 = None
     try:
+        receiver1 = Receiver(args.bind, args.port1, args.source_ip)
+        receiver2 = Receiver(args.bind, args.port2, args.source_ip)
         window = DualViewer(receiver1, receiver2, args.port1, args.port2)
         receiver1.start()
         receiver2.start()
@@ -235,8 +314,10 @@ def main():
         window.show()
         return app.exec_()
     finally:
-        receiver1.close()
-        receiver2.close()
+        if receiver1 is not None:
+            receiver1.close()
+        if receiver2 is not None:
+            receiver2.close()
 
 
 if __name__ == '__main__':
