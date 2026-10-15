@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """SOL2 spectrum monitor. Display history is frame-indexed, not wall-clock age."""
 import argparse
+from datetime import datetime, timezone, timedelta
 import signal
 import sys
 import time
@@ -12,6 +13,9 @@ from telemetry_protocol import Receiver, BINS
 HISTORY = 300
 START, STOP = 30.0, 40.0
 STEP = (STOP - START) / BINS
+
+# Múi giờ Việt Nam: UTC+7
+TZ_VN = timezone(timedelta(hours=7))
 
 
 class Viewer(QtWidgets.QMainWindow):
@@ -87,8 +91,14 @@ class Viewer(QtWidgets.QMainWindow):
             frame, stamp, count, values = self.latest
             self.curve.setData(self.freq, values)
             peak = int(np.argmax(values))
+            
+            # --- CHUYỂN ĐỔI SANG GIỜ VIỆT NAM (UTC+7) ---
+            # stamp tính bằng microsecond (us) theo epoch UTC
+            dt_vn = datetime.fromtimestamp(stamp / 1e6, tz=timezone.utc).astimezone(TZ_VN)
+            time_str = dt_vn.strftime('%H:%M:%S.%f')[:-3]  # Lấy tới mili-giây (HH:MM:SS.mmm)
+            
             self.spectrum.setTitle(f'Frame {frame} | M={count} | peak {values[peak]:.2f} dB '
-                                   f'@ {self.freq[peak]:.6f} MHz | UTC µs={stamp}')
+                                   f'@ {self.freq[peak]:.6f} MHz | Giờ VN: {time_str}')
         age = 'waiting' if self.arrived is None else f'{time.monotonic() - self.arrived:.1f}s since GUI update'
         self.statusBar().showMessage(
             f'{age} | complete={stats.get("complete", 0)} gaps={stats.get("frame_gaps", 0)} '
