@@ -1,57 +1,68 @@
-#include <iostream>
-#include <vector>
 #include <chrono>
-#include <thread>
 #include <cmath>
-#include <algorithm>
-#include <iomanip>
-#include "../src/telemetry_sender.hpp"
-
-int main() {
-    std::cout << "[Test 1 - Dynamic dB] Đang phát gói tin giả lập biến thiên dB về: " 
-              << SolarConfig::Network::UDP_DEST_IP << ":" 
-              << SolarConfig::Network::UDP_DEST_PORT << "\n";
-
-    TelemetrySender sender(SolarConfig::Network::UDP_DEST_IP, SolarConfig::Network::UDP_DEST_PORT);
-    std::vector<float> fake_spectrum(SolarConfig::Correlator::FFT_SIZE, -60.0f);
-
-    uint64_t frame_id = 0;
-    while (true) {
-        // 1. Giả lập tần số quét trôi qua lại quanh vùng trung tâm (bin 700 -> 1300)
-        int peak_bin = 1024 + static_cast<int>(300 * std::sin(frame_id * 0.05));
-
-        // 2. Giả lập công suất dB thay đổi tuần hoàn từ -55 dB đến -5 dB
-        // Chu kỳ biến thiên biên độ: ~80 khung hình (~16 giây)
-        float peak_db = -30.0f + 25.0f * std::sin(frame_id * 0.08f);
-
-        // 3. Reset mảng về sàn nhiễu -60 dB (kèm dao động ngẫu nhiên nhẹ 0.5 dB)
-        for (size_t i = 0; i < fake_spectrum.size(); ++i) {
-            float noise_jitter = (std::rand() % 100) / 200.0f; // Nhiễu 0 -> 0.5 dB
-            fake_spectrum[i] = -60.0f + noise_jitter;
+#include <csignal>
+#include <iostream>
+#include <thread>
+#include <vector>
+#include "telemetry_sender.hpp"
+namespace {
+volatile std::sig_atomic_t running = 1;
+extern "C" void stop(int) { running = 0; }
+}
+int main(int argc, char** argv) {
+    try {
+        const std::string ip = argc > 1 ? argv[1] : SolarConfig::Network::UDP_DEST_IP;
+        unsigned long port = SolarConfig::Network::UDP_DEST_PORT;
+        if (argc > 2) {
+            std::size_t used = 0;
+            port = std::stoul(argv[2], &used);
+            if (used != std::string(argv[2]).size() || port == 0 || port > 65535)
+                throw std::invalid_argument("port must be 1..65535");
         }
-
-        // 4. Tạo búp sóng có độ rộng thực tế (lan tỏa +/- 3 bin xung quanh đỉnh)
-        for (int offset = -3; offset <= 3; ++offset) {
-            int bin = peak_bin + offset;
-            if (bin >= 0 && bin < static_cast<int>(SolarConfig::Correlator::FFT_SIZE)) {
-                float attenuation = std::abs(offset) * 6.0f; // Suy hao 6 dB mỗi bin xa đỉnh
-                fake_spectrum[bin] = std::max(-60.0f, peak_db - attenuation);
+        const auto limit = argc > 3 ? std::stoull(argv[3]) : 0;
+        struct sigaction action {};
+        action.sa_handler = stop;
+        sigemptyset(&action.sa_mask);
+        if (sigaction(SIGINT, &action, nullptr) || sigaction(SIGTERM, &action, nullptr))
+            throw std::system_error(errno, std::generic_category(), "sigaction");
+        TelemetrySender sender(ip, static_cast<std::uint16_t>(port));
+        std::vector<float> spectrum(TelemetrySender::bins);
+        using Clock = std::chrono::steady_clock;
+        constexpr auto period = std::chrono::milliseconds(200);
+        const auto origin = Clock::now();
+        auto deadline = origin;
+        std::uint64_t id = 0, skipped = 0, sent = 0;
+        std::cout << "SOL2 -> " << ip << ':' << port << " SO_SNDBUF="
+                  << sender.send_buffer_bytes() << '\n';
+        while (running && (!limit || sent < limit)) {
+            std::this_thread::sleep_until(deadline);
+            if (!running) break;
+            auto now = Clock::now();
+            if (now - deadline >= period) {
+                auto missed = (now - deadline) / period;
+                id += missed; skipped += missed; deadline += period * missed;
             }
+            const double t = std::chrono::duration<double>(now - origin).count();
+            const int peak = 1024 + static_cast<int>(300 * std::sin(t * 0.25));
+            const double peak_db = 70 + 8 * std::sin(t * 0.4);
+            for (std::size_t i = 0; i < spectrum.size(); ++i) {
+                // Deterministic display fixture; not a statistical Welch/ADC simulation.
+                const double floor_db = 25 + 3 * std::sin(i * 0.173 + t);
+                const double delta = static_cast<double>(i) - peak;
+                const double power = std::pow(10.0, floor_db / 10.0)
+                    + std::pow(10.0, peak_db / 10.0) * std::exp(-delta * delta / 2.0);
+                spectrum[i] = static_cast<float>(10 * std::log10(power));
+            }
+            const auto utc = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            sender.send_spectrum(id, static_cast<std::uint64_t>(utc), spectrum);
+            if (sent % 25 == 0)
+                std::cout << "frame=" << id << " peak=" << spectrum[peak]
+                          << " queued=" << sender.stats().queued << " failed=" << sender.stats().failed
+                          << " errno=" << sender.stats().last_errno << " skipped=" << skipped << '\n';
+            ++id; ++sent; deadline += period;
         }
-
-        // 5. Gửi gói tin qua UDP
-        auto now = std::chrono::system_clock::now();
-        uint64_t ts_us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-        sender.send_spectrum(frame_id, ts_us, fake_spectrum);
-
-        // In log kiểm tra giá trị dB phát ra
-        float freq_mhz = 30.0f + peak_bin * (10.0f / SolarConfig::Correlator::FFT_SIZE);
-        std::cout << "-> Khung #" << std::setw(5) << frame_id 
-                  << " | Đỉnh: " << std::setw(5) << std::fixed << std::setprecision(1) << peak_db << " dB"
-                  << " @ " << std::setw(6) << std::setprecision(3) << freq_mhz << " MHz\n";
-
-        frame_id++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Chu kỳ 5 Hz chuẩn
-    }
-    return 0;
+        std::cout << "Exit: queued=" << sender.stats().queued << " failed=" << sender.stats().failed << '\n';
+        return sender.stats().failed ? 2 : 0;
+    } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

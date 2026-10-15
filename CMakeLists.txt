@@ -1,54 +1,54 @@
 cmake_minimum_required(VERSION 3.16)
-project(solar_correlator CXX)
-
-set(CMAKE_CXX_STANDARD 17)
-# Cờ biên dịch kích hoạt tối đa sức mạnh ARM NEON / Fast-Math
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -Wall -Wextra -ffast-math")
-
-find_library(SDRPLAY_LIB sdrplay_api REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFTW3 REQUIRED fftw3f)
-
-include_directories(src ${FFTW3_INCLUDE_DIRS})
-
-# ----------------------------------------------------------------------
-# 1. Các bài kiểm tra phần cứng & Sanity Checks
-# ----------------------------------------------------------------------
-# Test 2 luồng USB SDR song song (Module 1)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/dual_stream_test.cpp")
-    add_executable(dual_stream_test tests/dual_stream_test.cpp)
-    target_link_libraries(dual_stream_test ${SDRPLAY_LIB} pthread rt m)
+project(solar_correlator LANGUAGES CXX)
+option(SOLAR_BUILD_DSP "Build FFTW DSP tests" ON)
+option(SOLAR_BUILD_HARDWARE "Build SDRplay acquisition application" ON)
+option(SOLAR_NATIVE "Optimize for the build host (not cross-compilation)" OFF)
+find_package(Threads REQUIRED)
+add_library(solar_options INTERFACE)
+target_compile_features(solar_options INTERFACE cxx_std_17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+target_include_directories(solar_options INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(solar_options INTERFACE -Wall -Wextra -Wpedantic
+        -fno-fast-math -ffp-contract=off $<$<CONFIG:Release>:-O3>)
+    if(SOLAR_NATIVE)
+        target_compile_options(solar_options INTERFACE -march=native)
+    endif()
 endif()
-
-# Test căn chỉnh mốc trễ k=0 / SHM (Module 2)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/alignment_test.cpp")
-    add_executable(alignment_test 
-        tests/alignment_test.cpp 
-        src/time_alignment.cpp
-    )
-    target_link_libraries(alignment_test ${SDRPLAY_LIB} ${FFTW3_LIBRARIES} pthread rt m)
-endif()
-
-# Test độc lập truyền nhận mạng UDP (Module 3/4)
 add_executable(test_udp_sender tests/test_udp_sender.cpp)
-target_link_libraries(test_udp_sender pthread rt m)
-
-# Test độc lập thuật toán DSP / Welch FFTW3 (Module 3)
-add_executable(test_dsp_math tests/test_dsp_math.cpp src/correlator.cpp)
-target_link_libraries(test_dsp_math ${FFTW3_LIBRARIES} pthread rt m)
-
-# ----------------------------------------------------------------------
-# 2. CHƯƠNG TRÌNH THỰC THI CHÍNH CỦA TOÀN BỘ HỆ THỐNG
-# ----------------------------------------------------------------------
-add_executable(solar_correlator 
-    src/main.cpp 
-    src/time_alignment.cpp 
-    src/correlator.cpp
-)
-target_link_libraries(solar_correlator 
-    ${SDRPLAY_LIB} 
-    ${FFTW3_LIBRARIES} 
-    pthread 
-    rt 
-    m
-)
+target_link_libraries(test_udp_sender PRIVATE solar_options Threads::Threads)
+if(SOLAR_BUILD_DSP OR SOLAR_BUILD_HARDWARE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FFTW3 REQUIRED IMPORTED_TARGET fftw3f)
+endif()
+if(SOLAR_BUILD_DSP AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_dsp_math.cpp")
+    add_executable(test_dsp_math tests/test_dsp_math.cpp src/correlator.cpp)
+    target_link_libraries(test_dsp_math PRIVATE solar_options PkgConfig::FFTW3 Threads::Threads rt m)
+endif()
+if(SOLAR_BUILD_HARDWARE)
+    find_library(SDRPLAY_LIB NAMES sdrplay_api)
+    find_path(SDRPLAY_INCLUDE_DIR NAMES sdrplay_api.h)
+    if(NOT SDRPLAY_LIB OR NOT SDRPLAY_INCLUDE_DIR)
+        message(FATAL_ERROR "SDRplay SDK missing. For UDP only use -DSOLAR_BUILD_HARDWARE=OFF -DSOLAR_BUILD_DSP=OFF")
+    endif()
+    target_include_directories(solar_options INTERFACE ${SDRPLAY_INCLUDE_DIR})
+    foreach(test IN ITEMS dual_stream_test alignment_test)
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${test}.cpp")
+            add_executable(${test} tests/${test}.cpp)
+            if(test STREQUAL "alignment_test")
+                target_sources(${test} PRIVATE src/time_alignment.cpp)
+            endif()
+            target_link_libraries(${test} PRIVATE solar_options ${SDRPLAY_LIB} PkgConfig::FFTW3 Threads::Threads rt m)
+        endif()
+    endforeach()
+    add_executable(solar_correlator src/main.cpp src/time_alignment.cpp src/correlator.cpp)
+    target_link_libraries(solar_correlator PRIVATE solar_options ${SDRPLAY_LIB} PkgConfig::FFTW3 Threads::Threads rt m)
+endif()
+include(CTest)
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_executable(test_telemetry_sender tests/test_telemetry_sender.cpp)
+    target_link_libraries(test_telemetry_sender PRIVATE solar_options Threads::Threads)
+    target_compile_options(test_telemetry_sender PRIVATE -UNDEBUG)
+    target_link_options(test_telemetry_sender PRIVATE -Wl,--wrap=sendto)
+    add_test(NAME telemetry_sender_contract COMMAND test_telemetry_sender)
+endif()
