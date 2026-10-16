@@ -8,6 +8,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <fcntl.h>
@@ -45,7 +46,6 @@ std::atomic<bool> g_running{true};
 volatile sig_atomic_t g_last_signal = 0;
 
 std::atomic<bool> g_child_running{true};
-std::atomic<uint32_t> g_child_stream_resets{0};
 
 extern "C" void parent_signal_handler(int sig) noexcept {
     g_last_signal = sig;
@@ -309,10 +309,14 @@ public:
                       lock_path_ + ": " + std::strerror(e) + "). Từ chối khởi chạy để bảo vệ SHM!";
             return false;
         }
-        (void)::ftruncate(fd_, 0);
-        const std::string pid_str = std::to_string(::getpid()) + "\n";
-        (void)::write(fd_, pid_str.data(), pid_str.size());
         acquired_ = true;
+        const std::string pid_str = std::to_string(::getpid()) + "\n";
+        if (::ftruncate(fd_, 0) != 0 ||
+            ::write(fd_, pid_str.data(), pid_str.size()) != static_cast<ssize_t>(pid_str.size())) {
+            err_msg = "Unable to record lock owner PID";
+            release();
+            return false;
+        }
         return true;
     }
 
@@ -320,10 +324,16 @@ public:
         release();
     }
 
+    void close_in_child() noexcept {
+        if (fd_ >= 0) ::close(fd_);
+        fd_ = -1;
+        acquired_ = false;
+    }
+
     void release() noexcept {
         if (fd_ >= 0) {
             if (acquired_) {
-                (void)::unlink(lock_path_.c_str());
+                // Keep the inode: unlink would permit a second independent lock.
                 (void)::flock(fd_, LOCK_UN);
             }
             ::close(fd_);
@@ -344,71 +354,8 @@ private:
 namespace api_bridge {
 
 inline std::unique_ptr<SharedMemoryRingBuffer> create_ring_buffer(
-    const std::string& shm_name, uint32_t capacity, bool is_producer) {
-    if constexpr (std::is_constructible_v<SharedMemoryRingBuffer, const std::string&, uint32_t, bool>) {
-        return std::make_unique<SharedMemoryRingBuffer>(shm_name, capacity, is_producer);
-    } else if constexpr (std::is_constructible_v<SharedMemoryRingBuffer, const std::string&, bool>) {
-        (void)capacity;
-        return std::make_unique<SharedMemoryRingBuffer>(shm_name, is_producer);
-    } else {
-        static_assert(std::is_constructible_v<SharedMemoryRingBuffer, const std::string&, uint32_t, bool>,
-                      "Không tìm thấy constructor tương thích cho SharedMemoryRingBuffer");
-        return nullptr;
-    }
-}
-
-template <typename T, typename = void>
-struct has_align_buffers_3 : std::false_type {};
-template <typename T>
-struct has_align_buffers_3<T, std::void_t<decltype(
-    std::declval<T&>().align_buffers(
-        std::declval<SharedMemoryRingBuffer&>(),
-        std::declval<SharedMemoryRingBuffer&>(),
-        std::declval<AlignmentResult&>()))>> : std::true_type {};
-
-template <typename T, typename = void>
-struct has_align_buffers_2 : std::false_type {};
-template <typename T>
-struct has_align_buffers_2<T, std::void_t<decltype(
-    std::declval<T&>().align_buffers(
-        std::declval<SharedMemoryRingBuffer&>(),
-        std::declval<SharedMemoryRingBuffer&>()))>> : std::true_type {};
-
-template <typename AlignerT>
-bool execute_buffer_alignment(AlignerT& aligner,
-                              SharedMemoryRingBuffer& rb1,
-                              SharedMemoryRingBuffer& rb2,
-                              AlignmentResult& out_initial_res) {
-    if constexpr (has_align_buffers_3<AlignerT>::value) {
-        using RetT = decltype(aligner.align_buffers(rb1, rb2, out_initial_res));
-        if constexpr (std::is_convertible_v<RetT, bool>) {
-            return static_cast<bool>(aligner.align_buffers(rb1, rb2, out_initial_res));
-        } else {
-            aligner.align_buffers(rb1, rb2, out_initial_res);
-            return out_initial_res.is_valid;
-        }
-    } else if constexpr (has_align_buffers_2<AlignerT>::value) {
-        using RetT = decltype(aligner.align_buffers(rb1, rb2));
-        if constexpr (std::is_same_v<RetT, AlignmentResult>) {
-            out_initial_res = aligner.align_buffers(rb1, rb2);
-            return out_initial_res.is_valid;
-        } else {
-            out_initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
-            if (!out_initial_res.is_valid) return false;
-            return static_cast<bool>(aligner.align_buffers(rb1, rb2));
-        }
-    } else {
-        out_initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
-        if (!out_initial_res.is_valid) {
-            return false;
-        }
-        if (out_initial_res.lag_samples > 0) {
-            rb1.skip(static_cast<uint32_t>(out_initial_res.lag_samples));
-        } else if (out_initial_res.lag_samples < 0) {
-            rb2.skip(static_cast<uint32_t>(-out_initial_res.lag_samples));
-        }
-        return true;
-    }
+    const std::string& name, uint32_t capacity, bool producer) {
+    return std::make_unique<SharedMemoryRingBuffer>(name, capacity, producer);
 }
 
 template <typename CorrelatorT>
@@ -447,110 +394,15 @@ struct PortTelemetryStats {
     uint64_t chunks_sent_total{0};
 };
 
-template <typename T, typename = void> struct has_complete : std::false_type {};
-template <typename T> struct has_complete<T, std::void_t<decltype(std::declval<const T&>().complete)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_ok : std::false_type {};
-template <typename T> struct has_ok<T, std::void_t<decltype(std::declval<const T&>().ok)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_success : std::false_type {};
-template <typename T> struct has_success<T, std::void_t<decltype(std::declval<const T&>().success)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_chunks_sent : std::false_type {};
-template <typename T> struct has_chunks_sent<T, std::void_t<decltype(std::declval<const T&>().chunks_sent)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_chunks_total : std::false_type {};
-template <typename T> struct has_chunks_total<T, std::void_t<decltype(std::declval<const T&>().chunks_total)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_total_chunks : std::false_type {};
-template <typename T> struct has_total_chunks<T, std::void_t<decltype(std::declval<const T&>().total_chunks)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_last_errno : std::false_type {};
-template <typename T> struct has_last_errno<T, std::void_t<decltype(std::declval<const T&>().last_errno)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_error_count : std::false_type {};
-template <typename T> struct has_error_count<T, std::void_t<decltype(std::declval<const T&>().error_count)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_chunks_failed : std::false_type {};
-template <typename T> struct has_chunks_failed<T, std::void_t<decltype(std::declval<const T&>().chunks_failed)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_failed_chunks : std::false_type {};
-template <typename T> struct has_failed_chunks<T, std::void_t<decltype(std::declval<const T&>().failed_chunks)>> : std::true_type {};
-
-template <typename T, typename = void> struct has_would_block : std::false_type {};
-template <typename T> struct has_would_block<T, std::void_t<decltype(std::declval<const T&>().would_block)>> : std::true_type {};
-
-template <typename ResT>
-void accumulate_telemetry_result(const ResT& res, PortTelemetryStats& st) noexcept {
-    constexpr size_t kDefaultSol2Chunks = 8;
-    size_t sent = kDefaultSol2Chunks;
-    size_t expected = kDefaultSol2Chunks;
-
-    if constexpr (has_chunks_sent<ResT>::value) {
-        sent = static_cast<size_t>(res.chunks_sent);
-        st.chunks_sent_total += sent;
-    }
-    if constexpr (has_chunks_total<ResT>::value) {
-        expected = static_cast<size_t>(res.chunks_total);
-    } else if constexpr (has_total_chunks<ResT>::value) {
-        expected = static_cast<size_t>(res.total_chunks);
-    }
-
-    bool is_complete = false;
-    if constexpr (has_complete<ResT>::value) {
-        is_complete = static_cast<bool>(res.complete);
-    } else if constexpr (has_ok<ResT>::value) {
-        is_complete = static_cast<bool>(res.ok);
-    } else if constexpr (has_success<ResT>::value) {
-        is_complete = static_cast<bool>(res.success);
-    } else if constexpr (has_chunks_sent<ResT>::value) {
-        is_complete = (sent == expected && expected > 0);
-    } else {
-        is_complete = true;
-    }
-
-    bool had_err = false;
-    if constexpr (has_last_errno<ResT>::value) {
-        if (res.last_errno != 0) had_err = true;
-    }
-    if constexpr (has_error_count<ResT>::value) {
-        if (res.error_count > 0) had_err = true;
-    }
-    if constexpr (has_chunks_failed<ResT>::value) {
-        if (res.chunks_failed > 0) had_err = true;
-    }
-    if constexpr (has_failed_chunks<ResT>::value) {
-        if (res.failed_chunks > 0) had_err = true;
-    }
-    if constexpr (has_would_block<ResT>::value) {
-        if (res.would_block > 0 && !is_complete) had_err = true;
-    }
-
-    if (is_complete) {
-        st.frames_complete++;
-    } else {
-        if (sent > 0 && sent < expected) {
-            st.frames_partial++;
-        } else if (!had_err) {
-            st.frames_partial++;
-        }
-        if (had_err || sent == 0) {
-            st.send_errors++;
-        }
+inline void accumulate_telemetry_result(const TelemetrySender::Result& res,
+                                        PortTelemetryStats& st) noexcept {
+    st.chunks_sent_total += res.datagrams;
+    if (res.queued) ++st.frames_complete;
+    else {
+        ++st.send_errors;
+        if (res.datagrams > 0) ++st.frames_partial;
     }
 }
-
-template <typename SenderT, typename = void>
-struct has_send_spectrum_ts : std::false_type {};
-template <typename SenderT>
-struct has_send_spectrum_ts<SenderT, std::void_t<decltype(
-    std::declval<SenderT&>().send_spectrum(std::declval<const std::vector<float>&>(), uint64_t{0}))>> : std::true_type {};
-
-template <typename SenderT, typename = void>
-struct has_send_frame_ts : std::false_type {};
-template <typename SenderT>
-struct has_send_frame_ts<SenderT, std::void_t<decltype(
-    std::declval<SenderT&>().send_frame(std::declval<const std::vector<float>&>(), uint64_t{0}))>> : std::true_type {};
 
 template <typename SenderT>
 void dispatch_udp_spectrum(SenderT& sender,
@@ -574,16 +426,21 @@ void sdr_stream_callback(short* xi,
                          unsigned int reset,
                          void* cbContext) {
     auto* rb = static_cast<SharedMemoryRingBuffer*>(cbContext);
-    if (rb == nullptr || numSamples == 0) {
+    if (rb == nullptr) {
         return;
     }
+    if (!rb->is_stream_started()) return;
     if (reset != 0) {
-        g_child_stream_resets.fetch_add(1, std::memory_order_relaxed);
+        rb->set_ready(false);
+        _exit(2); // Discontinuity: do not queue this callback's samples.
     }
-    if (!rb->is_stream_started()) {
-        return;
+    if (numSamples == 0) return;
+    try {
+        (void)rb->write(xi, xq, static_cast<uint32_t>(numSamples));
+    } catch (...) {
+        rb->set_ready(false);
+        _exit(3); // Never unwind through the vendor's C callback.
     }
-    (void)rb->write(xi, xq, static_cast<uint32_t>(numSamples));
 }
 
 void sdr_event_callback([[maybe_unused]] sdrplay_api_EventT eventId,
@@ -783,6 +640,28 @@ void convert_linear_auto_power_to_db(const std::vector<double>& linear_val,
     }
 }
 
+bool set_gpio_level(int pin, bool high) noexcept {
+    char command[64];
+    const int n = std::snprintf(command, sizeof(command), "pinctrl set %d op %s",
+                                pin, high ? "dh" : "dl");
+    return n > 0 && static_cast<size_t>(n) < sizeof(command) &&
+           std::system(command) == 0;
+}
+
+bool force_antenna_off() noexcept {
+    // Attempt BOTH outputs even if the first command fails.
+    const bool noise_ok = set_gpio_level(SolarConfig::Hardware::PIN_NOISE_SOURCE, false);
+    const bool switch_ok = set_gpio_level(SolarConfig::Hardware::PIN_RF_SWITCH, false);
+    return noise_ok && switch_ok;
+}
+
+struct SafeGpioOnExit {
+    ~SafeGpioOnExit() {
+        if (!force_antenna_off())
+            std::cerr << "[GPIO ERROR] Unable to command safe GPIO levels.\n";
+    }
+};
+
 uint64_t current_utc_timestamp_us() noexcept {
     const auto now = std::chrono::system_clock::now();
     return static_cast<uint64_t>(
@@ -832,6 +711,12 @@ int main(int argc, char* argv[]) {
     std::string lock_err;
     if (!instance_lock.acquire(lock_err)) {
         std::cerr << "[LỖI KHÓA PHIÊN] " << lock_err << "\n";
+        return 1;
+    }
+
+    SafeGpioOnExit safe_gpio;
+    if (!force_antenna_off()) {
+        std::cerr << "[FATAL] Unable to command Noise OFF / Antenna.\n";
         return 1;
     }
 
@@ -918,7 +803,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     if (children.pid1 == 0) {
-        instance_lock.release();
+        instance_lock.close_in_child();
         run_sdr_producer_process(1, ser_ch1, SolarConfig::SHM::CH1_NAME);
     }
 
@@ -930,17 +815,23 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     if (children.pid2 == 0) {
-        instance_lock.release();
+        instance_lock.close_in_child();
         run_sdr_producer_process(2, ser_ch2, SolarConfig::SHM::CH2_NAME);
     }
 
     std::optional<HardwareGuard> hw_guard;
-    if (!cli.skip_align) {
-        hw_guard.emplace(); // Gọi HardwareGuard() mặc định: bật Cal + Noise Source 15V
-    }
     int exit_code = 0;
 
     try {
+        if (!cli.skip_align) {
+            hw_guard.emplace();
+            // The immutable guard ignores system() status; reassert and check.
+            if (!set_gpio_level(SolarConfig::Hardware::PIN_RF_SWITCH, true) ||
+                !set_gpio_level(SolarConfig::Hardware::PIN_NOISE_SOURCE, true))
+                throw std::runtime_error("GPIO calibration command failed");
+            std::this_thread::sleep_for(std::chrono::milliseconds(
+                SolarConfig::Hardware::WARMUP_DELAY_MS));
+        }
         std::unique_ptr<SharedMemoryRingBuffer> rb1_ptr;
         std::unique_ptr<SharedMemoryRingBuffer> rb2_ptr;
 
@@ -974,6 +865,14 @@ int main(int argc, char* argv[]) {
 
         SharedMemoryRingBuffer& rb1 = *rb1_ptr;
         SharedMemoryRingBuffer& rb2 = *rb2_ptr;
+
+        // Perform FFTW_MEASURE before enabling writes to the ring buffers.
+        FXCorrelator::Options fx_opts {};
+        fx_opts.fft_size = SolarConfig::Correlator::FFT_SIZE;
+        fx_opts.frames = SolarConfig::Correlator::INTEGRATION_FRAMES;
+        fx_opts.running = &g_running;
+        FXCorrelator fx(fx_opts);
+
 
         std::cout << "[Supervisor] Đang chờ cả 2 bộ thu RSPdx hoàn tất khởi tạo phần cứng...\n";
         const auto hw_ready_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
@@ -1030,6 +929,24 @@ int main(int argc, char* argv[]) {
             return false;
         };
 
+        uint32_t aligned_drops1 = rb1.get_overflow_count();
+        uint32_t aligned_drops2 = rb2.get_overflow_count();
+        auto check_alignment_health = [&]() {
+            std::string err;
+            if (!children.check_children_alive(err) || !rb1.is_ready() || !rb2.is_ready())
+                throw std::runtime_error("[ALIGNMENT_LOST] Producer stopped/reset: " + err);
+            if (is_sample_aligned &&
+                (rb1.get_overflow_count() != aligned_drops1 ||
+                 rb2.get_overflow_count() != aligned_drops2))
+                throw std::runtime_error("[ALIGNMENT_LOST] Sample drop since alignment lock");
+        };
+        auto skip_pair = [&](uint32_t count) {
+            if (!wait_for_samples(count, 3000))
+                throw std::runtime_error("Paired discard timeout/cancellation");
+            if (rb1.skip(count) != count || rb2.skip(count) != count)
+                throw std::runtime_error("Short paired discard");
+        };
+
         if (state != SystemState::STOPPING) {
             if (cli.skip_align) {
                 state = SystemState::UNALIGNED;
@@ -1050,8 +967,13 @@ int main(int argc, char* argv[]) {
                 bool locked = false;
 
                 for (int attempt = 1; attempt <= cli.max_align_retries && g_running.load(std::memory_order_relaxed); ++attempt) {
-                    rb1.flush();
-                    rb2.flush();
+                    const uint32_t trial_ov1 = aligned_drops1;
+                    const uint32_t trial_ov2 = aligned_drops2;
+                    if (rb1.get_overflow_count() != trial_ov1 ||
+                        rb2.get_overflow_count() != trial_ov2)
+                        throw std::runtime_error("[ALIGNMENT_LOST] Drop before alignment trial");
+                    // No independent flush between measurement and retries.
+                    if (attempt > 1) skip_pair(SolarConfig::Alignment::SNAPSHOT_SIZE);
 
                     if (!wait_for_samples(SolarConfig::Alignment::SNAPSHOT_SIZE, 3000)) {
                         if (!g_running.load(std::memory_order_relaxed)) break;
@@ -1060,12 +982,8 @@ int main(int argc, char* argv[]) {
                         continue;
                     }
 
-                    AlignmentResult initial_res {};
-                    const uint32_t av1_before_align = rb1.available_read();
-                    const uint32_t av2_before_align = rb2.available_read();
-
-                    const bool align_ok = api_bridge::execute_buffer_alignment(
-                        aligner, rb1, rb2, initial_res);
+                    const AlignmentResult initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
+                    const bool align_ok = initial_res.is_valid;
 
                     std::cout << std::fixed << std::setprecision(2)
                               << "  [Thử " << attempt << "/" << cli.max_align_retries << "] "
@@ -1077,17 +995,15 @@ int main(int argc, char* argv[]) {
                         continue;
                     }
 
-                    if (rb1.available_read() == av1_before_align &&
-                        rb2.available_read() == av2_before_align &&
-                        initial_res.lag_samples != 0) {
-                        if (initial_res.lag_samples > 0) {
-                            rb1.skip(static_cast<uint32_t>(initial_res.lag_samples));
-                        } else {
-                            rb2.skip(static_cast<uint32_t>(-initial_res.lag_samples));
-                        }
-                    }
+                    const int64_t lag = initial_res.lag_samples;
+                    if (lag > 0 && rb1.skip(uint32_t(lag)) != uint32_t(lag))
+                        throw std::runtime_error("Short alignment skip CH1");
+                    if (lag < 0 && rb2.skip(uint32_t(-lag)) != uint32_t(-lag))
+                        throw std::runtime_error("Short alignment skip CH2");
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    // peek_from_tail does not consume: advance an entire window
+                    // on BOTH channels before verification (no reused samples).
+                    skip_pair(SolarConfig::Alignment::SNAPSHOT_SIZE);
                     if (!wait_for_samples(SolarConfig::Alignment::SNAPSHOT_SIZE, 3000)) {
                         if (!g_running.load(std::memory_order_relaxed)) break;
                         std::cout << "Lỗi chờ mẫu hậu kiểm!\n";
@@ -1098,7 +1014,12 @@ int main(int argc, char* argv[]) {
                     std::cout << "Hậu kiểm: k = " << verify_res.lag_samples << " mẫu, PNR = "
                               << verify_res.pnr_db << " dB ";
 
-                    if (verify_res.is_valid && std::abs(verify_res.lag_samples) <= 1) {
+                    if (rb1.get_overflow_count() != trial_ov1 ||
+                        rb2.get_overflow_count() != trial_ov2)
+                        throw std::runtime_error("[ALIGNMENT_LOST] Drop during alignment trial");
+                    if (verify_res.is_valid && verify_res.lag_samples == 0) {
+                        aligned_drops1 = trial_ov1;
+                        aligned_drops2 = trial_ov2;
                         std::cout << "=> [LOCKED k=" << verify_res.lag_samples << "]\n";
                         locked = true;
                         is_sample_aligned = true;
@@ -1124,12 +1045,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (state != SystemState::STOPPING) {
-            FXCorrelator::Options fx_opts {};
-            fx_opts.fft_size = SolarConfig::Correlator::FFT_SIZE;
-            fx_opts.frames   = SolarConfig::Correlator::INTEGRATION_FRAMES;
-            fx_opts.running  = &g_running;
-
-            FXCorrelator fx(fx_opts);
+            check_alignment_health();
 
             const size_t n_bins = SolarConfig::Correlator::FFT_SIZE;
             std::vector<float> phi_rad(n_bins, 0.0f);
@@ -1143,10 +1059,12 @@ int main(int argc, char* argv[]) {
                 state = SystemState::CALIBRATING;
                 std::cout << "\n[STATE: CALIBRATING] Đang chụp đáp tuyến pha thiết bị tĩnh (phi_rad) khi Noise Source đang bật...\n";
 
+                check_alignment_health();
                 if (!api_bridge::invoke_prime_buffers(fx, rb1, rb2)) {
                     throw std::runtime_error("Lỗi prime_buffers() trước khi chạy chu kỳ --cal-phase.");
                 }
 
+                check_alignment_health();
                 const uint32_t ov1_before = rb1.get_overflow_count();
                 const uint32_t ov2_before = rb2.get_overflow_count();
 
@@ -1173,10 +1091,11 @@ int main(int argc, char* argv[]) {
                         }
                         mean_coherence += static_cast<double>(coherence[k]);
                         if (coherence[k] >= kMinCalCoherence) {
-                            phi_rad[k] = -phase_rad[k];
+                            // Output k is shifted; phi is indexed in natural FFT order.
+                            phi_rad[(k + n_bins / 2) % n_bins] = phase_rad[k];
                             locked_phase_bins++;
                         } else {
-                            phi_rad[k] = 0.0f;
+                            phi_rad[(k + n_bins / 2) % n_bins] = 0.0f;
                         }
                     }
                     mean_coherence /= static_cast<double>(n_bins);
@@ -1199,13 +1118,19 @@ int main(int argc, char* argv[]) {
                 const uint32_t ov1_pre_sw = rb1.get_overflow_count();
                 const uint32_t ov2_pre_sw = rb2.get_overflow_count();
 
+                check_alignment_health();
                 hw_guard->turn_off();
+                if (!force_antenna_off()) throw std::runtime_error("GPIO observation command failed");
+                std::this_thread::sleep_for(std::chrono::milliseconds(
+                    SolarConfig::Hardware::SWITCH_SETTLE_MS));
+                check_alignment_health();
 
-                const uint32_t common_avail = std::min(rb1.available_read(), rb2.available_read());
-                if (common_avail > 0) {
-                    (void)rb1.skip(common_avail);
-                    (void)rb2.skip(common_avail);
-                }
+                // Discard every sample already committed on EITHER channel.
+                // Wait for the lagging producer, then advance both tails equally.
+                // This is a SHM watermark, not a bound on USB/SDR in-flight data.
+                const uint32_t boundary = std::max(rb1.available_read(), rb2.available_read());
+                skip_pair(boundary);
+                check_alignment_health();
 
                 if (rb1.get_overflow_count() != ov1_pre_sw || rb2.get_overflow_count() != ov2_pre_sw) {
                     throw std::runtime_error(
@@ -1214,6 +1139,7 @@ int main(int argc, char* argv[]) {
             }
 
             if (state != SystemState::STOPPING) {
+                check_alignment_health();
                 if (!api_bridge::invoke_prime_buffers(fx, rb1, rb2)) {
                     if (g_running.load(std::memory_order_relaxed)) {
                         throw std::runtime_error("Lỗi prime_buffers() khởi tạo cửa sổ trượt 50% Welch.");
@@ -1222,6 +1148,7 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            check_alignment_health();
             TelemetrySender sender_s12(cli.dest_ip, cli.port_s12);
             std::optional<TelemetrySender> sender_s11;
             std::optional<TelemetrySender> sender_s22;
@@ -1276,7 +1203,7 @@ int main(int argc, char* argv[]) {
 
                     const uint32_t ov1_after = rb1.get_overflow_count();
                     const uint32_t ov2_after = rb2.get_overflow_count();
-                    const bool overflow_occurred = (ov1_after > ov1_before) || (ov2_after > ov2_before);
+                    const bool overflow_occurred = (ov1_after != ov1_before) || (ov2_after != ov2_before);
 
                     if (!cycle_ok || overflow_occurred) {
                         state = SystemState::RECOVERING;
@@ -1287,7 +1214,7 @@ int main(int argc, char* argv[]) {
                                   << (cycle_err_msg.empty() ? "" : (", err=" + cycle_err_msg)) << ").\n";
 
                         if (is_phase_calibrated) {
-                            std::cerr << "[FATAL][FAIL-CLOSED] Tràn bộ đệm làm mất mốc đồng bộ mẫu, "
+                            std::cerr << "[FATAL][ALIGNMENT_LOST][FAIL-CLOSED] Tràn bộ đệm làm mất mốc đồng bộ mẫu, "
                                       << "khiến vector hiệu chuẩn pha tĩnh (--cal-phase) không còn hợp lệ. "
                                       << "Dừng hệ thống để bảo vệ dữ liệu!\n";
                             state = SystemState::STOPPING;
@@ -1322,6 +1249,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
 
+                    check_alignment_health();
                     convert_linear_auto_power_to_db(fx.auto_power1(), s11_db);
                     convert_linear_auto_power_to_db(fx.auto_power2(), s22_db);
 
@@ -1367,12 +1295,13 @@ int main(int argc, char* argv[]) {
                                                     static_cast<double>(SolarConfig::SHM::BUFFER_CAPACITY);
 
                         std::cout << "[" << state_to_string(state, is_sample_aligned, is_phase_calibrated) << "] "
-                                  << "Frame #" << std::setw(5) << valid_frames_count << " | "
+                                  << "Frame #" << std::setw(5) << (valid_frames_count - 1) << " | "
                                   << std::fixed << std::setprecision(2)
                                   << "|S12|_max=" << peak_s12_val << " dB @" << std::setprecision(3) << peak_freq_mhz << " MHz | "
                                   << std::setprecision(1)
                                   << "S11=" << peak_s11_val << " dB, S22=" << peak_s22_val << " dB | "
-                                  << std::setprecision(3) << "Coh_max=" << max_coh_val << " | "
+                                  << std::setprecision(3) << "Coh_max=" << max_coh_val
+                                  << " Phase@S12peak=" << phase_rad[peak_s12_bin] << " rad | "
                                   << std::setprecision(1)
                                   << "RB=" << fill_ch1_pct << "%/" << fill_ch2_pct << "% "
                                   << "(Drop=" << rb1.get_overflow_count() << "/" << rb2.get_overflow_count() << ") | "
@@ -1416,7 +1345,7 @@ int main(int argc, char* argv[]) {
     children.terminate_and_reap_all();
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
-    instance_lock.release();
+    // Keep the lock until safe_gpio and all other guards have been destroyed.
 
     std::cout << "[Supervisor] Hoàn tất đóng hệ thống an toàn (exit_code = " << exit_code << ").\n";
     return exit_code;
