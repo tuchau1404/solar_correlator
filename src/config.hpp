@@ -60,4 +60,18 @@ namespace Hardware {
         constexpr int SWITCH_SETTLE_MS    = 100; // Thời gian trễ gạt tiếp điểm RF (ms)
     }
 
+
+
+namespace Network {
+
+        constexpr uint16_t UDP_PORT     = 9999;
+        constexpr uint16_t UDP_PORT_S12 = 9999;
+        constexpr uint16_t UDP_PORT_S11 = 9998;
+        constexpr uint16_t UDP_PORT_S22 = 9997;
+        constexpr uint16_t UDP_PORT_AUX = 9996;
+    }
+
+
 } // namespace SolarConfig
+
+
