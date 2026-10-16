@@ -16,7 +16,7 @@
 #include "dsp_config.hpp"
 #include "network_config.hpp"
 
-// SOL2 v2: all integers and IEEE-754 binary32 payload words are big-endian.
+// SOL2 v2 (legacy) / v3 (typed): all integers and IEEE-754 binary32 payload words are big-endian.
 // No ABI struct is placed on the wire. One instance has one sending thread.
 class TelemetrySender {
 public:
@@ -34,21 +34,29 @@ public:
     };
     struct Result { bool queued; unsigned datagrams; int error; };
 
-    explicit TelemetrySender(const std::string& ip, std::uint16_t port) {
-        dest_.sin_family = AF_INET;
-        dest_.sin_port = htons(port);
-        if (port == 0 || inet_pton(AF_INET, ip.c_str(), &dest_.sin_addr) != 1)
-            throw std::invalid_argument("Invalid destination IPv4/port");
-        // Initialization only. A fresh session distinguishes sender restarts.
-        auto* p = reinterpret_cast<unsigned char*>(&session_);
+    enum class Payload : std::uint32_t { Legacy = 0, S12 = 1, S11 = 2, S22 = 3, Phase = 4, Coherence = 5 };
+    static std::uint64_t new_session() {
+        std::uint64_t value{};
+        auto* p = reinterpret_cast<unsigned char*>(&value);
         std::size_t done = 0;
-        while (done < sizeof(session_)) {
-            const auto n = getrandom(p + done, sizeof(session_) - done, 0);
+        while (done < sizeof(value)) {
+            const auto n = getrandom(p + done, sizeof(value) - done, 0);
             if (n < 0 && errno == EINTR) continue;
             if (n <= 0) throw std::system_error(n < 0 ? errno : EIO, std::generic_category(), "getrandom");
             done += static_cast<std::size_t>(n);
         }
-        if (!session_) session_ = 1;
+        return value ? value : 1;
+    }
+    // The two-argument constructor is explicitly legacy v2 for existing tools.
+    explicit TelemetrySender(const std::string& ip, std::uint16_t port,
+                             std::uint64_t session = 0, Payload type = Payload::Legacy)
+        : session_(session ? session : new_session()), type_(type) {
+        if (static_cast<unsigned>(type) > 5 || (type != Payload::Legacy && !session))
+            throw std::invalid_argument("v3 requires a shared nonzero session and known type");
+        dest_.sin_family = AF_INET;
+        dest_.sin_port = htons(port);
+        if (port == 0 || inet_pton(AF_INET, ip.c_str(), &dest_.sin_addr) != 1)
+            throw std::invalid_argument("Invalid destination IPv4/port");
         sock_ = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
         if (sock_ < 0) throw std::system_error(errno, std::generic_category(), "socket");
         try {
@@ -80,10 +88,10 @@ public:
         if (values.size() != bins) return invalid();
         for (float x : values) if (!std::isfinite(x)) return invalid();
         put(0, SolarConfig::Network::TELEMETRY_MAGIC, 4);
-        put(4, 2, 2); put(6, header_bytes, 2);
+        put(4, type_ == Payload::Legacy ? 2 : 3, 2); put(6, header_bytes, 2);
         put(8, session_, 8); put(16, id, 8); put(24, utc_us, 8);
         put(32, SolarConfig::Correlator::INTEGRATION_FRAMES, 4);
-        put(36, 1, 4); // 10log10(|S12| / (1 ADC-count^2/bin)), fftshifted
+        put(36, 1 | (static_cast<std::uint32_t>(type_) << 8), 4); // fftshifted + v3 payload type
         put(40, bins, 2); put(44, chunks, 2); put(46, chunk_bins, 2);
         unsigned sent = 0;
         for (std::size_t c = 0; c < chunks; ++c) {
@@ -123,5 +131,6 @@ private:
     sockaddr_in dest_{};
     std::uint64_t session_{};
     std::array<std::uint8_t, packet_bytes> packet_{};
+    Payload type_;
     Stats stats_{};
 };

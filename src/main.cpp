@@ -106,8 +106,8 @@ struct CliOptions {
     uint16_t port_s12        = SolarConfig::Network::UDP_PORT_S12;
     uint16_t port_s11        = SolarConfig::Network::UDP_PORT_S11;
     uint16_t port_s22        = SolarConfig::Network::UDP_PORT_S22;
-    uint16_t port_aux        = SolarConfig::Network::UDP_PORT_AUX;
-    std::string aux_mode     = "coherence";
+    uint16_t port_phase = SolarConfig::Network::UDP_PORT_PHASE;
+    uint16_t port_coherence = SolarConfig::Network::UDP_PORT_COHERENCE;
     bool skip_align          = false;
     bool cal_phase           = false;
     int max_align_retries    = 5;
@@ -120,14 +120,14 @@ void print_usage(const char* prog_name) {
     std::cout
         << "Sử dụng: " << prog_name << " [TÙY CHỌN]\n\n"
         << "Chương trình điều phối trung tâm Giao thoa kế Vô tuyến Mặt Trời (30.0 - 40.0 MHz)\n"
-        << "Chuỗi xử lý: Dual SDRplay RSPdx -> POSIX SHM & Time Alignment -> Welch FX Correlator -> Multi-Port SOL2 v2 UDP\n\n"
+        << "Chuỗi xử lý: Dual SDRplay RSPdx -> POSIX SHM & Time Alignment -> Welch FX Correlator -> Multi-Port SOL2 v3 UDP\n\n"
         << "Tùy chọn dòng lệnh:\n"
         << "  --dest-ip <ip>            Địa chỉ IPv4 nhận Telemetry UDP (mặc định: " << SolarConfig::Network::UDP_DEST_IP << ")\n"
         << "  --port-s12 <1..65535>     Cổng UDP chính phát phổ |S12| dB (mặc định: " << SolarConfig::Network::UDP_PORT_S12 << ")\n"
         << "  --port-s11 <0..65535>     Cổng UDP phát phổ tự thân S11 dB; 0 để tắt (mặc định: " << SolarConfig::Network::UDP_PORT_S11 << ")\n"
         << "  --port-s22 <0..65535>     Cổng UDP phát phổ tự thân S22 dB; 0 để tắt (mặc định: " << SolarConfig::Network::UDP_PORT_S22 << ")\n"
-        << "  --port-aux <0..65535>     Cổng UDP phát kênh phụ trợ; 0 để tắt (mặc định: " << SolarConfig::Network::UDP_PORT_AUX << ")\n"
-        << "  --aux-mode <mode>         Chế độ kênh phụ trợ: 'coherence' hoặc 'phase' (mặc định: coherence)\n"
+        << "  --port-phase <0..65535>   Phase rad, default 9996; 0 disables\n"
+        << "  --port-coherence <0..65535> Coherence amplitude gamma, default 9995; 0 disables\n"
         << "  --skip-align, --no-align  Bỏ qua căn chỉnh trễ mẫu Module 2 (chế độ chẩn đoán CW / tải giả 50 Ohm)\n"
         << "  --cal-phase               Chụp và bù pha thiết bị tĩnh (phi_rad) ngay sau khi khóa mẫu k = 0\n"
         << "  --max-align-retries <n>   Số lần thử căn chỉnh tối đa ở Module 2 (mặc định: 5)\n"
@@ -203,21 +203,17 @@ bool parse_and_validate_cli(int argc, char* argv[], CliOptions& opts, std::strin
                 err_msg = "Giá trị --port-s22 không hợp lệ (bắt buộc 0 hoặc 1..65535): " + std::string(v);
                 return false;
             }
-        } else if (arg == "--port-aux") {
+        } else if (arg == "--port-phase" || arg == "--port-coherence") {
             const char* v = require_next(arg);
             if (!v) return false;
-            if (!parse_port_value(v, true, opts.port_aux)) {
-                err_msg = "Giá trị --port-aux không hợp lệ (bắt buộc 0 hoặc 1..65535): " + std::string(v);
+            auto& port = arg == "--port-phase" ? opts.port_phase : opts.port_coherence;
+            if (!parse_port_value(v, true, port)) {
+                err_msg = "Invalid port (0..65535): " + arg;
                 return false;
             }
-        } else if (arg == "--aux-mode") {
-            const char* v = require_next(arg);
-            if (!v) return false;
-            opts.aux_mode = v;
-            if (opts.aux_mode != "coherence" && opts.aux_mode != "phase") {
-                err_msg = "Giá trị --aux-mode không hợp lệ (chỉ chấp nhận 'coherence' hoặc 'phase'): " + opts.aux_mode;
-                return false;
-            }
+        } else if (arg == "--port-aux" || arg == "--aux-mode") {
+            err_msg = "SOL2 v3: replace --port-aux/--aux-mode with --port-phase and --port-coherence";
+            return false;
         } else if (arg == "--skip-align" || arg == "--no-align") {
             opts.skip_align = true;
         } else if (arg == "--cal-phase") {
@@ -258,7 +254,8 @@ bool parse_and_validate_cli(int argc, char* argv[], CliOptions& opts, std::strin
     active_ports.emplace_back("--port-s12", opts.port_s12);
     if (opts.port_s11 > 0) active_ports.emplace_back("--port-s11", opts.port_s11);
     if (opts.port_s22 > 0) active_ports.emplace_back("--port-s22", opts.port_s22);
-    if (opts.port_aux > 0) active_ports.emplace_back("--port-aux", opts.port_aux);
+    if (opts.port_phase > 0) active_ports.emplace_back("--port-phase", opts.port_phase);
+    if (opts.port_coherence > 0) active_ports.emplace_back("--port-coherence", opts.port_coherence);
 
     for (size_t i = 0; i < active_ports.size(); ++i) {
         for (size_t j = i + 1; j < active_ports.size(); ++j) {
@@ -789,12 +786,11 @@ int main(int argc, char* argv[]) {
     std::cout << "[Hardware] Ánh xạ thiết bị thu SDRplay RSPdx (REFin 24 MHz, LO = 35.0 MHz, fs = 10.0 MSPS):\n";
     std::cout << "  + Kênh 1 (CH1 -> " << SolarConfig::SHM::CH1_NAME << ") <-> Serial: " << ser_ch1 << "\n";
     std::cout << "  + Kênh 2 (CH2 -> " << SolarConfig::SHM::CH2_NAME << ") <-> Serial: " << ser_ch2 << "\n";
-    std::cout << "[Network] Cấu hình SOL2 v2 UDP Telemetry (Đích: " << cli.dest_ip << "):\n";
+    std::cout << "[Network] Cấu hình SOL2 v3 UDP Telemetry (Đích: " << cli.dest_ip << "):\n";
     std::cout << "  + S12 (Cross-Power dB) : Port " << cli.port_s12 << " [ENABLED]\n";
     std::cout << "  + S11 (Auto-Power 1 dB): " << (cli.port_s11 > 0 ? ("Port " + std::to_string(cli.port_s11)) : "DISABLED (0)") << "\n";
     std::cout << "  + S22 (Auto-Power 2 dB): " << (cli.port_s22 > 0 ? ("Port " + std::to_string(cli.port_s22)) : "DISABLED (0)") << "\n";
-    std::cout << "  + AUX (" << std::setw(9) << std::left << cli.aux_mode << ")      : "
-              << (cli.port_aux > 0 ? ("Port " + std::to_string(cli.port_aux)) : "DISABLED (0)") << "\n";
+    std::cout << "  + Phase rad: " << cli.port_phase << " | Coherence gamma: " << cli.port_coherence << " (0=disabled)\n";
 
     ChildProcessGuard children;
     children.pid1 = ::fork();
@@ -1149,19 +1145,22 @@ int main(int argc, char* argv[]) {
             }
 
             check_alignment_health();
-            TelemetrySender sender_s12(cli.dest_ip, cli.port_s12);
+            const auto telemetry_session = TelemetrySender::new_session();
+            using Payload = TelemetrySender::Payload;
+            TelemetrySender sender_s12(cli.dest_ip, cli.port_s12, telemetry_session, Payload::S12);
             std::optional<TelemetrySender> sender_s11;
             std::optional<TelemetrySender> sender_s22;
-            std::optional<TelemetrySender> sender_aux;
+            std::optional<TelemetrySender> sender_phase, sender_coherence;
 
-            if (cli.port_s11 > 0) sender_s11.emplace(cli.dest_ip, cli.port_s11);
-            if (cli.port_s22 > 0) sender_s22.emplace(cli.dest_ip, cli.port_s22);
-            if (cli.port_aux > 0) sender_aux.emplace(cli.dest_ip, cli.port_aux);
+            if (cli.port_s11 > 0) sender_s11.emplace(cli.dest_ip, cli.port_s11, telemetry_session, Payload::S11);
+            if (cli.port_s22 > 0) sender_s22.emplace(cli.dest_ip, cli.port_s22, telemetry_session, Payload::S22);
+            if (cli.port_phase > 0) sender_phase.emplace(cli.dest_ip, cli.port_phase, telemetry_session, Payload::Phase);
+            if (cli.port_coherence > 0) sender_coherence.emplace(cli.dest_ip, cli.port_coherence, telemetry_session, Payload::Coherence);
 
             api_bridge::PortTelemetryStats stats_s12 {};
             api_bridge::PortTelemetryStats stats_s11 {};
             api_bridge::PortTelemetryStats stats_s22 {};
-            api_bridge::PortTelemetryStats stats_aux {};
+            api_bridge::PortTelemetryStats stats_phase {}, stats_coherence {};
 
             if (state != SystemState::STOPPING) {
                 state = SystemState::RUNNING;
@@ -1169,7 +1168,7 @@ int main(int argc, char* argv[]) {
                           << "] Bắt đầu vòng lặp tích phân Welch FX Correlator (~200 ms/frame)...\n";
                 std::cout << "--------------------------------------------------------------------------------\n";
 
-                uint64_t valid_frames_count = 0;
+                uint64_t telemetry_frame_id = 0;
                 int diag_recovery_count = 0;
                 constexpr int kMaxDiagRecoveries = 5;
                 auto last_report_time = std::chrono::steady_clock::now();
@@ -1206,6 +1205,7 @@ int main(int argc, char* argv[]) {
                     const bool overflow_occurred = (ov1_after != ov1_before) || (ov2_after != ov2_before);
 
                     if (!cycle_ok || overflow_occurred) {
+                        ++telemetry_frame_id; // visible gap after a discarded integration
                         state = SystemState::RECOVERING;
                         std::cerr << "\n[STATE: RECOVERING] Phát hiện gián đoạn chu kỳ tích phân "
                                   << "(cycle_ok=" << cycle_ok
@@ -1255,20 +1255,17 @@ int main(int argc, char* argv[]) {
 
                     const uint64_t timestamp_us = current_utc_timestamp_us();
 
-                    api_bridge::dispatch_udp_spectrum(sender_s12, valid_frames_count, timestamp_us, s12_db, stats_s12);
+                    api_bridge::dispatch_udp_spectrum(sender_s12, telemetry_frame_id, timestamp_us, s12_db, stats_s12);
                     if (sender_s11.has_value()) {
-                        api_bridge::dispatch_udp_spectrum(*sender_s11, valid_frames_count, timestamp_us, s11_db, stats_s11);
+                        api_bridge::dispatch_udp_spectrum(*sender_s11, telemetry_frame_id, timestamp_us, s11_db, stats_s11);
                     }
                     if (sender_s22.has_value()) {
-                        api_bridge::dispatch_udp_spectrum(*sender_s22, valid_frames_count, timestamp_us, s22_db, stats_s22);
+                        api_bridge::dispatch_udp_spectrum(*sender_s22, telemetry_frame_id, timestamp_us, s22_db, stats_s22);
                     }
-                    if (sender_aux.has_value()) {
-                        const std::vector<float>& aux_vec =
-                            (cli.aux_mode == "phase") ? phase_rad : coherence;
-                        api_bridge::dispatch_udp_spectrum(*sender_aux, valid_frames_count, timestamp_us, aux_vec, stats_aux);
-                    }
+                    if (sender_phase) api_bridge::dispatch_udp_spectrum(*sender_phase, telemetry_frame_id, timestamp_us, phase_rad, stats_phase);
+                    if (sender_coherence) api_bridge::dispatch_udp_spectrum(*sender_coherence, telemetry_frame_id, timestamp_us, coherence, stats_coherence);
 
-                    valid_frames_count++;
+                    telemetry_frame_id++;
 
                     const auto now_steady = std::chrono::steady_clock::now();
                     if (std::chrono::duration<double>(now_steady - last_report_time).count() >= 5.0) {
@@ -1295,7 +1292,7 @@ int main(int argc, char* argv[]) {
                                                     static_cast<double>(SolarConfig::SHM::BUFFER_CAPACITY);
 
                         std::cout << "[" << state_to_string(state, is_sample_aligned, is_phase_calibrated) << "] "
-                                  << "Frame #" << std::setw(5) << (valid_frames_count - 1) << " | "
+                                  << "Frame #" << std::setw(5) << (telemetry_frame_id - 1) << " | "
                                   << std::fixed << std::setprecision(2)
                                   << "|S12|_max=" << peak_s12_val << " dB @" << std::setprecision(3) << peak_freq_mhz << " MHz | "
                                   << std::setprecision(1)
@@ -1313,9 +1310,8 @@ int main(int argc, char* argv[]) {
                         if (sender_s22.has_value()) {
                             std::cout << " s22:" << stats_s22.frames_complete << "/" << stats_s22.send_errors;
                         }
-                        if (sender_aux.has_value()) {
-                            std::cout << " aux:" << stats_aux.frames_complete << "/" << stats_aux.send_errors;
-                        }
+                        if (sender_phase) std::cout << " phase:" << stats_phase.frames_complete << "/" << stats_phase.send_errors;
+                        if (sender_coherence) std::cout << " coherence:" << stats_coherence.frames_complete << "/" << stats_coherence.send_errors;
                         std::cout << "]\n";
 
                         last_report_time = now_steady;

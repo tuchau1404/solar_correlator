@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-"""SOL2 FX Interferometer Hybrid Spectrum & Multi-Scale Waterfall Monitor.
+"""SOL2 v3 CW / solar display, bounded frame matching and phase quality masking.
 
-Reuses the audited telemetry_protocol.Receiver worker without modification.
-Supports:
-  - Primary cross-power spectrum |S12| (fast 200 ms frames + deep N-frame integration)
-  - Optional simultaneous auto-power overlays S11 and S22 on auxiliary UDP ports
-  - Optional auxiliary phase / coherence curve on a dedicated UDP port
-  - Frame-indexed zero-roll ring buffers with NaN gap filling and Vietnam Time (UTC+7)
+Legacy v2 remains in viewer.py / viewer_dual.py and is rejected here.
 """
 import argparse
 from datetime import datetime, timezone, timedelta
@@ -16,7 +11,8 @@ import time
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets
-from telemetry_protocol import Receiver, BINS
+from telemetry_protocol import Receiver, BINS, FrameJoiner, S12, S11, S22, PHASE, COHERENCE
+from science_model import ObservationHistory
 
 HISTORY = 300
 START, STOP = 30.0, 40.0
@@ -133,439 +129,240 @@ class DeepIntegrator:
         return completed
 
 
-class AuxiliaryChannelState:
-    """Trạng thái nhận gói tin của các kênh phụ trợ (S11, S22, Coherence/Phase)."""
+class VietnamTimeAxis(pg.AxisItem):
+    def tickStrings(self, values, scale, spacing):
+        return [datetime.fromtimestamp(v, TZ_VN).strftime('%H:%M:%S')
+                if np.isfinite(v) and v > 0 else '' for v in values]
 
-    def __init__(self, receiver, port):
-        self.receiver = receiver
-        self.port = port
-        self.latest = None
-        self.arrived = None
-        self.stats = {}
-        self.skips = 0
-        self.error = None
-        self.peak_db = None
-        self.peak_freq = None
 
-    def poll(self, freq_axis):
-        if self.receiver is None:
-            return False
-        frames, self.stats, self.skips, self.error = self.receiver.take()
-        if not frames:
-            return False
-        session, frame, stamp, count, values = frames[-1]
-        self.latest = (session, frame, stamp, count, values)
-        self.arrived = time.monotonic()
-        peak_idx = int(np.nanargmax(values))
-        self.peak_db = float(values[peak_idx])
-        self.peak_freq = float(freq_axis[peak_idx])
-        return True
+class SlotTimeAxis(pg.AxisItem):
+    """Frame slots can be irregular in UTC; label actual received timestamps."""
+    def __init__(self, model, **kwargs):
+        super().__init__(**kwargs)
+        self.model = model
+
+    def tickStrings(self, values, scale, spacing):
+        rows = list(self.model.rows)
+        labels = []
+        for v in values:
+            i = int(np.floor(v)) - (self.model.capacity - len(rows))
+            row = rows[i] if 0 <= i < len(rows) else None
+            labels.append(datetime.fromtimestamp(row[2]/1e6, TZ_VN).strftime('%H:%M:%S') if row else '')
+        return labels
 
 
 class FXViewer(QtWidgets.QMainWindow):
-    """Cửa sổ chính hiển thị phổ giao thoa FX |S12|, lồng phổ S11/S22 và 2 tầng thác nước."""
-
-    def __init__(
-        self,
-        rx_s12,
-        port_s12,
-        deep_frames=5,
-        rx_s11=None,
-        port_s11=None,
-        rx_s22=None,
-        port_s22=None,
-        rx_aux=None,
-        port_aux=None,
-        aux_mode='coherence',
-    ):
+    def __init__(self, receivers, mode='cw', deep_frames=5, frequency=35.5, threshold=.5):
         super().__init__()
-        self.rx_s12 = rx_s12
-        self.port_s12 = port_s12
-        self.deep_frames = max(1, int(deep_frames))
-        self.aux_mode = aux_mode
-
-        self.ch_s11 = AuxiliaryChannelState(rx_s11, port_s11) if rx_s11 is not None else None
-        self.ch_s22 = AuxiliaryChannelState(rx_s22, port_s22) if rx_s22 is not None else None
-        self.ch_aux = AuxiliaryChannelState(rx_aux, port_aux) if rx_aux is not None else None
-
-        ports_summary = [f'|S12|:{port_s12}']
-        if port_s11:
-            ports_summary.append(f'S11:{port_s11}')
-        if port_s22:
-            ports_summary.append(f'S22:{port_s22}')
-        if port_aux:
-            ports_summary.append(f'{aux_mode}:{port_aux}')
-        self.setWindowTitle(
-            f'Solar Correlator — FX Interferometer Viewer ({" | ".join(ports_summary)})'
-        )
-        self.resize(1480, 960)
-
-        graphics = pg.GraphicsLayoutWidget()
-        self.setCentralWidget(graphics)
-
-        self.freq = START + np.arange(BINS) * STEP
-
-        # ====================================================================
-        # HÀNG 0: ĐỒ THỊ PHỔ 1D LỒNG GHÉP (|S12|, <|S12|> deep, S11, S22)
-        # ====================================================================
-        self.spectrum_plot = graphics.addPlot(row=0, col=0)
-        self.spectrum_plot.setTitle('FX Cross-Power Spectrum |S12| — Waiting for SOL2 stream...')
-        self.spectrum_plot.setLabel('bottom', 'Frequency', units='MHz')
-        self.spectrum_plot.setLabel('left', 'Power', units='dB re 1 ADC-count²/bin')
-        self.spectrum_plot.getAxis('bottom').enableAutoSIPrefix(False)
-        self.spectrum_plot.getAxis('left').enableAutoSIPrefix(False)
-        self.spectrum_plot.getAxis('left').setWidth(95)
-        self.spectrum_plot.setXRange(START - STEP / 2, STOP - STEP / 2, padding=0)
-        self.spectrum_plot.setYRange(10, 95)
-        self.spectrum_plot.showGrid(x=True, y=True, alpha=0.22)
-
-        self.legend = self.spectrum_plot.addLegend(offset=(12, 10))
-
-        # Đường S11 và S22
-        self.curve_s11 = None
-        if self.ch_s11 is not None:
-            self.curve_s11 = self.spectrum_plot.plot(
-                pen=pg.mkPen('#38bdf8', width=1.0),
-                name=f'S11 Auto-Power (:{port_s11})',
-            )
-
-        self.curve_s22 = None
-        if self.ch_s22 is not None:
-            self.curve_s22 = self.spectrum_plot.plot(
-                pen=pg.mkPen('#f87171', width=1.0),
-                name=f'S22 Auto-Power (:{port_s22})',
-            )
-
-        # Đường |S12| tức thời và tích phân sâu
-        self.curve_s12_fast = self.spectrum_plot.plot(
-            pen=pg.mkPen('#ffdc32', width=1.25),
-            name=f'|S12| Fast (:{port_s12})',
-        )
-        self.curve_s12_deep = None
-        if self.deep_frames > 1:
-            self.curve_s12_deep = self.spectrum_plot.plot(
-                pen=pg.mkPen('#f97316', width=1.8),
-                name=f'⟨|S12|⟩ Deep ({self.deep_frames}x frames)',
-            )
-
-        self.aux_plot = None
-        self.curve_aux = None
-        if self.ch_aux is not None:
-            self.aux_plot = graphics.addPlot(row=0, col=1)
-            self.aux_plot.setLabel('bottom', 'Frequency', units='MHz')
-            self.aux_plot.getAxis('bottom').enableAutoSIPrefix(False)
-            self.aux_plot.getAxis('left').enableAutoSIPrefix(False)
-            self.aux_plot.setXRange(START - STEP / 2, STOP - STEP / 2, padding=0)
-            self.aux_plot.showGrid(x=True, y=True, alpha=0.22)
-            self.aux_plot.setXLink(self.spectrum_plot)
-            if self.aux_mode == 'phase':
-                self.aux_plot.setTitle(f'Cross-Phase Δϕ [:{port_aux}]')
-                self.aux_plot.setLabel('left', 'Phase', units='rad')
-                self.aux_plot.setYRange(-np.pi, np.pi)
-                self.curve_aux = self.aux_plot.plot(pen=pg.mkPen('#a78bfa', width=1.1))
-            else:
-                self.aux_plot.setTitle(f'Coherence γ12 [:{port_aux}]')
-                self.aux_plot.setLabel('left', 'Coherence', units='')
-                self.aux_plot.setYRange(0.0, 1.05)
-                self.curve_aux = self.aux_plot.plot(pen=pg.mkPen('#34d399', width=1.1))
-
-        # ====================================================================
-        # HÀNG 1: THÁC NƯỚC TƯƠNG QUAN TỨC THỜI (FAST WATERFALL |S12|)
-        # ====================================================================
-        self.wf_fast_plot = graphics.addPlot(row=1, col=0)
-        self.wf_fast_plot.setTitle('Fast Cross-Power Waterfall |S12| (Single-Frame Resolution)')
-        self.wf_fast_plot.setLabel('bottom', 'Frequency', units='MHz')
-        self.wf_fast_plot.setLabel('left', 'Fast slots (newest at 0)')
-        self.wf_fast_plot.getAxis('bottom').enableAutoSIPrefix(False)
-        self.wf_fast_plot.getAxis('left').setWidth(95)
-        self.wf_fast_plot.setXRange(START - STEP / 2, STOP - STEP / 2, padding=0)
-        self.wf_fast_plot.setYRange(-HISTORY, 0, padding=0)
-        self.wf_fast_plot.setXLink(self.spectrum_plot)
-
-        self.buf_fast = WaterfallBuffer(HISTORY, BINS)
-        self.img_fast = pg.ImageItem(
-            self.buf_fast.display, axisOrder='row-major', levels=(20, 85)
-        )
-        self.wf_fast_plot.addItem(self.img_fast)
-        self.img_fast.setRect(
-            QtCore.QRectF(START - STEP / 2, -HISTORY, STOP - START, HISTORY)
-        )
-
-        self.cbar_fast = pg.ColorBarItem(
-            values=(20, 85),
-            colorMap=pg.colormap.get('inferno'),
-            label='Fast |S12| (dB)',
-            interactive=True,
-        )
-        self.cbar_fast.setImageItem(self.img_fast)
-        graphics.addItem(self.cbar_fast, row=1, col=1)
-
-        # ====================================================================
-        # HÀNG 2: THÁC NƯỚC TÍCH PHÂN SÂU (DEEP INTEGRATED WATERFALL ⟨|S12|⟩)
-        # ====================================================================
-        self.wf_deep_plot = graphics.addPlot(row=2, col=0)
-        self.wf_deep_plot.setTitle(
-            f'Deep Integrated Waterfall ⟨|S12|⟩ ({self.deep_frames} frames/slot — High Sensitivity)'
-        )
-        self.wf_deep_plot.setLabel('bottom', 'Frequency', units='MHz')
-        self.wf_deep_plot.setLabel('left', 'Deep slots (newest at 0)')
-        self.wf_deep_plot.getAxis('bottom').enableAutoSIPrefix(False)
-        self.wf_deep_plot.getAxis('left').setWidth(95)
-        self.wf_deep_plot.setXRange(START - STEP / 2, STOP - STEP / 2, padding=0)
-        self.wf_deep_plot.setYRange(-HISTORY, 0, padding=0)
-        self.wf_deep_plot.setXLink(self.spectrum_plot)
-
-        self.integrator = DeepIntegrator(self.deep_frames, BINS)
+        self.receivers = receivers
+        self.model = ObservationHistory(HISTORY, frequency)
+        self.joiner = FrameJoiner(enabled=receivers)
+        self.integrator = DeepIntegrator(deep_frames, BINS)
         self.buf_deep = WaterfallBuffer(HISTORY, BINS)
-        self.img_deep = pg.ImageItem(
-            self.buf_deep.display, axisOrder='row-major', levels=(20, 85)
-        )
+        self.setWindowTitle('Solar Correlator — SOL2 v3 | CW / Solar')
+        self.resize(1480, 1000)
+        root = QtWidgets.QWidget(); layout = QtWidgets.QVBoxLayout(root)
+        controls = QtWidgets.QHBoxLayout(); layout.addLayout(controls)
+        self.mode = QtWidgets.QComboBox(); self.mode.addItems(['CW', 'Solar'])
+        self.mode.setCurrentText(mode.capitalize() if mode == 'solar' else 'CW')
+        controls.addWidget(self.mode)
+        controls.addWidget(QtWidgets.QLabel('Requested MHz:'))
+        self.frequency = QtWidgets.QDoubleSpinBox(); self.frequency.setDecimals(6)
+        self.frequency.setRange(START, STOP-STEP); self.frequency.setSingleStep(STEP)
+        self.frequency.setValue(frequency); controls.addWidget(self.frequency)
+        self.bin_label = QtWidgets.QLabel(); controls.addWidget(self.bin_label)
+        controls.addWidget(QtWidgets.QLabel('Display mask γ ≥'))
+        self.threshold = QtWidgets.QDoubleSpinBox(); self.threshold.setRange(0, 1)
+        self.threshold.setSingleStep(.05); self.threshold.setValue(threshold)
+        controls.addWidget(self.threshold)
+        controls.addWidget(QtWidgets.QLabel('(display threshold; γ=0 always invalid)'))
+        self.graphics = g = pg.GraphicsLayoutWidget(); layout.addWidget(g)
+        self.setCentralWidget(root)
+        self.freq = START + np.arange(BINS) * STEP
+        self.spectrum_plot = g.addPlot(row=0, col=0, colspan=2, title='Matched S11 / S22 / |S12| spectrum')
+        self.spectrum_plot.setLabel('bottom', 'Frequency', units='MHz')
+        self.spectrum_plot.setLabel('left', 'Power', units='dB')
+        self.spectrum_plot.setTitle('Matched S11 / S22 / |S12| — dB re 1 ADC-count²/bin')
+        self.spectrum_plot.setXRange(START-STEP/2, STOP-STEP/2, padding=0)
+        self.spectrum_plot.addLegend()
+        self.curves = {kind: self.spectrum_plot.plot(pen=pg.mkPen(color, width=1), name=name)
+                       for kind, color, name in [(S12, '#ffdc32', '|S12|'), (S11, '#38bdf8', 'S11'), (S22, '#f87171', 'S22')]}
+        self.deep_curve = self.spectrum_plot.plot(pen='#f97316', name='Mean |S12| (linear power average)')
+        self.marker = pg.InfiniteLine(pos=self.model.actual, angle=90, pen='#a78bfa')
+        self.spectrum_plot.addItem(self.marker)
+        self.spectrum_plot.scene().sigMouseClicked.connect(self.spectrum_clicked)
+        self.phase_plot = g.addPlot(row=1, col=0, colspan=2, axisItems={'bottom': VietnamTimeAxis(orientation='bottom')})
+        self.phase_plot.setLabel('bottom', 'Received UTC timestamp → Vietnam UTC+07:00')
+        self.phase_plot.setLabel('left', 'Phase', units='°')
+        self.phase_plot.setYRange(-180, 180, padding=0)
+        self.phase_curve = self.phase_plot.plot(pen='#a78bfa', connect='finite')
+        self.phase_points = pg.ScatterPlotItem(size=3, pen=None, brush='#a78bfa')
+        self.phase_plot.addItem(self.phase_points)
+        self.gamma_plot = g.addPlot(row=2, col=0, colspan=2, axisItems={'bottom': VietnamTimeAxis(orientation='bottom')})
+        self.gamma_plot.setLabel('left', 'γ amplitude')
+        self.gamma_plot.setLabel('bottom', 'Vietnam UTC+07:00')
+        self.gamma_plot.setYRange(0, 1.05); self.gamma_plot.setXLink(self.phase_plot)
+        self.gamma_curve = self.gamma_plot.plot(pen='#34d399', connect='finite')
+        self.mask_line = pg.InfiniteLine(pos=threshold, angle=0, pen='#ef4444'); self.gamma_plot.addItem(self.mask_line)
+        self.wf_fast_plot, self.img_fast, self.cbar_fast = self.make_waterfall(3, '|S12| dB', False)
+        self.wf_phase_plot, self.img_phase, self.cbar_phase = self.make_waterfall(4, 'Phase ° — masked pixels transparent', True)
+        self.wf_deep_plot = g.addPlot(row=5, col=0, title=f'Mean |S12|, {deep_frames} frames/slot (not coherent integration)')
+        self.wf_deep_plot.setLabel('left', 'Deep slots')
+        self.wf_deep_plot.setLabel('bottom', 'Frequency', units='MHz')
+        self.wf_deep_plot.setXLink(self.spectrum_plot)
+        self.wf_deep_plot.enableAutoRange(x=False, y=False)
+        self.wf_deep_plot.setYRange(-HISTORY, 0, padding=0)
+        self.img_deep = pg.ImageItem(self.buf_deep.display, axisOrder='row-major', levels=(0, 1))
         self.wf_deep_plot.addItem(self.img_deep)
-        self.img_deep.setRect(
-            QtCore.QRectF(START - STEP / 2, -HISTORY, STOP - START, HISTORY)
-        )
+        self.img_deep.setRect(QtCore.QRectF(START-STEP/2, -HISTORY, STOP-START, HISTORY))
+        self.cbar_deep = pg.ColorBarItem(values=(20, 85), colorMap=pg.colormap.get('inferno'), label='Mean |S12| dB', interactive=True)
+        self.cbar_deep.setImageItem(self.img_deep); g.addItem(self.cbar_deep, row=5, col=1)
+        for plot in (self.spectrum_plot, self.phase_plot, self.gamma_plot, self.wf_deep_plot):
+            plot.getAxis('left').setWidth(110)
+            plot.getAxis('bottom').enableAutoSIPrefix(False)
+        self.spectrum_plot.setXRange(START-STEP/2, STOP-STEP/2, padding=0)
+        self.frequency.valueChanged.connect(self.select_frequency)
+        self.threshold.valueChanged.connect(self.render)
+        self.mode.currentTextChanged.connect(self.apply_mode)
+        self.select_frequency(self.frequency.value()); self.apply_mode()
+        self.timer = QtCore.QTimer(self); self.timer.timeout.connect(self.update_data); self.timer.start(25)
 
-        self.cbar_deep = pg.ColorBarItem(
-            values=(20, 85),
-            colorMap=pg.colormap.get('inferno'),
-            label='Deep ⟨|S12|⟩ (dB)',
-            interactive=True,
-        )
-        self.cbar_deep.setImageItem(self.img_deep)
-        graphics.addItem(self.cbar_deep, row=2, col=1)
+    def make_waterfall(self, row, title, phase):
+        plot = self.graphics.addPlot(row=row, col=0, title=title,
+                                    axisItems={'left': SlotTimeAxis(self.model, orientation='left')})
+        plot.setLabel('bottom', 'Frequency', units='MHz')
+        plot.getAxis('bottom').enableAutoSIPrefix(False)
+        plot.setLabel('left', 'VN time')
+        plot.getAxis('left').setWidth(110)
+        plot.setXLink(self.spectrum_plot); plot.setYRange(0, HISTORY, padding=0)
+        plot.setMouseEnabled(x=True, y=False)
+        plot.enableAutoRange(x=False, y=False)
+        image = pg.ImageItem(np.full((HISTORY, BINS), np.nan, dtype=np.float32), axisOrder='row-major', levels=(0, 1)); plot.addItem(image)
+        image.setRect(QtCore.QRectF(START-STEP/2, 0, STOP-START, HISTORY))
+        if phase:
+            import colorsys
+            colors = [tuple(round(c*255) for c in colorsys.hsv_to_rgb(i/256, 1, 1)) for i in range(257)]
+            colors[-1] = colors[0]
+            cmap = pg.ColorMap(np.linspace(0, 1, 257), colors)
+        else:
+            cmap = pg.colormap.get('inferno')
+        bar = pg.ColorBarItem(values=(-180, 180) if phase else (20, 85), colorMap=cmap,
+                             label='Phase °' if phase else '|S12| dB', interactive=not phase)
+        bar.setImageItem(image); self.graphics.addItem(bar, row=row, col=1)
+        return plot, image, bar
 
-        graphics.ci.layout.setRowStretchFactor(0, 3)
-        graphics.ci.layout.setRowStretchFactor(1, 3)
-        graphics.ci.layout.setRowStretchFactor(2, 3)
+    def select_frequency(self, frequency):
+        self.model.select(frequency)
+        self.marker.setValue(self.model.actual)
+        self.bin_label.setText(f'Bin {self.model.bin} → {self.model.actual:.6f} MHz')
+        self.render()
 
-        self.latest_s12 = None
-        self.latest_deep = None
-        self.arrived_s12 = None
-        self.peak_s12_db = None
-        self.peak_s12_freq = None
+    def spectrum_clicked(self, event):
+        if event.button() == QtCore.Qt.LeftButton and self.spectrum_plot.sceneBoundingRect().contains(event.scenePos()):
+            frequency = self.spectrum_plot.vb.mapSceneToView(event.scenePos()).x()
+            self.frequency.setValue(float(np.clip(frequency, START, STOP-STEP)))
 
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_data)
-        self.timer.start(25)
+    def apply_mode(self, *_):
+        solar = self.mode.currentText() == 'Solar'
+        for item in (self.wf_phase_plot, self.cbar_phase, self.wf_deep_plot, self.cbar_deep):
+            item.setVisible(solar)
+        self.graphics.ci.layout.setRowStretchFactor(1, 4 if not solar else 2)
 
     def update_data(self):
-        frames_s12, stats_s12, skips_s12, err_s12 = self.rx_s12.take()
-        deep_updated = False
+        reports = []
+        incoming, complete = [], []
+        for kind, receiver in self.receivers.items():
+            frames, stats, skips, error = receiver.take()
+            reports.append(f'{kind}:complete={stats.get("complete",0)} invalid={stats.get("invalid",0)} skips={skips}' + (f' ERROR {error}' if error else ''))
+            incoming.extend((kind, frame) for frame in frames)
+        # Interleave bounded receiver batches; draining one entire port first can
+        # otherwise evict all matching S12 frames before AUX is visited.
+        for kind, frame in sorted(incoming, key=lambda item: (item[1][2], item[1][0], item[1][1], item[0])):
+            self.joiner.add(kind, frame)
+            complete.extend(self.joiner.poll())
+        complete.extend(self.joiner.poll())
+        for observation in complete:
+            self.model.push(observation)
+            session, fid, stamp, count, streams = observation
+            for deep in self.integrator.push(session, fid, stamp, count, streams[S12]):
+                self.buf_deep.push_frame(deep[0], deep[1], deep[4])
+                self.deep_curve.setData(self.freq, deep[4])
+            for kind, curve in self.curves.items():
+                curve.setData(self.freq, streams.get(kind, np.full(BINS, np.nan)))
+        if complete:
+            self.render()
+        self.statusBar().showMessage(' | '.join(reports) + f' | join cache={len(self.joiner.pending)}/{self.joiner.capacity}')
 
-        for session, frame, stamp, count, values in frames_s12:
-            self.buf_fast.push_frame(session, frame, values)
-            self.latest_s12 = (frame, stamp, count, values)
-            self.arrived_s12 = time.monotonic()
-
-            completed_deep = self.integrator.push(session, frame, stamp, count, values)
-            for d_sess, d_frame, d_stamp, d_count, d_values in completed_deep:
-                self.buf_deep.push_frame(d_sess, d_frame, d_values)
-                if not np.all(np.isnan(d_values)):
-                    self.latest_deep = (d_frame, d_stamp, d_count, d_values)
-                deep_updated = True
-
-        if frames_s12:
-            self.img_fast.setImage(self.buf_fast.render_view(), autoLevels=False)
-            frame, stamp, count, values = self.latest_s12
-            self.curve_s12_fast.setData(self.freq, values)
-
-            peak_idx = int(np.nanargmax(values))
-            self.peak_s12_db = float(values[peak_idx])
-            self.peak_s12_freq = float(self.freq[peak_idx])
-
-            dt_vn = datetime.fromtimestamp(stamp / 1e6, tz=timezone.utc).astimezone(TZ_VN)
-            time_str = dt_vn.strftime('%H:%M:%S.%f')[:-3]
-            median_floor = float(np.nanmedian(values))
-            snr_db = self.peak_s12_db - median_floor
-
-            self.spectrum_plot.setTitle(
-                f'FX |S12| Frame {frame} (M={count}) | '
-                f'Peak {self.peak_s12_db:.2f} dB @ {self.peak_s12_freq:.6f} MHz '
-                f'(Floor {median_floor:.2f} dB, ΔSNR {snr_db:+.2f} dB) | Giờ VN: {time_str}'
-            )
-
-        if deep_updated:
-            self.img_deep.setImage(self.buf_deep.render_view(), autoLevels=False)
-            if self.latest_deep is not None:
-                d_frame, d_stamp, d_count, d_values = self.latest_deep
-                if self.curve_s12_deep is not None:
-                    self.curve_s12_deep.setData(self.freq, d_values)
-                d_peak_idx = int(np.nanargmax(d_values))
-                d_peak_db = float(d_values[d_peak_idx])
-                d_peak_freq = float(self.freq[d_peak_idx])
-                d_floor = float(np.nanmedian(d_values))
-                self.wf_deep_plot.setTitle(
-                    f'Deep Integrated Waterfall ⟨|S12|⟩ | Slot #{d_frame} (M_total={d_count}) | '
-                    f'Peak {d_peak_db:.2f} dB @ {d_peak_freq:.6f} MHz (Floor {d_floor:.2f} dB)'
-                )
-
-        if self.ch_s11 is not None and self.ch_s11.poll(self.freq):
-            _, _, _, _, val_s11 = self.ch_s11.latest
-            self.curve_s11.setData(self.freq, val_s11)
-
-        if self.ch_s22 is not None and self.ch_s22.poll(self.freq):
-            _, _, _, _, val_s22 = self.ch_s22.latest
-            self.curve_s22.setData(self.freq, val_s22)
-
-        if self.ch_aux is not None and self.ch_aux.poll(self.freq):
-            _, a_frame, _, _, val_aux = self.ch_aux.latest
-            self.curve_aux.setData(self.freq, val_aux)
-            if self.aux_mode == 'phase':
-                self.aux_plot.setTitle(f'Cross-Phase Δϕ [:{self.ch_aux.port}] | Frame {a_frame}')
-            else:
-                max_coh = float(np.nanmax(val_aux))
-                self.aux_plot.setTitle(
-                    f'Coherence γ12 [:{self.ch_aux.port}] | Frame {a_frame} | Max {max_coh:.3f}'
-                )
-
-        age_s12 = (
-            'waiting'
-            if self.arrived_s12 is None
-            else f'{time.monotonic() - self.arrived_s12:.1f}s'
-        )
-        status_parts = [
-            f'|S12|[:{self.port_s12}] ({age_s12}): '
-            f'complete={stats_s12.get("complete", 0)} '
-            f'gaps={stats_s12.get("frame_gaps", 0)} '
-            f'incomplete={stats_s12.get("incomplete", 0)} '
-            f'late={stats_s12.get("late", 0)} '
-            f'invalid={stats_s12.get("invalid", 0)} '
-            f'skips={skips_s12} '
-            f'RCVBUF={self.rx_s12.actual_rcvbuf}'
-        ]
-
-        if self.ch_s11 is not None:
-            status_parts.append(
-                f'S11[:{self.ch_s11.port}]: complete={self.ch_s11.stats.get("complete", 0)} '
-                f'gaps={self.ch_s11.stats.get("frame_gaps", 0)}'
-            )
-        if self.ch_s22 is not None:
-            status_parts.append(
-                f'S22[:{self.ch_s22.port}]: complete={self.ch_s22.stats.get("complete", 0)} '
-                f'gaps={self.ch_s22.stats.get("frame_gaps", 0)}'
-            )
-
-        if (
-            self.ch_s11 is not None
-            and self.ch_s22 is not None
-            and self.ch_s11.peak_db is not None
-            and self.ch_s22.peak_db is not None
-        ):
-            delta_peak = self.ch_s11.peak_db - self.ch_s22.peak_db
-            status_parts.append(f'ΔPeak(S11-S22)={delta_peak:+.2f} dB')
-            if self.peak_s12_db is not None:
-                coh_db = self.peak_s12_db - 0.5 * (self.ch_s11.peak_db + self.ch_s22.peak_db)
-                coh_est = float(np.clip(10.0 ** (coh_db / 10.0), 0.0, 1.0))
-                status_parts.append(f'γ12_peak≈{coh_est:.3f}')
-
-        errors = []
-        if err_s12:
-            errors.append(f'S12 ERR: {err_s12}')
-        if self.ch_s11 is not None and self.ch_s11.error:
-            errors.append(f'S11 ERR: {self.ch_s11.error}')
-        if self.ch_s22 is not None and self.ch_s22.error:
-            errors.append(f'S22 ERR: {self.ch_s22.error}')
-        if self.ch_aux is not None and self.ch_aux.error:
-            errors.append(f'AUX ERR: {self.ch_aux.error}')
-        if errors:
-            status_parts.append(' | '.join(errors))
-
-        self.statusBar().showMessage('  ||  '.join(status_parts))
+    def render(self, *_):
+        threshold = self.threshold.value()
+        self.mask_line.setValue(threshold)
+        x, phase, gamma = self.model.time_series(threshold)
+        self.phase_curve.setData(x, phase, connect='finite')
+        good = np.isfinite(x) & np.isfinite(phase)
+        self.phase_points.setData(x[good], phase[good])
+        self.gamma_curve.setData(x, gamma, connect='finite')
+        self.img_fast.setImage(self.model.image(S12), autoLevels=False)
+        self.img_phase.setImage(self.model.image(PHASE, threshold), autoLevels=False)
+        self.img_deep.setImage(self.buf_deep.render_view(), autoLevels=False)
+        self.wf_phase_plot.setTitle(f'Phase ° — display mask γ ≥ {threshold:.2f}; missing/invalid = transparent')
+        latest = next((row for row in reversed(self.model.rows) if row is not None), None)
+        stamp = datetime.fromtimestamp(latest[2]/1e6, TZ_VN).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] if latest else 'waiting'
+        self.phase_plot.setTitle(f'Bin {self.model.bin}, {self.model.actual:.6f} MHz — wrapped phase | VN {stamp}')
+        # Timestamp labels refer to the current ring contents, not cached ticks.
+        for plot in (self.wf_fast_plot, self.wf_phase_plot):
+            plot.getAxis('left').picture = None; plot.getAxis('left').update()
 
     def closeEvent(self, event):
         self.timer.stop()
-        self.rx_s12.close()
-        if self.ch_s11 is not None and self.ch_s11.receiver is not None:
-            self.ch_s11.receiver.close()
-        if self.ch_s22 is not None and self.ch_s22.receiver is not None:
-            self.ch_s22.receiver.close()
-        if self.ch_aux is not None and self.ch_aux.receiver is not None:
-            self.ch_aux.receiver.close()
+        for receiver in self.receivers.values():
+            receiver.close()
         event.accept()
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Solar Correlator — FX Interferometer Hybrid Spectrum & Waterfall Viewer (SOL2)'
-    )
-    parser.add_argument('--bind', default='0.0.0.0', help='Local bind IPv4 address')
-    parser.add_argument(
-        '--port',
-        '--port-s12',
-        dest='port_s12',
-        type=int,
-        default=9999,
-        help='Primary UDP port for Cross-Power Spectrum |S12| (default: 9999)',
-    )
-    parser.add_argument(
-        '--port-s11',
-        type=int,
-        default=0,
-        help='Optional UDP port for SDR 1 Auto-Power S11 overlay (0 = disabled)',
-    )
-    parser.add_argument(
-        '--port-s22',
-        type=int,
-        default=0,
-        help='Optional UDP port for SDR 2 Auto-Power S22 overlay (0 = disabled)',
-    )
-    parser.add_argument(
-        '--port-aux',
-        type=int,
-        default=0,
-        help='Optional UDP port for Coherence or Phase stream (0 = disabled)',
-    )
-    parser.add_argument(
-        '--aux-mode',
-        choices=('coherence', 'phase'),
-        default='coherence',
-        help='Interpretation of --port-aux stream (coherence in [0,1] or phase in [-pi,pi])',
-    )
-    parser.add_argument(
-        '--deep-frames',
-        type=int,
-        default=5,
-        help='Number of fast frames averaged per Deep Waterfall slot (default: 5 => ~1.0s)',
-    )
-    parser.add_argument('--source-ip', help='Accept datagrams only from this sender IPv4')
+    parser = argparse.ArgumentParser(description='Typed SOL2 v3 CW / Solar viewer; legacy v2 is rejected')
+    parser.add_argument('--bind', default='0.0.0.0')
+    parser.add_argument('--port', '--port-s12', dest='port_s12', type=int, default=9999)
+    parser.add_argument('--port-s11', type=int, default=9998)
+    parser.add_argument('--port-s22', type=int, default=9997)
+    parser.add_argument('--port-phase', type=int, default=9996)
+    parser.add_argument('--port-coherence', type=int, default=9995)
+    parser.add_argument('--port-aux', help=argparse.SUPPRESS)
+    parser.add_argument('--aux-mode', help=argparse.SUPPRESS)
+    parser.add_argument('--mode', choices=('cw', 'solar'), default='cw')
+    parser.add_argument('--frequency-mhz', type=float, default=35.5)
+    parser.add_argument('--coherence-threshold', type=float, default=.5, help='Adjustable display mask, not an acceptance criterion')
+    parser.add_argument('--deep-frames', type=int, default=5)
+    parser.add_argument('--source-ip')
     args = parser.parse_args()
-
-    active_ports = [p for p in (args.port_s12, args.port_s11, args.port_s22, args.port_aux) if p > 0]
-    if len(active_ports) != len(set(active_ports)):
-        parser.error('All enabled UDP ports (--port-s12, --port-s11, --port-s22, --port-aux) must be distinct.')
-
-    app = QtWidgets.QApplication(sys.argv[:1])
-    pg.setConfigOptions(antialias=False, imageAxisOrder='row-major')
-
-    rx_s12 = Receiver(args.bind, args.port_s12, args.source_ip)
-    rx_s11 = Receiver(args.bind, args.port_s11, args.source_ip) if args.port_s11 > 0 else None
-    rx_s22 = Receiver(args.bind, args.port_s22, args.source_ip) if args.port_s22 > 0 else None
-    rx_aux = Receiver(args.bind, args.port_aux, args.source_ip) if args.port_aux > 0 else None
-
-    all_receivers = [r for r in (rx_s12, rx_s11, rx_s22, rx_aux) if r is not None]
-
+    if args.port_aux is not None or args.aux_mode is not None:
+        parser.error('SOL2 v3: replace --port-aux/--aux-mode with --port-phase and --port-coherence')
+    ports = {S12: args.port_s12, S11: args.port_s11, S22: args.port_s22, PHASE: args.port_phase, COHERENCE: args.port_coherence}
+    if not 1 <= args.port_s12 <= 65535 or any(not 0 <= p <= 65535 for p in ports.values()):
+        parser.error('S12 port must be 1..65535; optional ports 0..65535')
+    active = [p for p in ports.values() if p]
+    if len(active) != len(set(active)):
+        parser.error('Enabled ports must be distinct')
+    if not np.isfinite(args.frequency_mhz) or not START <= args.frequency_mhz <= STOP-STEP:
+        parser.error('Frequency must be inside the sampled bin range')
+    if not 0 <= args.coherence_threshold <= 1 or not 1 <= args.deep_frames <= HISTORY:
+        parser.error('Threshold must be 0..1 and deep-frames 1..300')
+    app = QtWidgets.QApplication(sys.argv[:1]); pg.setConfigOptions(antialias=False, imageAxisOrder='row-major')
+    receivers = {}
     try:
-        window = FXViewer(
-            rx_s12=rx_s12,
-            port_s12=args.port_s12,
-            deep_frames=args.deep_frames,
-            rx_s11=rx_s11,
-            port_s11=args.port_s11 if args.port_s11 > 0 else None,
-            rx_s22=rx_s22,
-            port_s22=args.port_s22 if args.port_s22 > 0 else None,
-            rx_aux=rx_aux,
-            port_aux=args.port_aux if args.port_aux > 0 else None,
-            aux_mode=args.aux_mode,
-        )
-        for r in all_receivers:
-            r.start()
+        for kind, port in ports.items():
+            if port:
+                receivers[kind] = Receiver(args.bind, port, args.source_ip, expected_type=kind)
+        window = FXViewer(receivers, args.mode, args.deep_frames, args.frequency_mhz, args.coherence_threshold)
+        for receiver in receivers.values():
+            receiver.start()
         signal.signal(signal.SIGINT, lambda *_: window.close())
         signal.signal(signal.SIGTERM, lambda *_: window.close())
         window.show()
         return app.exec_()
     finally:
-        for r in all_receivers:
-            r.close()
+        for receiver in receivers.values():
+            receiver.close()
 
 
 if __name__ == '__main__':
