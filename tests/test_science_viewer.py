@@ -73,6 +73,32 @@ class HistoryTests(unittest.TestCase):
             self.assertAlmostEqual(phase[index, peak], -60+fid/10, places=4)
         self.assertEqual(np.isfinite(phase).sum(), 16)
 
+    def test_coherence_stays_continuous_when_phase_is_masked(self):
+        m = ObservationHistory()
+        for fid in range(5):
+            m.push(observation(fid, phase=67.4, gamma=.1))
+        x, phase, gamma = m.time_series(.5)
+        self.assertEqual(len(x), 5)
+        self.assertTrue(np.isfinite(x).all())
+        self.assertTrue(np.isnan(phase).all())
+        np.testing.assert_allclose(gamma, .1)
+
+    def test_long_trace_stores_only_scalars_and_keeps_bounds(self):
+        m = ObservationHistory(history=4, trace_history=100)
+        for fid in range(150):
+            m.push(observation(fid, phase=67.4))
+        self.assertEqual(len(m.rows), 4)
+        self.assertEqual(len(m.trace), 100)
+        self.assertTrue(all(not isinstance(value, np.ndarray) for row in m.trace for value in row))
+        self.assertEqual(m.trace[0][1], 50)
+        np.testing.assert_allclose(m.time_series(.5)[1], 67.4, atol=1e-4)
+        m.push(observation(1000000))
+        self.assertEqual(len(m.rows), 4)
+        self.assertEqual(len(m.trace), 100)
+        self.assertIsNone(m.trace[-2])
+        m.select(36)
+        self.assertFalse(m.trace)
+
 class FakeReceiver:
     def __init__(self): self.frames = []; self.closed = False
     def take(self):
@@ -138,6 +164,59 @@ class GuiTests(unittest.TestCase):
             self.assertEqual(w.model.last_id, 0)
             self.assertTrue(np.isfinite(w.img_fast.image[-1]).all())
             self.assertTrue(np.isnan(w.img_phase.image[-1]).all())
+        finally:
+            w.close()
+
+    def test_live_window_pause_reset_and_changed_phase_readout(self):
+        w = FXViewer({S12: FakeReceiver()}, mode='cw')
+        w.timer.stop()
+        try:
+            w.model.push(observation(0, phase=67.4))
+            w.render()
+            self.assertIn('+67.400°', w.readout.text())
+            self.assertIn('VALID', w.readout.text())
+            w.model.push(observation(1, phase=-1.15))
+            w.render()
+            np.testing.assert_allclose(w.phase_curve.yData, [67.4, -1.15], atol=1e-4)
+            self.assertIn('-1.150°', w.readout.text())
+            w.time_window.setValue(600)
+            lo, hi = w.phase_plot.viewRange()[0]
+            self.assertAlmostEqual(hi-lo, 600)
+            self.assertTrue(lo <= w.model.trace[-1][2]/1e6 <= hi)
+            w.phase_plot.setXRange(STAMP/1e6-240, STAMP/1e6-237, padding=0)
+            # This signal is emitted by PyQtGraph for user drag/wheel, not setXRange.
+            w.phase_plot.vb.sigRangeChangedManually.emit([True, False])
+            self.assertFalse(w.follow_live.isChecked())
+            paused_range = w.phase_plot.viewRange()[0][:]
+            w.model.push(observation(1000, phase=42))
+            w.render()
+            self.assertEqual(w.phase_plot.viewRange()[0], paused_range)
+            w.reset_time_button.click()
+            self.assertTrue(w.follow_live.isChecked())
+            lo, hi = w.phase_plot.viewRange()[0]
+            self.assertTrue(lo <= w.model.trace[-1][2]/1e6 <= hi)
+            self.assertEqual(w.phase_plot.viewRange()[1], [-180, 180])
+            w.time_window.setValue(1800)
+            self.assertAlmostEqual(w.phase_plot.viewRange()[0][1]-w.phase_plot.viewRange()[0][0], 1800)
+            self.assertGreaterEqual(w.model.trace.maxlen, 1800 / PERIOD)
+            self.assertEqual(len(w.model.rows), 300)
+            w.mode.setCurrentText('Solar'); w.mode.setCurrentText('CW')
+            w.render()
+            self.assertTrue(lo <= w.model.trace[-1][2]/1e6 <= hi)
+        finally:
+            w.close()
+
+    def test_missing_coherence_readout_does_not_claim_zero(self):
+        w = FXViewer({S12: FakeReceiver()}); w.timer.stop()
+        try:
+            obs = observation(0, phase=67.4)
+            del obs[4][COHERENCE]
+            w.model.push(obs); w.render()
+            self.assertIn('same-frame coherence missing', w.readout.text())
+            self.assertIn('+67.400°', w.readout.text())
+            self.assertTrue(np.isnan(w.phase_curve.yData).all())
+            w.select_frequency(36)
+            self.assertIn('waiting for new data', w.readout.text())
         finally:
             w.close()
 

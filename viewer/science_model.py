@@ -19,10 +19,10 @@ def masked_phase(streams, threshold):
 
 
 class ObservationHistory:
-    def __init__(self, history=300, frequency=35.5):
+    def __init__(self, history=300, frequency=35.5, trace_history=None):
         self.capacity = history
         self.rows = deque(maxlen=history)
-        self.trace = deque(maxlen=history)
+        self.trace = deque(maxlen=history if trace_history is None else trace_history)
         self.session = None
         self.last_id = None
         self.select(frequency)
@@ -42,8 +42,15 @@ class ObservationHistory:
             if fid <= self.last_id:
                 return
             for _ in range(min(self.capacity, fid - self.last_id - 1)):
-                self.rows.append(None); self.trace.append(None)
-        self.rows.append(frame); self.trace.append(frame)
+                self.rows.append(None)
+            for _ in range(min(self.trace.maxlen, fid - self.last_id - 1)):
+                self.trace.append(None)
+        self.rows.append(frame)
+        # Keep only scalar selected-bin samples for the long time trace, not
+        # references to the five full spectra in each observation.
+        raw_phase = float(streams[PHASE][self.bin]) if PHASE in streams else np.nan
+        gamma = float(streams[COHERENCE][self.bin]) if COHERENCE in streams else np.nan
+        self.trace.append((session, fid, stamp, count, raw_phase, gamma))
         self.last_id = fid
 
     def image(self, kind, threshold=.5):
@@ -61,9 +68,10 @@ class ObservationHistory:
                 previous = None
                 x.append(np.nan); y.append(np.nan); coherence.append(np.nan)
                 continue
-            session, fid, stamp, count, streams = row
-            value = float(masked_phase(streams, threshold)[self.bin])
-            gamma = float(streams[COHERENCE][self.bin]) if COHERENCE in streams else np.nan
+            session, fid, stamp, count, raw_phase, gamma = row
+            value = (float(np.rad2deg(raw_phase)) if np.isfinite(raw_phase)
+                     and abs(raw_phase) <= np.pi + 1e-6 and np.isfinite(gamma)
+                     and 0 < gamma <= 1 and gamma >= threshold else np.nan)
             if previous is not None:
                 ps, pf, pt, pv = previous
                 if (session != ps or fid != pf + 1 or stamp <= pt
@@ -71,7 +79,4 @@ class ObservationHistory:
                     x.append(np.nan); y.append(np.nan); coherence.append(np.nan)
             x.append(stamp / 1e6); y.append(value); coherence.append(gamma)
             previous = (session, fid, stamp, value) if np.isfinite(value) else None
-            if not np.isfinite(value):
-                # Leave a separator even if gamma exists but phase is absent/masked.
-                x.append(np.nan); y.append(np.nan); coherence.append(np.nan)
         return np.asarray(x), np.asarray(y), np.asarray(coherence)

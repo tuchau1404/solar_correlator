@@ -88,8 +88,9 @@ và tăng counter, không chuyển sang cách diễn giải khác. Receiver khô
 - Một frame đã xuất không được AUX đến trễ sửa lại. Frame trễ hơn ID đã xuất bị bỏ.
   Khi quá giới hạn cache, frame cũ bị loại; gap thể hiện trong lịch sử.
 - Session mới reset lịch sử, deep accumulator và mốc frame; không ghép khác session.
-- Lịch sử S12/phase/coherence giới hạn 300 slot; time trace cũng 300 slot. Gap rất dài
-  chỉ chèn tối đa 300 slot NaN. Bộ nhớ không tăng theo thời gian chạy.
+- Lịch sử waterfall S12/phase/coherence giới hạn 300 slot; time trace giữ tối đa
+  9003 bản ghi scalar tại bin chọn (khoảng 30 phút ở cadence danh định).
+  Gap rất dài chỉ chèn đến giới hạn từng bộ đệm. Bộ nhớ không tăng theo thời gian chạy.
 
 Counter `frame_gaps` ở reassembler là số gap quan sát lúc hoàn tất frame tiến tới;
 frame hoàn tất trễ có thể lấp gap nên đây không phải thống kê mất gói cuối cùng.
@@ -142,7 +143,7 @@ Viewer trên máy nhận:
 
 ```bash
 python -m pip install -r viewer/requirements.txt
-python viewer/viewer_fx.py --mode cw --frequency-mhz 35.5 --coherence-threshold 0.5
+python viewer/viewer_fx.py --mode cw --frequency-mhz 35.5 --coherence-threshold 0.5 --time-window 120
 python viewer/viewer_fx.py --mode solar --frequency-mhz 35.5 --coherence-threshold 0.5
 ```
 
@@ -216,3 +217,34 @@ Chưa xác minh Windows, Pi 5/ARM, SDRplay streaming thật, mạng giữa Pi v�
 hiệu năng dài hạn, path MTU thực tế, calibration vật lý hoặc quan trắc solar burst thật.
 Chưa có tiêu chí chất lượng khoa học ngoài mask hiển thị, chưa hỗ trợ unwrap,
 chưa có per-bin flags chất lượng hardware. Không thêm nhãn dBm/SFU.
+
+
+## Cập nhật CW live view sau kiểm tra hiển thị pha (16/10/2026)
+
+Đã tái hiện lỗi khung nhìn: sau khi người dùng zoom/pan trục thời gian, dữ liệu vẫn
+cập nhật nhưng view có thể giữ vùng thời gian cũ. Thử nghiệm có 80 điểm pha hợp lệ,
+0 điểm nằm trong view cũ; đặt lại view thấy đủ 80 điểm. Điều này không chứng minh
+mọi trường hợp pha trống trên máy thật đều có cùng nguyên nhân.
+
+Bản cập nhật chỉ sửa viewer/model/test/tài liệu, không cần build lại backend v3:
+
+- `Time window (s)` chọn 15–1800 giây; mặc định 120 giây; CLI `--time-window 600`
+  chọn 10 phút. Số liệu lịch sử chỉ được thu từ lúc viewer chạy/chọn bin.
+- `Follow live` mặc định bật, đặt trục X phase/coherence theo timestamp mới nhất
+  kể cả khi pha bị mask. Kéo/zoom thủ công trên đồ thị thời gian tắt Follow live.
+- `Reset time view` bật lại bám thời gian và đặt Y phase −180..180°, gamma 0..1.05.
+- Dòng số đo hiện phase nhận được tại bin chọn bằng độ và rad, gamma cùng frame,
+  frame ID, timestamp và VALID/MASKED kèm lý do. Phase nhận được vẫn có thể hiện
+  dạng số với nhãn MASKED; nó không được đưa vào đường pha chất lượng hợp lệ.
+  Thiếu dữ liệu hiện `missing`/`waiting`, không thay bằng 0°.
+- Coherence tiếp tục hiện khi dưới ngưỡng mask pha. Không dùng mask pha để ngắt
+  mọi cặp mẫu coherence thành các đoạn một điểm không nhìn thấy.
+- Time trace dài chỉ lưu scalar selected-bin phase/coherence cùng metadata;
+  không giữ năm phổ 2048 bin cho mỗi điểm trong 30 phút. Waterfall vẫn 300 slot.
+- Đổi bin/session vẫn xóa trace, không trộn dữ liệu. Không thay thuật toán tính pha,
+  không thay mốc calibration, không làm mượt và không unwrap.
+
+Kiểm thử bổ sung: chuyển phase +67.4° → −1.15° trong đồ thị và số đo; view mới chứa
+sample mới nhất; thời lượng 600/1800 giây; pause/resume qua nút Reset; dữ liệu scalar
+và cache hữu hạn; coherence liên tục khi phase bị mask; thiếu gamma không báo 0°.
+Đã xem ảnh GUI CW offscreen. Chưa kiểm thử tương tác trên Windows hoặc UDP từ Pi thật.
