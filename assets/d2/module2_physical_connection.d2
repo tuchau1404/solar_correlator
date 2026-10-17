@@ -1,0 +1,138 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+classes: {
+  cal_node: {
+    shape: rectangle
+    style: {
+      fill: "#FFE4E6"
+      stroke: "#E11D48"
+      stroke-width: 2
+      font-color: "#9F1239"
+      border-radius: 6
+    }
+  }
+  clk_node: {
+    shape: rectangle
+    style: {
+      fill: "#F5F3FF"
+      stroke: "#7C3AED"
+      stroke-width: 2
+      font-color: "#5B21B6"
+      border-radius: 6
+    }
+  }
+  sdr_node: {
+    shape: rectangle
+    style: {
+      fill: "#EFF6FF"
+      stroke: "#2563EB"
+      stroke-width: 2
+      font-color: "#1E40AF"
+      border-radius: 8
+    }
+  }
+  host_node: {
+    shape: rectangle
+    style: {
+      fill: "#D1FAE5"
+      stroke: "#059669"
+      stroke-width: 2
+      font-color: "#064E3B"
+      border-radius: 8
+    }
+  }
+}
+
+# ================= 1. NGUỒN TẠP ÂM HIỆU CHUẨN TÍCH HỢP BỘ CHIA =================
+noise_src: "Avalanche Noise Source\n(ENR 34 dB, 25 dB Amp | Integrated 1:2 Splitter)" {
+  class: cal_node
+}
+
+# ================= 2. BỘ ĐỒNG BỘ XUNG NHỊP NGOẠI VI =================
+clock_gen: "Master Reference Clock Generation" {
+  style: {
+    fill: "transparent"
+    stroke: "#CBD5E1"
+    stroke-width: 1
+    stroke-dash: 3
+    border-radius: 8
+  }
+
+  gpsdo: "GPSDO Clock\n(10 MHz Reference)" {
+    class: clk_node
+  }
+
+  pll_synth: "10-to-24 MHz PLL Multiplier\n(Integrated 1:2 Clock Splitter)" {
+    class: clk_node
+  }
+
+  gpsdo -> pll_synth: "10 MHz Ref" {
+    style.stroke: "#7C3AED"
+    style.stroke-dash: 3
+    style.stroke-width: 2
+  }
+}
+
+# ================= 3. BỘ THU SDR KÉP (PORT A SMA) =================
+sdr_stage: "Dual SDR Receivers (Benchtop Unit)" {
+  style: {
+    fill: "transparent"
+    stroke: "#CBD5E1"
+    stroke-width: 1
+    stroke-dash: 3
+    border-radius: 8
+  }
+
+  rsp1: "RSPdx Channel 1\n(Port A SMA | 10 MSPS)" {
+    class: sdr_node
+  }
+
+  rsp2: "RSPdx Channel 2\n(Port A SMA | 10 MSPS)" {
+    class: sdr_node
+  }
+}
+
+# ================= 4. MÁY CHỦ THU THẬP DỮ LIỆU =================
+rpi5: "Raspberry Pi 5 Host\n(Dedicated RP1 USB 3.0 Host Controller)" {
+  class: host_node
+}
+
+# ================= ĐỊNH TUYẾN TÍN HIỆU BÀN ĐO =================
+
+# Tạp âm hiệu chuẩn: Chia trực tiếp từ bo mạch qua 2 cáp đồng trục đối xứng
+noise_src -> sdr_stage.rsp1: "Equal Coax 1 (ΔL = 0 cm)\n50 Ω SMA" {
+  style.stroke: "#E11D48"
+  style.stroke-width: 2
+}
+noise_src -> sdr_stage.rsp2: "Equal Coax 2 (ΔL = 0 cm)\n50 Ω SMA" {
+  style.stroke: "#E11D48"
+  style.stroke-width: 2
+}
+
+# Xung đồng bộ 24 MHz cấp vào REFin
+clock_gen.pll_synth -> sdr_stage.rsp1: "REFin 1 (24 MHz)" {
+  style.stroke: "#7C3AED"
+  style.stroke-dash: 4
+  style.stroke-width: 2
+}
+clock_gen.pll_synth -> sdr_stage.rsp2: "REFin 2 (24 MHz)" {
+  style.stroke: "#7C3AED"
+  style.stroke-dash: 4
+  style.stroke-width: 2
+}
+
+# Dữ liệu số hóa đổ về Raspberry Pi 5
+sdr_stage.rsp1 -> rpi5: "USB 3.0\n40 MB/s" {
+  style.stroke: "#2563EB"
+  style.stroke-width: 3
+}
+sdr_stage.rsp2 -> rpi5: "USB 3.0\n40 MB/s" {
+  style.stroke: "#2563EB"
+  style.stroke-width: 3
+}
