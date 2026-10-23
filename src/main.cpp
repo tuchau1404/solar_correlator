@@ -34,8 +34,13 @@
 #include "hardware_control.hpp"
 #include "ring_buffer.hpp"
 #include "time_alignment.hpp"
+#include "startup_alignment.hpp"
+#include "runtime_trace.hpp"
 #include "correlator.hpp"
 #include "telemetry_sender.hpp"
+#ifdef SOLAR_STORAGE_ENABLED
+#include "storage/storage_pipeline.hpp"
+#endif
 
 namespace {
 
@@ -110,10 +115,12 @@ struct CliOptions {
     uint16_t port_coherence = SolarConfig::Network::UDP_PORT_COHERENCE;
     bool skip_align          = false;
     bool cal_phase           = false;
-    int max_align_retries    = 5;
+    int max_align_retries    = 8;
     std::string serial_ch1   = "";
     std::string serial_ch2   = "";
     bool show_help           = false;
+    std::string storage_config;
+    bool check_config = false;
 };
 
 void print_usage(const char* prog_name) {
@@ -130,9 +137,11 @@ void print_usage(const char* prog_name) {
         << "  --port-coherence <0..65535> Coherence amplitude gamma, default 9995; 0 disables\n"
         << "  --skip-align, --no-align  Bỏ qua căn chỉnh trễ mẫu Module 2 (chế độ chẩn đoán CW / tải giả 50 Ohm)\n"
         << "  --cal-phase               Chụp và bù pha thiết bị tĩnh (phi_rad) ngay sau khi khóa mẫu k = 0\n"
-        << "  --max-align-retries <n>   Số lần thử căn chỉnh tối đa ở Module 2 (mặc định: 5)\n"
+        << "  --max-align-retries <n>   Số lần thử căn chỉnh tối đa ở Module 2 (mặc định: 8)\n"
         << "  --serial-ch1 <ser>        Chỉ định cứng Serial Number RSPdx cho Kênh 1\n"
         << "  --serial-ch2 <ser>        Chỉ định cứng Serial Number RSPdx cho Kênh 2\n"
+        << "  --config <path>          Enable configured storage/startup pipeline\n"
+        << "  --check-config           Validate config and estimate offline, without SDR/Drive\n"
         << "  -h, --help                Hiển thị hướng dẫn này và thoát\n";
 }
 
@@ -178,6 +187,11 @@ bool parse_and_validate_cli(int argc, char* argv[], CliOptions& opts, std::strin
         if (arg == "-h" || arg == "--help") {
             opts.show_help = true;
             return true;
+        } else if (arg == "--config") {
+            const char* v = require_next(arg); if (!v) return false;
+            opts.storage_config = v;
+        } else if (arg == "--check-config") {
+            opts.check_config = true;
         } else if (arg == "--dest-ip") {
             const char* v = require_next(arg);
             if (!v) return false;
@@ -239,6 +253,12 @@ bool parse_and_validate_cli(int argc, char* argv[], CliOptions& opts, std::strin
         }
     }
 
+    if (opts.check_config && opts.storage_config.empty()) {
+        err_msg = "--check-config requires --config <path>"; return false;
+    }
+#ifndef SOLAR_STORAGE_ENABLED
+    if (!opts.storage_config.empty()) { err_msg = "Rebuild with SOLAR_BUILD_STORAGE=ON"; return false; }
+#endif
     struct in_addr ipv4_addr {};
     if (inet_pton(AF_INET, opts.dest_ip.c_str(), &ipv4_addr) != 1) {
         err_msg = "Địa chỉ IPv4 đích không hợp lệ (--dest-ip): " + opts.dest_ip;
@@ -293,7 +313,7 @@ public:
     SingleInstanceLock& operator=(const SingleInstanceLock&) = delete;
 
     bool acquire(std::string& err_msg) {
-        fd_ = ::open(lock_path_.c_str(), O_CREAT | O_RDWR, 0666);
+        fd_ = ::open(lock_path_.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
         if (fd_ < 0) {
             err_msg = "Không thể mở lock file " + lock_path_ + ": " + std::strerror(errno);
             return false;
@@ -416,28 +436,26 @@ void dispatch_udp_spectrum(SenderT& sender,
 // ============================================================================
 // 5. TIẾN TRÌNH CON THU NHẬN MẪU SDRPLAY RSPDX (MODULE 1 PRODUCER)
 // ============================================================================
-void sdr_stream_callback(short* xi,
-                         short* xq,
-                         [[maybe_unused]] sdrplay_api_StreamCbParamsT* params,
-                         unsigned int numSamples,
-                         unsigned int reset,
-                         void* cbContext) {
-    auto* rb = static_cast<SharedMemoryRingBuffer*>(cbContext);
-    if (rb == nullptr) {
-        return;
-    }
-    if (!rb->is_stream_started()) return;
-    if (reset != 0) {
-        rb->set_ready(false);
-        _exit(2); // Discontinuity: do not queue this callback's samples.
-    }
-    if (numSamples == 0) return;
-    try {
-        (void)rb->write(xi, xq, static_cast<uint32_t>(numSamples));
-    } catch (...) {
-        rb->set_ready(false);
-        _exit(3); // Never unwind through the vendor's C callback.
-    }
+struct StreamContext {
+    SharedMemoryRingBuffer* ring;
+    uint32_t expected_sample{0};
+    bool have_expected{false};
+};
+void sdr_stream_callback(short* xi, short* xq,
+                         sdrplay_api_StreamCbParamsT* params,
+                         unsigned int numSamples, unsigned int reset, void* cbContext) {
+    auto* ctx = static_cast<StreamContext*>(cbContext);
+    if (!ctx || !ctx->ring || !g_child_running.load(std::memory_order_relaxed)) return;
+    auto& rb = *ctx->ring;
+    if (!rb.is_stream_started()) return;
+    auto fail = [&] { rb.set_ready(false); g_child_running.store(false, std::memory_order_relaxed); };
+    if (reset || !params) { fail(); return; }
+    if (!numSamples) return;
+    if (ctx->have_expected && params->firstSampleNum != ctx->expected_sample) { fail(); return; }
+    ctx->expected_sample = static_cast<uint32_t>(params->firstSampleNum + numSamples);
+    ctx->have_expected = true;
+    try { if (rb.write(xi, xq, numSamples) != numSamples) fail(); }
+    catch (...) { fail(); }
 }
 
 void sdr_event_callback([[maybe_unused]] sdrplay_api_EventT eventId,
@@ -535,7 +553,8 @@ void sdr_event_callback([[maybe_unused]] sdrplay_api_EventT eventId,
     cb_fns.StreamACbFn = sdr_stream_callback;
     cb_fns.EventCbFn   = sdr_event_callback;
 
-    err = sdrplay_api_Init(devs[selected_idx].dev, &cb_fns, producer_rb.get());
+    StreamContext stream_context{producer_rb.get()};
+    err = sdrplay_api_Init(devs[selected_idx].dev, &cb_fns, &stream_context);
     if (err != sdrplay_api_Success) {
         std::cerr << "[Producer Ch" << channel_number << "] Lỗi sdrplay_api_Init ("
                   << target_serial << "): " << sdrplay_api_GetErrorString(err) << "\n";
@@ -690,6 +709,19 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+#ifdef SOLAR_STORAGE_ENABLED
+    std::optional<solar::storage::Config> storage_config;
+    if (cli.check_config) {
+        try {
+            const auto config = solar::storage::load_config(cli.storage_config);
+            std::cout << nlohmann::json{{"effective_config",config.value},{"config_hash",config.hash},
+                {"estimate",solar::storage::estimate(config,SolarConfig::Correlator::FFT_SIZE,
+                    SolarConfig::Correlator::HOP_SIZE,SolarConfig::Correlator::INTEGRATION_FRAMES,
+                    SolarConfig::SDR::SAMPLE_RATE_HZ)}}.dump(2) << "\n";
+            return 0;
+        } catch (const std::exception& e) { std::cerr << "[CONFIG] " << e.what() << "\n"; return 2; }
+    }
+#endif
     if (!install_signal_handlers(parent_signal_handler)) {
         std::cerr << "[LỖI HỆ THỐNG] Không thể cài đặt trình xử lý tín hiệu POSIX (sigaction).\n";
         return 1;
@@ -711,6 +743,18 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+#ifdef SOLAR_STORAGE_ENABLED
+    if (!cli.storage_config.empty()) {
+        try {
+            storage_config = solar::storage::load_config(cli.storage_config);
+            std::cout << solar::storage::estimate(*storage_config,SolarConfig::Correlator::FFT_SIZE,
+                SolarConfig::Correlator::HOP_SIZE,SolarConfig::Correlator::INTEGRATION_FRAMES,
+                SolarConfig::SDR::SAMPLE_RATE_HZ).dump(2) << "\n";
+            solar::storage::set_observation_timezone(*storage_config);
+            solar::storage::startup_check(*storage_config);
+        } catch (const std::exception& e) { std::cerr << "[STORAGE STARTUP] " << e.what() << "\n"; return 2; }
+    }
+#endif
     SafeGpioOnExit safe_gpio;
     if (!force_antenna_off()) {
         std::cerr << "[FATAL] Unable to command Noise OFF / Antenna.\n";
@@ -815,6 +859,9 @@ int main(int argc, char* argv[]) {
         run_sdr_producer_process(2, ser_ch2, SolarConfig::SHM::CH2_NAME);
     }
 
+#ifdef SOLAR_STORAGE_ENABLED
+    solar::storage::AutoMaintenance auto_maintenance;
+#endif
     std::optional<HardwareGuard> hw_guard;
     int exit_code = 0;
 
@@ -862,12 +909,70 @@ int main(int argc, char* argv[]) {
         SharedMemoryRingBuffer& rb1 = *rb1_ptr;
         SharedMemoryRingBuffer& rb2 = *rb2_ptr;
 
+        RuntimeTrace trace;
+        auto mark = [&](const char* label) { trace.mark(label, rb1, rb2); };
+        mark("preallocate.begin");
+
         // Perform FFTW_MEASURE before enabling writes to the ring buffers.
         FXCorrelator::Options fx_opts {};
         fx_opts.fft_size = SolarConfig::Correlator::FFT_SIZE;
         fx_opts.frames = SolarConfig::Correlator::INTEGRATION_FRAMES;
         fx_opts.running = &g_running;
         FXCorrelator fx(fx_opts);
+        std::optional<TimeAligner> aligner;
+        if (!cli.skip_align) aligner.emplace(SolarConfig::Alignment::SNAPSHOT_SIZE);
+        const size_t n_bins = SolarConfig::Correlator::FFT_SIZE;
+        std::vector<float> phi_rad(n_bins, 0.0f);
+        std::vector<float> s12_db(n_bins, 0.0f);
+        std::vector<float> phase_rad(n_bins, 0.0f);
+        std::vector<float> coherence(n_bins, 0.0f);
+        std::vector<float> s11_db(n_bins, 0.0f);
+        std::vector<float> s22_db(n_bins, 0.0f);
+        const auto telemetry_session = TelemetrySender::new_session();
+        using Payload = TelemetrySender::Payload;
+        TelemetrySender sender_s12(cli.dest_ip, cli.port_s12, telemetry_session, Payload::S12);
+        std::optional<TelemetrySender> sender_s11;
+        std::optional<TelemetrySender> sender_s22;
+        std::optional<TelemetrySender> sender_phase, sender_coherence;
+
+        if (cli.port_s11 > 0) sender_s11.emplace(cli.dest_ip, cli.port_s11, telemetry_session, Payload::S11);
+        if (cli.port_s22 > 0) sender_s22.emplace(cli.dest_ip, cli.port_s22, telemetry_session, Payload::S22);
+        if (cli.port_phase > 0) sender_phase.emplace(cli.dest_ip, cli.port_phase, telemetry_session, Payload::Phase);
+        if (cli.port_coherence > 0) sender_coherence.emplace(cli.dest_ip, cli.port_coherence, telemetry_session, Payload::Coherence);
+
+#ifdef SOLAR_STORAGE_ENABLED
+        std::unique_ptr<solar::storage::Pipeline> storage;
+        if (storage_config && storage_config->value.at("storage").at("enabled").get<bool>()) {
+            const auto& cfg = storage_config->value.at("storage");
+            solar::storage::AggregationConfig geometry{n_bins,cfg.at("save_freq_bins"),
+                n_bins,SolarConfig::Correlator::HOP_SIZE,SolarConfig::Correlator::INTEGRATION_FRAMES,
+                SolarConfig::SDR::SAMPLE_RATE_HZ,SolarConfig::SDR::RF_CENTER_FREQ_HZ,
+                cfg.at("save_interval_sec"),cfg.at("partial_window_policy")=="emit" ?
+                    solar::storage::PartialPolicy::Emit : solar::storage::PartialPolicy::Discard};
+            nlohmann::json metadata={
+                {"session_id",std::to_string(telemetry_session)},
+                {"baseline_revision",SOLAR_BASELINE_REVISION},{"patch_state",SOLAR_PATCH_STATE},
+                {"center_freq_hz",SolarConfig::SDR::RF_CENTER_FREQ_HZ},
+                {"sample_rate_hz",SolarConfig::SDR::SAMPLE_RATE_HZ},{"input_fft_bins",n_bins},
+                {"output_bins",cfg.at("save_freq_bins")},{"window","symmetric Hann N-1; actual float window energy"},
+                {"window_energy",fx.window_energy()},{"hop_samples",SolarConfig::Correlator::HOP_SIZE},
+                {"source_integration_frames",SolarConfig::Correlator::INTEGRATION_FRAMES},
+                {"normalization","sum(raw DFT cross)/(M*N*sum(w^2)); ADC-count units restored"},
+                {"cross_product_convention","X1*conj(X2) * exp(-j*phi)"},
+                {"units","ADC-count^2 per input FFT bin (mean after frequency grouping)"},
+                {"db_definition","10*log10(linear/1 ADC-count^2); not dBm or calibrated flux"},
+                {"grouping_policy","whole contiguous integrations to reach target; linear frequency mean; common strict invalid mask"},
+                {"frequency_bin_bandwidth_hz",SolarConfig::SDR::SAMPLE_RATE_HZ/cfg.at("save_freq_bins").get<double>()},
+                {"timestamp_semantics","estimated sample support from first processing-wall-clock end anchor; original backend timestamps retained"},
+                {"utc_uncertainty","unknown USB/SHM/processing latency; no hardware UTC anchor"},
+                {"calibration_id",is_phase_calibrated?1:0},{"phase_calibrated",is_phase_calibrated},
+                {"aligned",is_sample_aligned},{"k_offset_samples",is_sample_aligned?nlohmann::json(0):nlohmann::json(nullptr)},
+                {"quality_flag_definitions","1 UTC_ESTIMATED;2 INVALID_BIN;4 PARTIAL;8 DISCONTINUITY;16 CALIBRATION_BOUNDARY;32 COHERENCE_VIOLATION"}};
+            storage=std::make_unique<solar::storage::Pipeline>(*storage_config,geometry,metadata,phi_rad,true);
+        }
+#endif
+
+        mark("preallocate.end");
 
 
         std::cout << "[Supervisor] Đang chờ cả 2 bộ thu RSPdx hoàn tất khởi tạo phần cứng...\n";
@@ -888,11 +993,13 @@ int main(int argc, char* argv[]) {
         }
 
         if (state != SystemState::STOPPING) {
-            std::cout << "[Supervisor] Cả 2 kênh RSPdx đã sẵn sàng. Kích hoạt luồng I/Q đồng thời và chờ 250ms ổn định DMA...\n";
+            std::cout << "[Supervisor] Cả 2 kênh RSPdx đã sẵn sàng. Kích hoạt luồng I/Q đồng thời và chờ 200ms ổn định DMA...\n";
+            mark("stream_gate.begin");
             rb1.set_start_stream(true);
             rb2.set_start_stream(true);
+            mark("stream_gate.end");
 
-            const auto warmup_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
+            const auto warmup_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
             while (g_running.load(std::memory_order_relaxed) &&
                    std::chrono::steady_clock::now() < warmup_end) {
                 std::string child_err;
@@ -925,16 +1032,20 @@ int main(int argc, char* argv[]) {
             return false;
         };
 
-        uint32_t aligned_drops1 = rb1.get_overflow_count();
-        uint32_t aligned_drops2 = rb2.get_overflow_count();
+        uint32_t aligned_drops1 = 0;
+        uint32_t aligned_drops2 = 0;
         auto check_alignment_health = [&]() {
             std::string err;
-            if (!children.check_children_alive(err) || !rb1.is_ready() || !rb2.is_ready())
+            if (!children.check_children_alive(err) || !rb1.is_ready() || !rb2.is_ready()) {
+                mark("health.producer_failure");
                 throw std::runtime_error("[ALIGNMENT_LOST] Producer stopped/reset: " + err);
-            if (is_sample_aligned &&
+            }
+            if (!cli.skip_align &&
                 (rb1.get_overflow_count() != aligned_drops1 ||
-                 rb2.get_overflow_count() != aligned_drops2))
-                throw std::runtime_error("[ALIGNMENT_LOST] Sample drop since alignment lock");
+                 rb2.get_overflow_count() != aligned_drops2)) {
+                mark("health.overflow");
+                throw std::runtime_error("[ALIGNMENT_LOST] Sample drop since stream gate");
+            }
         };
         auto skip_pair = [&](uint32_t count) {
             if (!wait_for_samples(count, 3000))
@@ -954,108 +1065,41 @@ int main(int argc, char* argv[]) {
                 std::cout << "================================================================================\n\n";
             } else {
                 state = SystemState::ALIGNING;
-                std::cout << "\n[STATE: ALIGNING] Bắt đầu căn chỉnh độ trễ mẫu khởi động trên nguồn tạp âm chuẩn (N = "
-                          << SolarConfig::Alignment::SNAPSHOT_SIZE
-                          << ", ngưỡng PNR >= " << SolarConfig::Alignment::PNR_THRESHOLD_DB
-                          << " dB, tối đa " << cli.max_align_retries << " lần thử)...\n";
+                StartupAlignment::Options options;
+                options.snapshot_size = SolarConfig::Alignment::SNAPSHOT_SIZE;
+                options.attempts = static_cast<unsigned>(cli.max_align_retries);
+                options.max_residual_samples = 0; // Main metadata promises exact integer k=0.
+                auto wait_snapshot = [&] {
+                    check_alignment_health();
+                    if (!wait_for_samples(options.snapshot_size, 3000))
+                        throw std::runtime_error("alignment snapshot timeout/cancellation");
+                    check_alignment_health();
+                };
+                mark("alignment.begin");
+                StartupAlignment::acquire(rb1, rb2, options, wait_snapshot,
+                    [&] {
+                        mark("snapshot.begin");
+                        const auto result = aligner->measure_offset_from_buffers(rb1, rb2);
+                        mark("snapshot.end");
+                        return result;
+                    }, std::cout);
+                is_sample_aligned = true;
+                check_alignment_health();
+                mark("alignment.locked");
 
-                TimeAligner aligner(SolarConfig::Alignment::SNAPSHOT_SIZE);
-                bool locked = false;
-
-                for (int attempt = 1; attempt <= cli.max_align_retries && g_running.load(std::memory_order_relaxed); ++attempt) {
-                    const uint32_t trial_ov1 = aligned_drops1;
-                    const uint32_t trial_ov2 = aligned_drops2;
-                    if (rb1.get_overflow_count() != trial_ov1 ||
-                        rb2.get_overflow_count() != trial_ov2)
-                        throw std::runtime_error("[ALIGNMENT_LOST] Drop before alignment trial");
-                    // No independent flush between measurement and retries.
-                    if (attempt > 1) skip_pair(SolarConfig::Alignment::SNAPSHOT_SIZE);
-
-                    if (!wait_for_samples(SolarConfig::Alignment::SNAPSHOT_SIZE, 3000)) {
-                        if (!g_running.load(std::memory_order_relaxed)) break;
-                        std::cerr << "  [Thử " << attempt << "/" << cli.max_align_retries
-                                  << "] Quá hạn chờ nạp " << SolarConfig::Alignment::SNAPSHOT_SIZE << " mẫu.\n";
-                        continue;
-                    }
-
-                    const AlignmentResult initial_res = aligner.measure_offset_from_buffers(rb1, rb2);
-                    const bool align_ok = initial_res.is_valid;
-
-                    std::cout << std::fixed << std::setprecision(2)
-                              << "  [Thử " << attempt << "/" << cli.max_align_retries << "] "
-                              << "Đo ban đầu: k_offset = " << initial_res.lag_samples << " mẫu ("
-                              << initial_res.delay_microsec << " us), PNR = " << initial_res.pnr_db << " dB -> ";
-
-                    if (!align_ok || !initial_res.is_valid) {
-                        std::cout << "CHƯA ĐẠT NGƯỠNG PNR!\n";
-                        continue;
-                    }
-
-                    const int64_t lag = initial_res.lag_samples;
-                    if (lag > 0 && rb1.skip(uint32_t(lag)) != uint32_t(lag))
-                        throw std::runtime_error("Short alignment skip CH1");
-                    if (lag < 0 && rb2.skip(uint32_t(-lag)) != uint32_t(-lag))
-                        throw std::runtime_error("Short alignment skip CH2");
-
-                    // peek_from_tail does not consume: advance an entire window
-                    // on BOTH channels before verification (no reused samples).
-                    skip_pair(SolarConfig::Alignment::SNAPSHOT_SIZE);
-                    if (!wait_for_samples(SolarConfig::Alignment::SNAPSHOT_SIZE, 3000)) {
-                        if (!g_running.load(std::memory_order_relaxed)) break;
-                        std::cout << "Lỗi chờ mẫu hậu kiểm!\n";
-                        continue;
-                    }
-
-                    AlignmentResult verify_res = aligner.measure_offset_from_buffers(rb1, rb2);
-                    std::cout << "Hậu kiểm: k = " << verify_res.lag_samples << " mẫu, PNR = "
-                              << verify_res.pnr_db << " dB ";
-
-                    if (rb1.get_overflow_count() != trial_ov1 ||
-                        rb2.get_overflow_count() != trial_ov2)
-                        throw std::runtime_error("[ALIGNMENT_LOST] Drop during alignment trial");
-                    if (verify_res.is_valid && verify_res.lag_samples == 0) {
-                        aligned_drops1 = trial_ov1;
-                        aligned_drops2 = trial_ov2;
-                        std::cout << "=> [LOCKED k=" << verify_res.lag_samples << "]\n";
-                        locked = true;
-                        is_sample_aligned = true;
-                        break;
-                    } else {
-                        std::cout << "=> [CHƯA KHÓA ĐỈNH]\n";
-                    }
-                }
-
-                if (!g_running.load(std::memory_order_relaxed)) {
-                    state = SystemState::STOPPING;
-                } else if (!locked) {
-                    std::cerr << "[FATAL][FAIL-CLOSED] Không thể khóa đồng bộ mẫu (k = 0) sau "
-                              << cli.max_align_retries
-                              << " lần thử! Ngắt nguồn 15V Noise Source và dừng hệ thống an toàn.\n";
-                    if (hw_guard.has_value()) {
-                        hw_guard->turn_off();
-                    }
-                    state = SystemState::STOPPING;
-                    exit_code = 1;
-                }
             }
         }
 
         if (state != SystemState::STOPPING) {
             check_alignment_health();
 
-            const size_t n_bins = SolarConfig::Correlator::FFT_SIZE;
-            std::vector<float> phi_rad(n_bins, 0.0f);
-            std::vector<float> s12_db(n_bins, 0.0f);
-            std::vector<float> phase_rad(n_bins, 0.0f);
-            std::vector<float> coherence(n_bins, 0.0f);
-            std::vector<float> s11_db(n_bins, 0.0f);
-            std::vector<float> s22_db(n_bins, 0.0f);
 
             if (cli.cal_phase) {
                 state = SystemState::CALIBRATING;
                 std::cout << "\n[STATE: CALIBRATING] Đang chụp đáp tuyến pha thiết bị tĩnh (phi_rad) khi Noise Source đang bật...\n";
 
                 check_alignment_health();
+                mark("prime.begin");
                 if (!api_bridge::invoke_prime_buffers(fx, rb1, rb2)) {
                     throw std::runtime_error("Lỗi prime_buffers() trước khi chạy chu kỳ --cal-phase.");
                 }
@@ -1109,12 +1153,22 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+#ifdef SOLAR_STORAGE_ENABLED
+            if (storage && state != SystemState::STOPPING) {
+                mark("storage.activate.begin");
+                storage->start_observation(is_sample_aligned, is_phase_calibrated, phi_rad);
+                mark("storage.activate.end");
+                auto_maintenance.start(*storage_config);
+                check_alignment_health();
+            }
+#endif
             // NGẮT NGUỒN TẠP ÂM 15V VÀ GẠT RF SWITCH VỀ 2 ANTEN NGOÀI TRỜI TRƯỚC KHI QUAN SÁT
             if (state != SystemState::STOPPING && hw_guard.has_value() && hw_guard->is_active()) {
                 const uint32_t ov1_pre_sw = rb1.get_overflow_count();
                 const uint32_t ov2_pre_sw = rb2.get_overflow_count();
 
                 check_alignment_health();
+                mark("antenna.begin");
                 hw_guard->turn_off();
                 if (!force_antenna_off()) throw std::runtime_error("GPIO observation command failed");
                 std::this_thread::sleep_for(std::chrono::milliseconds(
@@ -1127,6 +1181,7 @@ int main(int argc, char* argv[]) {
                 const uint32_t boundary = std::max(rb1.available_read(), rb2.available_read());
                 skip_pair(boundary);
                 check_alignment_health();
+                mark("antenna.paired_boundary");
 
                 if (rb1.get_overflow_count() != ov1_pre_sw || rb2.get_overflow_count() != ov2_pre_sw) {
                     throw std::runtime_error(
@@ -1136,6 +1191,7 @@ int main(int argc, char* argv[]) {
 
             if (state != SystemState::STOPPING) {
                 check_alignment_health();
+                mark("prime.begin");
                 if (!api_bridge::invoke_prime_buffers(fx, rb1, rb2)) {
                     if (g_running.load(std::memory_order_relaxed)) {
                         throw std::runtime_error("Lỗi prime_buffers() khởi tạo cửa sổ trượt 50% Welch.");
@@ -1144,19 +1200,8 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            mark("prime.end");
             check_alignment_health();
-            const auto telemetry_session = TelemetrySender::new_session();
-            using Payload = TelemetrySender::Payload;
-            TelemetrySender sender_s12(cli.dest_ip, cli.port_s12, telemetry_session, Payload::S12);
-            std::optional<TelemetrySender> sender_s11;
-            std::optional<TelemetrySender> sender_s22;
-            std::optional<TelemetrySender> sender_phase, sender_coherence;
-
-            if (cli.port_s11 > 0) sender_s11.emplace(cli.dest_ip, cli.port_s11, telemetry_session, Payload::S11);
-            if (cli.port_s22 > 0) sender_s22.emplace(cli.dest_ip, cli.port_s22, telemetry_session, Payload::S22);
-            if (cli.port_phase > 0) sender_phase.emplace(cli.dest_ip, cli.port_phase, telemetry_session, Payload::Phase);
-            if (cli.port_coherence > 0) sender_coherence.emplace(cli.dest_ip, cli.port_coherence, telemetry_session, Payload::Coherence);
-
             api_bridge::PortTelemetryStats stats_s12 {};
             api_bridge::PortTelemetryStats stats_s11 {};
             api_bridge::PortTelemetryStats stats_s22 {};
@@ -1174,6 +1219,9 @@ int main(int argc, char* argv[]) {
                 auto last_report_time = std::chrono::steady_clock::now();
 
                 while (g_running.load(std::memory_order_relaxed) && state == SystemState::RUNNING) {
+#ifdef SOLAR_STORAGE_ENABLED
+                    auto_maintenance.check();
+#endif
                     std::string child_err;
                     if (!children.check_children_alive(child_err)) {
                         std::cerr << "\n[FATAL][SUPERVISOR] " << child_err << "\n";
@@ -1182,6 +1230,8 @@ int main(int argc, char* argv[]) {
                         break;
                     }
 
+                    check_alignment_health();
+                    if (telemetry_frame_id < 8) mark("integration.begin");
                     const uint32_t ov1_before = rb1.get_overflow_count();
                     const uint32_t ov2_before = rb2.get_overflow_count();
 
@@ -1195,6 +1245,7 @@ int main(int argc, char* argv[]) {
                         cycle_err_msg = ex.what();
                     }
 
+                    if (telemetry_frame_id < 8 || !cycle_ok) mark("integration.end");
                     if (!g_running.load(std::memory_order_relaxed)) {
                         state = SystemState::STOPPING;
                         break;
@@ -1233,6 +1284,7 @@ int main(int argc, char* argv[]) {
                                       << diag_recovery_count << "/" << kMaxDiagRecoveries << ")...\n";
                             rb1.flush();
                             rb2.flush();
+                            mark("prime.begin");
                             if (!api_bridge::invoke_prime_buffers(fx, rb1, rb2)) {
                                 state = SystemState::STOPPING;
                                 exit_code = 1;
@@ -1265,6 +1317,10 @@ int main(int argc, char* argv[]) {
                     if (sender_phase) api_bridge::dispatch_udp_spectrum(*sender_phase, telemetry_frame_id, timestamp_us, phase_rad, stats_phase);
                     if (sender_coherence) api_bridge::dispatch_udp_spectrum(*sender_coherence, telemetry_frame_id, timestamp_us, coherence, stats_coherence);
 
+#ifdef SOLAR_STORAGE_ENABLED
+                    if (storage) storage->try_submit(telemetry_frame_id,timestamp_us,
+                        fx.auto_power1(),fx.auto_power2(),fx.cross_real(),fx.cross_imag());
+#endif
                     telemetry_frame_id++;
 
                     const auto now_steady = std::chrono::steady_clock::now();
@@ -1339,6 +1395,9 @@ int main(int argc, char* argv[]) {
     }
 
     children.terminate_and_reap_all();
+#ifdef SOLAR_STORAGE_ENABLED
+    auto_maintenance.stop();
+#endif
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH1_NAME);
     SharedMemoryRingBuffer::unlink_shm(SolarConfig::SHM::CH2_NAME);
     // Keep the lock until safe_gpio and all other guards have been destroyed.

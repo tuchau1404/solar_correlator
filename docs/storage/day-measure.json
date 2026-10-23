@@ -1,0 +1,13 @@
+{
+  "files": 97,
+  "hdf5_logical_bytes": 605780392,
+  "quota": {
+    "aux_committed": 32777216,
+    "day": "2026-10-17",
+    "hdf5_committed": 824500000,
+    "png_committed": 0,
+    "png_reserved": 97000000
+  },
+  "rows": 72005,
+  "scope": "24h equivalent synthetic grouped outputs, native writer and ledger; no SDR timing"
+}

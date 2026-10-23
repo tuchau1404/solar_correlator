@@ -1,0 +1,139 @@
+{
+  "config_version": 1,
+  "storage": {
+    "enabled": true,
+    "data_dir": "../data",
+    "save_interval_sec": 1.0,
+    "save_freq_bins": 2048,
+    "roll_minutes": 15.0,
+    "partial_window_policy": "emit",
+    "queue_capacity_records": 150,
+    "append_batch_records": 16,
+    "chunk_rows": 16,
+    "compression": "none",
+    "compression_level": 0,
+    "flush_interval_sec": 10.0,
+    "shutdown_drain_timeout_sec": 15.0,
+    "io_retry_limit": 3,
+    "io_backoff_initial_sec": 1.0,
+    "io_backoff_max_sec": 30.0,
+    "max_file_bytes": 34000000,
+    "resume_poll_sec": 5.0
+  },
+  "budget": {
+    "daily_limit_bytes": 4000000000,
+    "policy": "stop",
+    "hdf5_share": 0.85,
+    "png_share": 0.1,
+    "auxiliary_share": 0.05,
+    "min_free_bytes": 500000000,
+    "resume_free_bytes": 750000000,
+    "metadata_headroom_bytes": 16000000
+  },
+  "ledger": {
+    "path": "../state/storage.sqlite",
+    "max_bytes": 8388608,
+    "busy_timeout_sec": 2.0,
+    "journal_mode": "DELETE",
+    "synchronous": "FULL",
+    "migration_lock_path": "../state/migration.lock",
+    "audit_max_rows": 1000,
+    "tombstone_max_rows": 1000
+  },
+  "time": {
+    "observation_timezone": "Asia/Ho_Chi_Minh",
+    "display_timezone": "Asia/Ho_Chi_Minh",
+    "clock_jump_threshold_sec": 5.0,
+    "max_future_skew_sec": 60.0,
+    "time_quality_policy": "estimated_processing_anchor",
+    "cleanup_require_ntp_sync": true
+  },
+  "quicklook": {
+    "enabled": true,
+    "worker_limit": 1,
+    "selection_mode": "frequency",
+    "frequency_hz": 35500000.0,
+    "roi_hz": [
+      35400000.0,
+      35600000.0
+    ],
+    "coherence_estimator": "magnitude",
+    "coherence_threshold": 0.1,
+    "second_panel": "phase",
+    "colormap": "inferno",
+    "phase_colormap": "twilight",
+    "color_mode": "fixed",
+    "percentiles": [
+      5.0,
+      95.0
+    ],
+    "vmin_db": 18.0,
+    "vmax_db": 40.0,
+    "figure_inches": [
+      14.0,
+      10.0
+    ],
+    "dpi": 120,
+    "min_dpi": 60,
+    "max_png_bytes": 1000000,
+    "max_pixels": 3000000,
+    "max_attempts": 3,
+    "backoff_initial_sec": 10.0,
+    "backoff_max_sec": 300.0
+  },
+  "sync": {
+    "enabled": true,
+    "rclone_executable": "rclone",
+    "remote_name": "gdrive",
+    "remote_base_dir": "SolarInterferometer_Data",
+    "rclone_config_path": "/home/radi02/.config/rclone/rclone.conf",
+    "date_subdir_format": "%Y-%m-%d",
+    "min_age_sec": 30.0,
+    "timeout_sec": 120.0,
+    "max_attempts": 3,
+    "backoff_initial_sec": 10.0,
+    "backoff_max_sec": 300.0,
+    "lock_path": "../state/sync.lock",
+    "manifest_path": "../state/storage.sqlite",
+    "verification_policy": "download_sha256",
+    "transfers": 1,
+    "checkers": 1,
+    "bandwidth_limit": "off",
+    "interval_sec": 60.0
+  },
+  "retention": {
+    "enabled": true,
+    "days": 3.0,
+    "delete_unuploaded_expired": true,
+    "cleanup_interval_sec": 60.0,
+    "stale_temp_grace_sec": 3600.0,
+    "audit_max_bytes": 200000,
+    "lock_path": "../state/cleanup.lock",
+    "reader_timeout_sec": 300.0
+  },
+  "startup_check": {
+    "enabled": true,
+    "remote_probe_dir": ".solar_probe",
+    "probe_size_bytes": 1024,
+    "timeout_sec": 30.0,
+    "max_attempts": 3,
+    "backoff_initial_sec": 2.0,
+    "backoff_max_sec": 10.0,
+    "remove_probe_after_success": true,
+    "stale_probe_grace_sec": 86400.0
+  },
+  "logging": {
+    "path": "../state/storage.log",
+    "level": "INFO",
+    "rotation_bytes": 100000,
+    "rotation_count": 2,
+    "rate_limit_sec": 5.0,
+    "daily_limit_bytes": 1000000
+  },
+  "status": {
+    "path": "../state/status.json",
+    "interval_sec": 5.0,
+    "stale_after_sec": 30.0,
+    "max_bytes": 16384
+  }
+}

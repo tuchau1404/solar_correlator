@@ -32,6 +32,11 @@ public:
         std::vector<float>& phase, std::vector<float>& coherence);
     const std::vector<double>& auto_power1() const { return power1_; }
     const std::vector<double>& auto_power2() const { return power2_; }
+    // Same shifted order, normalization and phase-only correction as auto_power.
+    // Read only after a successful cycle, on the DSP-owner thread; copy before
+    // the next cycle. A failed cycle does not publish a valid new snapshot.
+    const std::vector<double>& cross_real() const { return cross_real_; }
+    const std::vector<double>& cross_imag() const { return cross_imag_; }
     double window_energy() const { return s2_; }
 private:
     using Clock = std::chrono::steady_clock;
@@ -46,7 +51,7 @@ private:
     double s2_ = 0;
     std::vector<ComplexSample> samples1_, samples2_;
     std::vector<float> window_;
-    std::vector<double> re_, im_, a1_, a2_, power1_, power2_;
+    std::vector<double> re_, im_, a1_, a2_, power1_, power2_, cross_real_, cross_imag_;
     fftwf_complex *in1_ = nullptr, *in2_ = nullptr;
     fftwf_complex *out1_ = nullptr, *out2_ = nullptr;
     fftwf_plan plan1_ = nullptr, plan2_ = nullptr;

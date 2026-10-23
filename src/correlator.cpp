@@ -59,6 +59,7 @@ FXCorrelator::FXCorrelator(Options o) : options_(o), n_(o.fft_size), hop_(n_/2) 
     samples1_.resize(n_); samples2_.resize(n_); window_.resize(n_);
     re_.resize(n_); im_.resize(n_); a1_.resize(n_); a2_.resize(n_);
     power1_.resize(n_); power2_.resize(n_);
+    cross_real_.resize(n_); cross_imag_.resize(n_);
     for (uint32_t j=0; j<n_; ++j) {
         window_[j] = float(0.5*(1.0-std::cos(2*pi*j/(n_-1))));
         s2_ += double(window_[j])*window_[j]; // normalize actual stored window
@@ -145,6 +146,7 @@ void FXCorrelator::process_integration_cycle(SharedMemoryRingBuffer& r1,
             if(!std::isfinite(gamma) || gamma>1.0+1e-9)
                 throw std::runtime_error("Cauchy-Schwarz violation");
             power1_[j]=p1; power2_[j]=p2;
+            cross_real_[j]=real; cross_imag_[j]=imag;
             db[j]=float(10*std::log10(std::max(mag,1e-12)));
             phase[j]=mag>0 ? float(std::atan2(imag,real)) : 0;
             coh[j]=float(std::clamp(gamma,0.0,1.0));

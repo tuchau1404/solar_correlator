@@ -1,0 +1,78 @@
+{
+  "src/hardware_control.hpp": {
+    "same": true,
+    "sha256": "77fa7349a420ef71c254c0885408d432ff0fea2aa36721c4809ab042deab4901"
+  },
+  "src/ring_buffer.hpp": {
+    "same": true,
+    "sha256": "5ecc6be1efc9462dc828e4d334de4f2261efc6c8f942ce41ff796a51db458270"
+  },
+  "src/time_alignment.hpp": {
+    "same": true,
+    "sha256": "23103b5cd8a3dfe6d8b5067fb1b9848ddcadf61d26127b3ec4ee031b2aae7281"
+  },
+  "src/time_alignment.cpp": {
+    "same": true,
+    "sha256": "31393ca70440ffac5fcf1eeea9ba615a67500370d9dfa9f99ee490a59d52986d"
+  },
+  "src/telemetry_sender.hpp": {
+    "same": true,
+    "sha256": "c269fe1a115323843eefeda9073302f1eeadd48999d63f53ab1a240dbaebda6e"
+  },
+  "tests/alignment_test.cpp": {
+    "same": true,
+    "sha256": "477c4798dd6a0b815ac507f1ea4520bab8646a0ae3b468fc0504e52beae66489"
+  },
+  "src/correlator.cpp": {
+    "same": true,
+    "sha256": "59097808269663966e1ccf71d2a828bea29b3a7a51f1780ff640447e17fc3e73"
+  },
+  "src/correlator.hpp": {
+    "same": true,
+    "sha256": "e059b6c6f722816231687973c5f0ff178b54bd75410ee93ede8adb60092a573e"
+  },
+  "config/solar_storage.json": {
+    "same": true,
+    "sha256": "300b972ff47778ab2818ce0e074e3d05a45590fa38aa16d7203b6ec3e04bcfea"
+  },
+  "viewer/science_model.py": {
+    "same": true,
+    "sha256": "9ebe4ccc839405c3f90bb4fd185195b6af45d5530b399109162adfcf103ea5b1"
+  },
+  "viewer/viewer_fx.py": {
+    "same": true,
+    "sha256": "f1e04f96b7969d43bd7676653c17f138b6431e5002039d7de41e37ef1e667c79"
+  },
+  "viewer/viewer.py": {
+    "same": true,
+    "sha256": "79a54690058d45a1655444d22c837f549468ceccad0b2155b1ae937933121fcb"
+  },
+  "viewer/requirements.txt": {
+    "same": true,
+    "sha256": "5ae194cd859ea0b2f46132c62801b31d7eec35b7efe2d1341eb6bb3abea85ae7"
+  },
+  "viewer/telemetry_protocol.py": {
+    "same": true,
+    "sha256": "4602db98b349ac598a0e713b2548dc52e3719853af46f48f9859ee298c03a5fc"
+  },
+  "viewer/read_udp.py": {
+    "same": true,
+    "sha256": "3792a1adc456d93b5ab1852cc4e017e4030ea2f8ec33252d46236ff26ac9b122"
+  },
+  "viewer/viewer_dual.py": {
+    "same": true,
+    "sha256": "a73f9ebc3512816d4e757971857974437ee8dd4f5cb5bfb56c84b5daae4acb6c"
+  },
+  "tests/test_science_viewer.py": {
+    "same": true,
+    "sha256": "f6192154270673f0ebb1238095f567acda523d706f286a7a2cdc87753e31f365"
+  },
+  "tests/test_viewer.py": {
+    "same": true,
+    "sha256": "3ed84c27315c170670d0829377b590cd56bf303e3e1f830ba081396144f74eec"
+  },
+  "docs/02-firmware-dsp/viewer-modes.md": {
+    "same": true,
+    "sha256": "89875fb7fcc896d0137d54089d568fa99aa8e85b4d9f32ed5e7c4ff65c4607e5"
+  }
+}

@@ -252,3 +252,6 @@ python viewer/viewer.py
 ## 7. License & Acknowledgments
 
 This project is developed for educational and academic research in observational radio astronomy. Code and schematics are distributed under the MIT License. SDRplay API remains the intellectual property of SDRplay Ltd.
+## Optional storage v1
+
+The new pipeline requires explicit `--config`; legacy invocation stays available. See [storage operation guide](docs/storage/README.md), [architecture](docs/storage/ARCHITECTURE.md), and [verified scope and test report](docs/storage/REPORT.md). Hardware/Drive acceptance is still required.

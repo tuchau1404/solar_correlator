@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(solar_correlator LANGUAGES CXX)
+project(solar_correlator LANGUAGES C CXX)
 
 option(SOLAR_BUILD_DSP "Build FFTW DSP tests" ON)
 option(SOLAR_BUILD_HARDWARE "Build SDRplay acquisition application" ON)
@@ -69,4 +69,76 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_I
     target_compile_options(test_telemetry_sender PRIVATE -UNDEBUG)
     target_link_options(test_telemetry_sender PRIVATE -Wl,--wrap=sendto)
     add_test(NAME telemetry_sender_contract COMMAND test_telemetry_sender)
+endif()
+# Dependency-free scientific storage core; runtime archiving requires --config.
+add_library(solar_storage_core src/storage/storage_aggregator.cpp)
+target_link_libraries(solar_storage_core PUBLIC solar_options)
+if(BUILD_TESTING)
+    add_executable(test_storage_core tests/storage/test_storage_core.cpp)
+    target_link_libraries(test_storage_core PRIVATE solar_storage_core Threads::Threads)
+    add_test(NAME storage_core_contract COMMAND test_storage_core)
+endif()
+
+option(SOLAR_BUILD_STORAGE "Build HDF5 storage integration" ON)
+if(SOLAR_BUILD_STORAGE)
+    find_package(HDF5 REQUIRED COMPONENTS C)
+    find_package(SQLite3 REQUIRED)
+    find_package(nlohmann_json 3.10 REQUIRED)
+    add_library(solar_storage
+        src/storage/storage_config.cpp src/storage/storage_budget.cpp
+        src/storage/bounded_hdf5_vfd.cpp src/storage/hdf5_writer.cpp
+        src/storage/storage_pipeline.cpp)
+    target_include_directories(solar_storage PUBLIC ${HDF5_INCLUDE_DIRS})
+    target_link_libraries(solar_storage PUBLIC solar_storage_core ${HDF5_LIBRARIES}
+        SQLite::SQLite3 nlohmann_json::nlohmann_json Threads::Threads)
+    target_compile_definitions(solar_storage PRIVATE
+        SOLAR_STORAGE_SCRIPTS="${CMAKE_CURRENT_SOURCE_DIR}/scripts")
+    execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE SOLAR_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND git status --porcelain WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE SOLAR_DIRTY OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT SOLAR_REVISION)
+        file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/SOURCE_REVISION" SOLAR_REVISION LIMIT_COUNT 1)
+        set(SOLAR_DIRTY "source-archive")
+    endif()
+    if(SOLAR_DIRTY)
+        set(SOLAR_PATCH_STATE "uncommitted")
+    else()
+        set(SOLAR_PATCH_STATE "clean")
+    endif()
+    if(TARGET solar_correlator)
+        target_link_libraries(solar_correlator PRIVATE solar_storage)
+        target_compile_definitions(solar_correlator PRIVATE SOLAR_STORAGE_ENABLED
+            SOLAR_BASELINE_REVISION="${SOLAR_REVISION}" SOLAR_PATCH_STATE="${SOLAR_PATCH_STATE}")
+    endif()
+endif()
+
+if(SOLAR_BUILD_STORAGE AND BUILD_TESTING)
+    add_executable(test_storage_io tests/storage/test_storage_io.cpp)
+    target_link_libraries(test_storage_io PRIVATE solar_storage)
+endif()
+
+if(SOLAR_BUILD_STORAGE AND BUILD_TESTING)
+    add_executable(test_storage_pipeline tests/storage/test_pipeline.cpp)
+    target_link_libraries(test_storage_pipeline PRIVATE solar_storage)
+endif()
+
+if(SOLAR_BUILD_STORAGE AND BUILD_TESTING)
+    add_executable(measure_storage_day tests/storage/measure_day.cpp)
+    target_link_libraries(measure_storage_day PRIVATE solar_storage)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(test_startup_alignment tests/test_startup_alignment.cpp)
+    target_link_libraries(test_startup_alignment PRIVATE solar_options)
+    add_test(NAME startup_alignment_contract COMMAND test_startup_alignment)
+endif()
+if(BUILD_TESTING AND SOLAR_BUILD_HARDWARE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # The included application entry point is never executed; discard it at link.
+    add_executable(test_stream_continuity tests/test_stream_continuity.cpp)
+    target_link_libraries(test_stream_continuity PRIVATE solar_options Threads::Threads rt)
+    target_compile_options(test_stream_continuity PRIVATE -ffunction-sections -fdata-sections)
+    target_link_options(test_stream_continuity PRIVATE -Wl,--gc-sections)
+    target_link_libraries(test_stream_continuity PRIVATE PkgConfig::FFTW3 ${SDRPLAY_LIB})
+    add_test(NAME stream_continuity_contract COMMAND test_stream_continuity)
 endif()

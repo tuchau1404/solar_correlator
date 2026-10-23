@@ -75,7 +75,7 @@ void run(FXCorrelator& fx,Rings& r,const std::vector<float>& phi,Result& o) {
         require(o.coh[k]>=0&&o.coh[k]<=1,"coherence bounds");
     }
 }
-struct Reference {double p1,p2,db,phase,coh;};
+struct Reference {double p1,p2,db,phase,coh,real,imag;};
 // Independent long-double direct DFT, ideal symmetric Hann, raw integer samples.
 Reference reference(const std::vector<ComplexSample>& x,const std::vector<ComplexSample>& y,
  uint32_t n,uint32_t frames,uint32_t k,size_t start,double phi) {
@@ -99,7 +99,7 @@ Reference reference(const std::vector<ComplexSample>& x,const std::vector<Comple
     const long double scale=1/(frames*(long double)n*s2);
     const auto mag=std::abs(cross)*scale;
     return {double(a*scale),double(b*scale),double(10*std::log10(std::max(mag,1e-12L))),
-        mag>0?double(std::arg(cross)):0,a>0&&b>0?double(std::abs(cross)/std::sqrt(a*b)):0};
+        mag>0?double(std::arg(cross)):0,a>0&&b>0?double(std::abs(cross)/std::sqrt(a*b)):0, double(cross.real()*scale), double(cross.imag()*scale)};
 }
 void tone(uint32_t frames,double amplitude,double theta,bool correct,bool negative=false) {
     constexpr uint32_t n=2048;
@@ -142,6 +142,9 @@ void random_reference() {
         for(unsigned k=0;k<n;++k) {
             auto ref=reference(x,y,n,m,k,cycle*m*n/2,phi[k]);unsigned s=(k+n/2)%n;
             near(fx.auto_power1()[s],ref.p1,ref.p1*1e-6,"auto power oracle");
+            const double cross_tolerance = std::max(1.0, std::hypot(ref.real,ref.imag))*2e-5;
+            near(fx.cross_real()[s],ref.real,cross_tolerance,"linear cross real oracle");
+            near(fx.cross_imag()[s],ref.imag,cross_tolerance,"linear cross imag oracle");
             near(o.db[s],ref.db,3e-4,"random cross dB");near(o.phase[s],ref.phase,2e-5,"random phase");
             near(o.coh[s],ref.coh,2e-6,"random coherence");
         }

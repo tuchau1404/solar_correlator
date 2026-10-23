@@ -1,0 +1,15 @@
+{
+  "h5_count": 97,
+  "h5_logical_bytes": 605780392,
+  "png_count": 97,
+  "png_logical_bytes": 90674623,
+  "auxiliary_live_logical_bytes": 131273,
+  "actual_live_total_bytes": 696586288,
+  "quota": {
+    "day": "2026-10-17",
+    "hdf5_committed": 824500000,
+    "png_reserved": 0,
+    "png_committed": 97000000,
+    "aux_committed": 32777216
+  }
+}

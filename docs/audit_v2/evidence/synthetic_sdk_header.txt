@@ -1,0 +1,17 @@
+#pragma once
+// SYNTHETIC COMPILE-ONLY DECLARATIONS. NOT THE VENDOR SDK. NEVER LINK/RUN.
+#define SDRPLAY_MAX_DEVICES 16
+#define SDRPLAY_API_VERSION 3.15
+using sdrplay_api_Bw_MHzT=int;using sdrplay_api_RspDx_AntennaSelectT=int;using sdrplay_api_AgcControlT=int;
+constexpr int sdrplay_api_BW_8_000=0,sdrplay_api_RspDx_ANTENNA_A=0,sdrplay_api_AGC_DISABLE=0,sdrplay_api_IF_Zero=0,sdrplay_api_Tuner_A=0;
+using sdrplay_api_ErrT=int;using sdrplay_api_EventT=int;using sdrplay_api_TunerSelectT=int;
+constexpr int sdrplay_api_Success=0;
+struct sdrplay_api_StreamCbParamsT { unsigned firstSampleNum; };struct sdrplay_api_EventParamsT {};
+struct sdrplay_api_DeviceT {char SerNo[64];int tuner;void* dev;};
+struct Channel {struct {struct{double rfHz;}rfFreq;int bwType,ifType;struct{unsigned char LNAstate;int gRdB;}gain;}tunerParams;struct{struct{int enable;}agc;}ctrlParams;};
+struct Device {struct{double fsHz;}fsFreq;struct{int antennaSel,rfNotchEnable,rfDabNotchEnable;}rspDxParams;};
+struct sdrplay_api_DeviceParamsT {Channel* rxChannelA;Device* devParams;};
+struct sdrplay_api_CallbackFnsT {void(*StreamACbFn)(short*,short*,sdrplay_api_StreamCbParamsT*,unsigned,unsigned,void*);void(*EventCbFn)(sdrplay_api_EventT,sdrplay_api_TunerSelectT,sdrplay_api_EventParamsT*,void*);};
+int sdrplay_api_Open();int sdrplay_api_Close();int sdrplay_api_LockDeviceApi();int sdrplay_api_UnlockDeviceApi();
+int sdrplay_api_GetDevices(sdrplay_api_DeviceT*,unsigned*,unsigned);int sdrplay_api_SelectDevice(sdrplay_api_DeviceT*);int sdrplay_api_ReleaseDevice(sdrplay_api_DeviceT*);
+int sdrplay_api_GetDeviceParams(void*,sdrplay_api_DeviceParamsT**);int sdrplay_api_Init(void*,sdrplay_api_CallbackFnsT*,void*);int sdrplay_api_Uninit(void*);int sdrplay_api_ApiVersion(float*);const char* sdrplay_api_GetErrorString(int);

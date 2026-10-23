@@ -9,6 +9,7 @@ struct Options {
     uint32_t snapshot_size = 131072;
     unsigned attempts = 8;
     unsigned confirmations = 3;
+    unsigned max_residual_samples = 1; // Test default unchanged; science main selects zero.
     float min_pnr_db = 20.0f; // Proposed calibration threshold; tune with hardware data.
 };
 class Failed : public std::runtime_error {
@@ -58,12 +59,12 @@ void acquire(Ring& a, Ring& b, const Options& o,
             const auto verify = measure();
             log << "[AUTO-ALIGN VERIFY " << good + 1 << '/' << o.confirmations
                 << "] lag=" << verify.lag_samples << " PNR=" << verify.pnr_db << " dB\n";
-            if (!confident(verify) || std::abs(int64_t(verify.lag_samples)) > 1)
+            if (!confident(verify) || std::abs(int64_t(verify.lag_samples)) > o.max_residual_samples)
                 break;
         }
         if (good == o.confirmations) {
             wait_ready(); // Recheck health after the final FFT.
-            log << "[AUTO-ALIGN] LOCKED: starting stability test.\n";
+            log << "[AUTO-ALIGN] LOCKED: fresh confirmations passed.\n";
             return;
         }
         log << "[AUTO-ALIGN] Verification failed: retry fresh capture.\n";
