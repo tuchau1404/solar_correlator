@@ -1,0 +1,9 @@
+PASS tone M=1953 A=10000 theta=0 corrected=1 peak=1229 dB=78.0126
+PASS tone M=31 A=32767 theta=1.5708 corrected=0 peak=1229 dB=88.3213
+PASS tone M=31 A=32767 theta=1.5708 corrected=1 peak=1229 dB=88.3213
+PASS tone M=31 A=10000 theta=-1.5708 corrected=0 peak=1229 dB=78.0126
+PASS tone M=31 A=10000 theta=-1.5708 corrected=1 peak=1229 dB=78.0126
+PASS tone M=31 A=10000 theta=0 corrected=1 peak=819 dB=78.0126
+PASS random long-double DFT, Parseval, two-cycle continuity
+PASS zeros, one silent channel, full int16, invalid inputs, timeouts, cancellation, overflow
+ALL DSP TESTS PASSED (host architecture only; no ARM timing certification)
