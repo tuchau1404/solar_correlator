@@ -1,0 +1,616 @@
+--- a/viewer_fx.py
++++ b/viewer_fx.py
+@@ -181,6 +181,8 @@
+         self.bins = bins
+         self.accum_linear = np.zeros(bins, dtype=np.float64)
+         self.count = 0
++        self.total_m = 0
++        self.last_stamp = None
+         self.deep_frame_id = 0
+         self.last_session = None
+         self.last_frame_id = None
+@@ -188,7 +190,13 @@
+     def reset(self):
+         self.accum_linear.fill(0.0)
+         self.count = 0
++        self.total_m = 0
++        self.last_stamp = None
+         self.last_frame_id = None
++
++    def time_break(self, stamp, m_frames):
++        expected_us = max(1, m_frames) * 1024 / 10e6 * 1e6
++        return self.last_stamp is not None and (stamp <= self.last_stamp or stamp-self.last_stamp > expected_us*1.5)
+ 
+     def push(self, session, frame_id, stamp, m_frames, db_values):
+         completed = []
+@@ -201,6 +209,7 @@
+             gap_frames = frame_id - self.last_frame_id - 1
+             self.accum_linear.fill(0.0)
+             self.count = 0
++            self.total_m = 0
+             missed_groups = min(HISTORY, gap_frames // self.group_size)
+             for _ in range(missed_groups):
+                 self.deep_frame_id += 1
+@@ -214,10 +223,16 @@
+                     )
+                 )
+ 
++        if self.time_break(stamp, m_frames):
++            self.accum_linear.fill(0.)
++            self.count = 0
++            self.total_m = 0
++        self.last_stamp = stamp
+         self.last_frame_id = frame_id
+         linear_power = np.power(10.0, np.asarray(db_values, dtype=np.float64) * 0.1)
+         self.accum_linear += linear_power
+         self.count += 1
++        self.total_m += m_frames
+ 
+         if self.count >= self.group_size:
+             mean_linear = np.maximum(self.accum_linear / float(self.count), 1e-12)
+@@ -228,12 +243,13 @@
+                     session,
+                     self.deep_frame_id,
+                     stamp,
+-                    m_frames * self.count,
++                    self.total_m,
+                     deep_db,
+                 )
+             )
+             self.accum_linear.fill(0.0)
+             self.count = 0
++            self.total_m = 0
+ 
+         return completed
+ 
+@@ -1119,7 +1135,7 @@
+         previous = self.integrator.last_frame_id
+         if not new_session and previous is not None and fid <= previous:
+             return
+-        if new_session or self.integrator.count == 0 or (previous is not None and fid != previous+1):
++        if new_session or self.integrator.count == 0 or self.integrator.time_break(stamp, count) or (previous is not None and fid != previous+1):
+             self._deep_group_start = fid, stamp
+         start_fid, start_stamp = self._deep_group_start
+         for deep in self.integrator.push(session, fid, stamp, count, values):
+@@ -1455,7 +1471,7 @@
+                 stretch = (5 if key.startswith('wf_') else 2) if self.mode.currentText() == 'Solar' else default_stretch
+                 if key == 'phase' and wf_visible_count <= 1:
+                     stretch = 4
+-                grid.setRowMinimumHeight(row_idx, 0)
++                grid.setRowMinimumHeight(row_idx, 170 if key.startswith('wf_') else 140)
+                 grid.setRowMaximumHeight(row_idx, 16777215)
+                 grid.setRowPreferredHeight(row_idx, -1)
+                 grid.setRowStretchFactor(row_idx, stretch)
+--- a/viewer_h5.py
++++ b/viewer_h5.py
+@@ -15,12 +15,26 @@
+ 
+ def replace_axis(plot, side, axis):
+     old = plot.getAxis(side)
+-    plot.setAxisItems({side: axis})
+-    # Qt retains a removed axis's parent; re-adding a hidden plot would then
+-    # attach that cached axis to the scene again before source restoration.
++    pos = plot.axes[side]['pos']
++    plot.layout.removeItem(old)
++    old.unlinkFromView()
+     old.setParentItem(None)
+-    if old.scene() is not None:old.scene().removeItem(old)
++    if old.scene() is not None:
++        old.scene().removeItem(old)
++    axis.linkToView(plot.vb)
++    plot.axes[side] = {'item': axis, 'pos': pos}
++    plot.layout.addItem(axis, *pos)
++    axis.setZValue(.5)
++    axis.setFlag(axis.GraphicsItemFlag.ItemNegativeZStacksBehindParent)
++    plot.showAxis(side, True)
+     return old
++
++
++def saved_time(value, fmt='%H:%M:%S'):
++    try:
++        return datetime.fromtimestamp(value, VN).strftime(fmt) if np.isfinite(value) else ''
++    except (ValueError, OverflowError, OSError):
++        return 'Invalid UTC'
+ 
+ 
+ class SavedTimeAxis(pg.AxisItem):
+@@ -28,8 +42,7 @@
+         super().__init__(orientation=orientation); self.enableAutoSIPrefix(False)
+ 
+     def tickStrings(self, values, scale, spacing):
+-        return [datetime.fromtimestamp(v, VN).strftime('%d/%m\n%H:%M:%S')
+-                if np.isfinite(v) else '' for v in values]
++        return [saved_time(v, '%d/%m' if spacing >= 86400 else '%H:%M:%S') for v in values]
+ 
+ 
+ class ReaderWorker(QtCore.QThread):
+@@ -40,7 +53,9 @@
+         super().__init__(parent); self.function = function
+ 
+     def run(self):
+-        try: self.ready.emit(self.function(self.isInterruptionRequested))
++        try:
++            result = self.function(self.isInterruptionRequested)
++            if not self.isInterruptionRequested(): self.ready.emit(result)
+         except InterruptedError: pass
+         except Exception as e: self.failed.emit(f'{type(e).__name__}: {e}')
+ 
+@@ -126,6 +141,7 @@
+                   self.quantity,self.load_button,self.full_button,self.v.frequency,self.v.bin_minus_button,
+                   self.v.bin_plus_button,self.v.snap_peak_button):w.setEnabled(not yes)
+         self.cancel_button.setEnabled(yes)
++        if self.active:self.v.marker.setMovable(not yes)
+         self.status()
+ 
+     def finished(self):
+@@ -143,6 +159,7 @@
+ 
+     def cancel(self):
+         self.pending_load=False
++        self.generation += 1
+         if self.worker:self.worker.requestInterruption()
+ 
+     def failed(self, error):
+@@ -168,6 +185,10 @@
+             'checks':{k:w.isChecked() for k,w in v.plot_checks.items()},'focus':v.focus_combo.currentIndex(),
+             'mode':v.mode.currentIndex(),
+         }
++        self.saved['curves'] = [(curve, tuple(None if x is None else x.copy() for x in curve.getData()), curve.isVisible())
++            for curve in (*v.curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve)]
++        self.saved['labels'] = [(label,label.text(),label.toolTip()) for label in
++            (*v.metric_values.values(),*v.metric_details.values(),v.readout_pinned,v.readout_hover,v.bin_label)]
+         self.active=True; self.generation+=1
+         tag=v.findChild(QtWidgets.QLabel,'protocolTag')
+         if tag:tag.setText('H5 SCHEMA 1')
+@@ -176,6 +197,7 @@
+         for w in (v.pause_button,v.follow_live,v.wf_follow,v.link_power_scales):
+             w.blockSignals(True); w.setChecked(False); w.blockSignals(False)
+         v.return_live_button.setEnabled(True)
++        v.threshold.setEnabled(True); v.marker.setMovable(True)
+         v.threshold.blockSignals(True); v.threshold.setValue(.1); v.threshold.blockSignals(False)
+         v.fringe_mode.blockSignals(True); v.fringe_mode.setCurrentIndex(1); v.fringe_mode.blockSignals(False)
+         v.img_fast.hide(); v.img_phase.hide(); v.img_deep.hide()
+@@ -230,10 +252,18 @@
+         v._focus_key=v.focus_combo.currentData()
+         v.workspace_title.setText(v.mode.currentText().upper()+' OBSERVATION')
+         v.display_badge.setText('DISPLAY PAUSED' if v.pause_button.isChecked() else 'DISPLAY LIVE')
++        self.clear_plots()
+         v.on_pause_toggled(v.pause_button.isChecked())
+         v._update_bin_buttons();v._update_return_live_button()
+-        self.clear_plots()
+-        v.select_frequency(freq);v.update_layout_geometry();v.sync_displayed_curves();v.render()
++        v.select_frequency(freq);v.update_layout_geometry()
++        if self.saved['pause']:
++            for curve, data, visible in self.saved['curves']:
++                curve.setData(*tuple([] if x is None else x for x in data));curve.setVisible(visible)
++            for label, text, tooltip in self.saved['labels']:
++                label.setText(text);label.setToolTip(tooltip)
++            v.marker.setValue(v.model.actual)
++        else:
++            v.sync_displayed_curves();v.update_curve_visibility();v.render()
+         for p,ranges in zip(v.all_plots,self.saved['ranges']):p.setRange(xRange=ranges[0],yRange=ranges[1],padding=0)
+         # Reapply live slot and follow coordinates after actual H5 UTC axes.
+         v._update_wf_view();v._render_wf_window();v.update_time_view()
+@@ -320,6 +350,9 @@
+         self.clear_meshes();v=self.v
+         for curve in (*v.curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve):curve.setData([],[])
+         v._hide_all_hover_overlays()
++        v.readout_hover.setText('H5: no hover sample' if self.active else 'Live: hover a sample')
++        v.readout_hover.setToolTip('')
++        for label in (*v.metric_values.values(),*v.metric_details.values(),v.readout_pinned):label.setToolTip('')
+         for key in v.metric_values:v.metric_values[key].setText('—');v.metric_details[key].setText('H5: no selected data')
+         if self.active:
+             v.readout_pinned.setText('H5: open files and load a selected range')
+@@ -400,13 +433,17 @@
+         v.metric_details['time'].setText('H5 · UTC estimated' if d['flags'][-1]&1 else 'H5 · saved UTC')
+         v.readout_pinned.setText(f'H5 | {selection} | {len(d["times"])} records | {len(d["meshes"])} continuous segments | threshold γ ≥ {v.threshold.value():.2f}')
+         v.bin_label.setText('H5 selection: '+selection)
++        for key,label in v.metric_values.items():
++            label.setToolTip(label.text()+'\n'+v.metric_details[key].text())
++            v.metric_details[key].setToolTip(v.metric_details[key].text())
++        v.readout_pinned.setToolTip(v.readout_pinned.text())
+ 
+     def render_waterfalls(self, *_):
+         if not self.active or self.data is None:return
+         v=self.v
+         key=(id(self.data),id(self.deep),v.threshold.value(),tuple(v.cbar_fast.values),tuple(v.cbar_phase.values),tuple(v.cbar_deep.values))
+         if key==self.mesh_key:return
+-        self.clear_meshes();self.mesh_key=key
++        self.clear_meshes()
+         fe=np.r_[self.catalog.freq-self.catalog.bandwidth/2,self.catalog.freq[-1]+self.catalog.bandwidth/2]/1e6
+         for plot,bar,meshes,phase in ((v.wf_fast_plot,v.cbar_fast,self.data['meshes'],False),
+                                      (v.wf_phase_plot,v.cbar_phase,self.data['phase_meshes'],True),
+@@ -414,13 +451,14 @@
+             for edges,values,gamma in meshes:
+                 values=values.copy()
+                 if phase:values=np.where(np.isfinite(gamma)&(gamma>0)&(gamma>=v.threshold.value()),np.rad2deg(values),np.nan)
+-                xx,yy=np.meshgrid(fe,edges)
+-                item=pg.PColorMeshItem(xx,yy,values,levels=tuple(bar.values),colorMap=bar.colorMap(),enableAutoLevels=False,edgecolors=None)
++                from h5_raster import TimeRasterItem
++                item=TimeRasterItem(fe,edges,values,tuple(bar.values),bar.colorMap())
+                 plot.addItem(item);self.mesh_items.append((plot,item))
++        self.mesh_key=key
+         quantity=self.data['quantity']
+         v.wf_fast_plot.setTitle(f'H5 {quantity} — FFT-weighted display mean ≤{self.data["group"]} saved records/row')
+         v.wf_deep_plot.setTitle(f'H5 deep {quantity} — FFT-weighted display mean ≤{self.deep["group"]} saved records/row')
+-        for bar in (v.cbar_fast,v.cbar_deep):bar.getAxis('left').setLabel(quantity+' [dB re 1 ADC-count²]')
++        for bar in (v.cbar_fast,v.cbar_deep):bar.getAxis('left').setLabel(quantity+' [dB]' )
+         v.wf_history_label.setText(f'H5: {len(self.data["times"])} rows · {len(self.catalog.freq)} saved bins · actual UTC axis')
+ 
+     def status(self):
+@@ -486,7 +524,8 @@
+                     a,b,re,im=self.data['traces'][:,i]
+                     from offline_h5 import derived
+                     _,phase,gamma=derived(a,b,re,im)
+-                    message=f'H5 | {datetime.fromtimestamp(self.data["times"][i],VN):%d/%m %H:%M:%S} | Re {re:.5g} Im {im:.5g} ADC-count²/bin | phase {np.rad2deg(phase):+.2f}° | γ {gamma:.4f} | flags {self.data["flags"][i]}'
++                    quality='VALID' if np.isfinite(gamma) and gamma>0 and gamma>=v.threshold.value() else 'MASKED / INVALID'
++                    message=f'H5 raw [{quality}] | {datetime.fromtimestamp(self.data["times"][i],VN):%d/%m %H:%M:%S} | Re {re:.5g} Im {im:.5g} ADC-count²/bin | phase {np.rad2deg(phase):+.2f}° | γ {gamma:.4f} | flags {self.data["flags"][i]}'
+             v.readout_hover.setText(message);v.readout_hover.setToolTip(message)
+             v.crosshair_v[key].setValue(x);v.crosshair_h[key].setValue(y)
+             v.crosshair_v[key].show();v.crosshair_h[key].show()
+--- a/offline_h5.py
++++ b/offline_h5.py
+@@ -12,6 +12,9 @@
+            'quality_flags')
+ MAX_RECORDS = 1_000_000
+ MAX_SELECTED = 200_000
++# QDateTimeEdit default supported range, with room for the UTC+07 offset.
++MIN_UTC_US = -14831769600000000  # 1500-01-01 UTC
++MAX_UTC_US = 253402275600000000  # 9999-12-31 17:00 UTC
+ 
+ 
+ def text(value):
+@@ -87,7 +90,10 @@
+                           np.any(v['timestamps_us'] < v['start_utc_us']) or
+                           np.any(v['timestamps_us'] > v['end_utc_us']) or
+                           np.any(v['sample_start'] >= v['sample_end']) or
+-                          np.any(v['valid_fft_frames'] == 0) or
++                          np.any(v['valid_fft_frames'] <= 0) or
++                          np.any(v['frame_ids_first'] > v['frame_ids_last']) or
++                          np.any(v['start_utc_us'] < MIN_UTC_US) or
++                          np.any(v['end_utc_us'] >= MAX_UTC_US) or
+                           np.any(v['timestamps_us'][1:] <= v['timestamps_us'][:-1])):
+                     raise ValueError('Invalid timestamps, sample intervals or weights')
+                 signature = tuple(text(m.get(k, '')) for k in (
+@@ -97,6 +103,7 @@
+                 e = Entry(path, m, v, signature, (stat.st_size, stat.st_mtime_ns))
+                 ei = len(self.entries); self.entries.append(e)
+                 for i in range(n):
++                    if i % 256 == 0 and cancelled(): raise InterruptedError('Cancelled')
+                     key = (text(m['session_id']), int(v['sample_start'][i]), int(v['sample_end'][i]))
+                     if key in seen:
+                         pe, pi = seen[key]; old = self.entries[pe]
+@@ -192,7 +199,7 @@
+                     finish_segment()
+                     if len(meshes) >= 200: raise ValueError('Too many discontinuities; choose a shorter range')
+                 vals = block[:, off]
+-                valid = np.all(np.isfinite(vals), axis=0) & (vals[0] >= 0) & (vals[1] >= 0)
++                valid = np.isfinite(derived(*vals)[2])
+                 vals[:, ~valid] = np.nan
+                 v = e.vectors; w = float(v['valid_fft_frames'][row]); weights[j] = w
+                 flags[j] = v['quality_flags'][row]
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,3 +1,4 @@
+ numpy>=1.25,<3
+ PyQt5>=5.15.9,<6
+ pyqtgraph==0.13.7
++h5py>=3.10,<4
+--- a/h5_offline.py
++++ b/h5_offline.py
+@@ -1,255 +1,7 @@
+-"""Offline H5 window; may run standalone or from FXViewer's File menu."""
+-import argparse
++"""Compatibility launcher: use the shared FXViewer for H5 files."""
+ import sys
+-from datetime import datetime, timezone, timedelta
+-from pathlib import Path
+-import numpy as np
+-import pyqtgraph as pg
+-from PyQt5 import QtCore, QtWidgets
+-from offline_h5 import Catalog, derived, db, broken_series
+-
+-VN = timezone(timedelta(hours=7))
+-
+-
+-class TimeAxis(pg.AxisItem):
+-    def __init__(self, *args, **kwargs):
+-        super().__init__(*args, **kwargs)
+-        self.enableAutoSIPrefix(False)
+-
+-    def tickStrings(self, values, scale, spacing):
+-        return [datetime.fromtimestamp(v, VN).strftime('%d/%m\n%H:%M:%S')
+-                if np.isfinite(v) else '' for v in values]
+-
+-
+-class Worker(QtCore.QThread):
+-    result = QtCore.pyqtSignal(object)
+-    failed = QtCore.pyqtSignal(str)
+-
+-    def __init__(self, function, parent=None):
+-        super().__init__(parent); self.function = function
+-
+-    def run(self):
+-        try: self.result.emit(self.function(self.isInterruptionRequested))
+-        except InterruptedError: pass
+-        except Exception as e: self.failed.emit(f'{type(e).__name__}: {e}')
+-
+-
+-class OfflineWindow(QtWidgets.QMainWindow):
+-    def __init__(self, paths=None, parent=None):
+-        super().__init__(parent)
+-        self.setWindowFlag(QtCore.Qt.Window, True)
+-        self.setWindowTitle('Solar FX — Offline H5 (read only)')
+-        self.resize(1400, 950)
+-        self.catalog = None; self.data = None; self.worker = None
+-        self.closing = False; self.mesh_items = []
+-        root = QtWidgets.QWidget(); self.setCentralWidget(root)
+-        layout = QtWidgets.QVBoxLayout(root)
+-        top = QtWidgets.QHBoxLayout(); layout.addLayout(top)
+-        self.open_button = QtWidgets.QPushButton('Open H5 files…')
+-        self.folder_button = QtWidgets.QPushButton('Open folder…')
+-        self.reload_button = QtWidgets.QPushButton('Load selected range')
+-        self.full_button = QtWidgets.QPushButton('Full time range')
+-        self.cancel_button = QtWidgets.QPushButton('Cancel read'); self.cancel_button.setEnabled(False)
+-        for b in (self.open_button, self.folder_button, self.reload_button, self.full_button, self.cancel_button): top.addWidget(b)
+-        top.addStretch()
+-        form = QtWidgets.QGridLayout(); layout.addLayout(form)
+-        self.start = QtWidgets.QDateTimeEdit(); self.end = QtWidgets.QDateTimeEdit()
+-        for edit in (self.start, self.end):
+-            # Qt5 QDateTimeEdit does not preserve arbitrary input UTC offsets.
+-            # Store VN wall-clock fields in UTC spec and convert explicitly.
+-            edit.setTimeSpec(QtCore.Qt.UTC)
+-            edit.setDisplayFormat('yyyy-MM-dd HH:mm:ss.zzz'); edit.setCalendarPopup(True)
+-        self.low = QtWidgets.QDoubleSpinBox(); self.high = QtWidgets.QDoubleSpinBox()
+-        for edit in (self.low, self.high): edit.setDecimals(6); edit.setRange(0, 100000); edit.setSuffix(' MHz'); edit.setValue(35.5)
+-        self.roi = QtWidgets.QCheckBox('ROI (otherwise nearest bin)')
+-        self.quantity = QtWidgets.QComboBox(); self.quantity.addItems(['S12', 'S11', 'S22', 'Phase', 'Coherence'])
+-        self.threshold = QtWidgets.QDoubleSpinBox(); self.threshold.setRange(0, 1); self.threshold.setSingleStep(.05); self.threshold.setValue(.1)
+-        self.mask = QtWidgets.QCheckBox('Coherence mask: phase / Re-Im'); self.mask.setChecked(False)
+-        self.fixed = QtWidgets.QCheckBox('Fixed power colors (dB)'); self.fixed.setChecked(True)
+-        self.minimum = QtWidgets.QDoubleSpinBox(); self.maximum = QtWidgets.QDoubleSpinBox()
+-        for e in (self.minimum, self.maximum): e.setRange(-300, 300)
+-        self.minimum.setValue(18); self.maximum.setValue(40)
+-        fields = [('From (UTC+07)', self.start), ('To (UTC+07)', self.end),
+-                  ('Frequency / ROI low', self.low), ('ROI high', self.high),
+-                  ('Waterfall', self.quantity), ('Mask threshold γ', self.threshold)]
+-        for i, (label, widget) in enumerate(fields):
+-            row, col = divmod(i, 3); form.addWidget(QtWidgets.QLabel(label), row*2, col); form.addWidget(widget, row*2+1, col)
+-        opts = QtWidgets.QHBoxLayout(); layout.addLayout(opts)
+-        for widget in (self.roi, self.mask, self.fixed, self.minimum, self.maximum): opts.addWidget(widget)
+-        self.info = QtWidgets.QLabel('Open closed H5 files. Live UDP remains in its own window.'); self.info.setWordWrap(True)
+-        layout.addWidget(self.info)
+-        self.tabs = QtWidgets.QTabWidget(); layout.addWidget(self.tabs, 1)
+-        g = pg.GraphicsLayoutWidget(); self.tabs.addTab(g, 'Waterfall and fringes')
+-        self.waterfall = g.addPlot(row=0, col=0, title='Saved correlation waterfall', axisItems={'left': TimeAxis(orientation='left')})
+-        self.waterfall.setLabel('bottom', 'RF frequency', units='MHz'); self.waterfall.setLabel('left', 'Vietnam time UTC+07')
+-        self.waterfall.getAxis('left').setWidth(130)
+-        self.colorbar = pg.ColorBarItem(values=(18, 40), colorMap=pg.colormap.get('inferno'), label='dB re 1 ADC-count²', interactive=False)
+-        g.addItem(self.colorbar, row=0, col=1)
+-        self.fringe = g.addPlot(row=1, col=0, colspan=2, title='Saved linear Re / Im — selected bin / ROI', axisItems={'bottom': TimeAxis(orientation='bottom')})
+-        self.fringe.setLabel('left', 'ADC-count² / input FFT bin'); self.fringe.setLabel('bottom', 'Vietnam time UTC+07')
+-        self.fringe.addLegend(); self.re = self.fringe.plot(name='Re(S12)', pen='#56cfe1'); self.im = self.fringe.plot(name='Im(S12)', pen='#ffb56b')
+-        detail = pg.GraphicsLayoutWidget(); self.tabs.addTab(detail, 'Phase, coherence, spectrum')
+-        self.phase = detail.addPlot(row=0, col=0, axisItems={'bottom': TimeAxis(orientation='bottom')}, title='Wrapped phase — no additional phase calibration or fringe stopping')
+-        self.phase.setLabel('left', 'Phase', units='rad'); self.phase.setYRange(-np.pi, np.pi)
+-        self.phase_curve = self.phase.plot(pen='#c79fff')
+-        self.gamma = detail.addPlot(row=1, col=0, axisItems={'bottom': TimeAxis(orientation='bottom')}, title='Magnitude coherence of saved bin / coherent ROI mean (not γ²)')
+-        self.gamma.setLabel('left', 'γ'); self.gamma.setYRange(0, 1); self.gamma_curve = self.gamma.plot(pen='#80dba1')
+-        self.gamma.setXLink(self.phase)
+-        self.spectrum = detail.addPlot(row=2, col=0, title='FFT-weighted time mean; mean |S12| averages magnitude in linear units')
+-        self.spectrum.addLegend(); self.spectrum.setLabel('bottom', 'RF frequency', units='MHz'); self.spectrum.setLabel('left', 'dB re 1 ADC-count²')
+-        self.spectra = [self.spectrum.plot(name=n, pen=c) for n,c in [('S11','#56cfe1'),('S22','#ff6868'),('mean |S12|','#ffd45c')]]
+-        self.notes = QtWidgets.QPlainTextEdit(); self.notes.setReadOnly(True); self.tabs.addTab(self.notes, 'Files and measurement metadata')
+-        self.open_button.clicked.connect(self.choose_files); self.folder_button.clicked.connect(self.choose_folder)
+-        self.reload_button.clicked.connect(self.load_range); self.full_button.clicked.connect(self.full_range)
+-        self.cancel_button.clicked.connect(self.cancel)
+-        for widget in (self.mask, self.fixed): widget.toggled.connect(self.redraw)
+-        for widget in (self.minimum, self.maximum, self.threshold): widget.valueChanged.connect(self.redraw)
+-        self.quantity.currentIndexChanged.connect(lambda _: self.load_range())
+-        if paths: QtCore.QTimer.singleShot(0, lambda: self.open_paths(paths))
+-
+-    def busy(self, enabled):
+-        for w in (self.open_button, self.folder_button, self.reload_button, self.full_button,
+-                  self.quantity, self.low, self.high, self.start, self.end, self.roi): w.setEnabled(not enabled)
+-        self.cancel_button.setEnabled(enabled)
+-
+-    def launch(self, function, callback):
+-        if self.worker is not None: return
+-        self.busy(True); self.statusBar().showMessage('Reading H5 in background…')
+-        worker = Worker(function, self); self.worker = worker
+-        worker.result.connect(callback); worker.failed.connect(self.error)
+-        worker.finished.connect(self.finished); worker.start()
+-
+-    def finished(self):
+-        worker = self.worker; self.worker = None
+-        if worker is not None: worker.deleteLater()
+-        self.busy(False); self.statusBar().showMessage('Ready')
+-        if self.closing: self.close()
+-        elif getattr(self, '_autoload', False):
+-            self._autoload = False
+-            QtCore.QTimer.singleShot(0, self.load_range)
+-
+-    def cancel(self):
+-        if self.worker: self.worker.requestInterruption()
+-
+-    def error(self, message):
+-        QtWidgets.QMessageBox.warning(self, 'H5 read failed', message)
+-
+-    def choose_files(self):
+-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Select closed H5 files', '', 'HDF5 (*.h5)')
+-        if paths: self.open_paths(paths)
+-
+-    def choose_folder(self):
+-        folder = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder (top level only)')
+-        if folder: self.open_paths(sorted(str(p) for p in Path(folder).glob('*.h5')))
+-
+-    def open_paths(self, paths):
+-        self.launch(lambda cancel: Catalog(paths, cancel), self.indexed)
+-
+-    def indexed(self, catalog):
+-        self.catalog = catalog; self.data = None
+-        self.clear_plots()
+-        self.set_full_dates()
+-        freq = catalog.freq / 1e6
+-        if not freq[0] <= self.low.value() <= freq[-1]: self.low.setValue(float(freq[len(freq)//2]))
+-        self.high.setValue(self.low.value())
+-        lines = [f'{len(catalog.records)} records; {catalog.duplicates} identical duplicate records removed.',
+-                 'Times use saved estimated UTC anchors; no hardware UTC accuracy is implied.',
+-                 'Stored S12 is used as-is. calibration_phi_rad_unshifted is NOT applied again.',
+-                 'ROI: strict common finite mask; complex mean before magnitude/phase/coherence.',
+-                 'Color downsampling: FFT-weighted coherent time means, within continuous segments.',
+-                 'UTC_ESTIMATED=1; INVALID_BIN=2; PARTIAL=4; DISCONTINUITY=8; CALIBRATION_BOUNDARY=16; COHERENCE_VIOLATION=32.']
+-        for e in catalog.entries:
+-            lines.append('\n'+Path(e.path).name)
+-            for k in ('session_id','calibration_id','phase_calibrated','units','timestamp_semantics','utc_uncertainty','cross_product_convention','effective_save_interval_sec'):
+-                value=e.meta.get(k, 'missing'); value=value.decode() if isinstance(value,bytes) else str(value)
+-                lines.append(f'{k}: {value}')
+-        self.notes.setPlainText('\n'.join(lines))
+-        # Catalog result precedes QThread.finished; defer until the owner releases it.
+-        self._autoload = True
+-        self.info.setText(f'Indexed {len(catalog.entries)} files / {len(catalog.records)} records. Click Load selected range.')
+-
+-    def set_full_dates(self):
+-        for widget, t in ((self.start, self.catalog.times[0]), (self.end, self.catalog.times[-1])):
+-            dt=QtCore.QDateTime.fromMSecsSinceEpoch(round((t+7*3600)*1000), QtCore.Qt.UTC)
+-            widget.setDateTime(dt)
+-
+-    def full_range(self):
+-        if self.catalog: self.set_full_dates(); self.load_range()
+-
+-    def load_range(self):
+-        if self.catalog is None or self.worker is not None: return
+-        start=self.start.dateTime().toMSecsSinceEpoch()/1000-7*3600-.0005
+-        end=self.end.dateTime().toMSecsSinceEpoch()/1000-7*3600+.0005
+-        low=self.low.value()*1e6; high=self.high.value()*1e6 if self.roi.isChecked() else low
+-        quantity=self.quantity.currentText(); catalog=self.catalog
+-        self.launch(lambda cancel: catalog.load(start,end,low,high,quantity,cancel), self.loaded)
+-
+-    def loaded(self, data):
+-        self.data=data; self.redraw()
+-
+-    def clear_plots(self):
+-        for item in self.mesh_items: self.waterfall.removeItem(item)
+-        self.mesh_items=[]
+-        for curve in (self.re,self.im,self.phase_curve,self.gamma_curve,*self.spectra): curve.setData([],[])
+-
+-    def redraw(self, *_):
+-        if self.data is None: return
+-        d=self.data; c=self.catalog; a,b,re,im=d['traces']
+-        mag,phase,gamma=derived(a,b,re,im)
+-        common=np.isfinite(phase) & (gamma > 0)
+-        if self.mask.isChecked(): common &= gamma >= self.threshold.value()
+-        for curve,values in ((self.re,re),(self.im,im),(self.phase_curve,phase)):
+-            cuts = d['breaks'].copy()
+-            if curve is self.phase_curve:
+-                cuts[1:] |= np.abs(np.diff(phase)) > np.pi
+-            x,y=broken_series(d['times'],np.where(common,values,np.nan),cuts)
+-            curve.setData(x,y,connect='finite')
+-        x,y=broken_series(d['times'],gamma,d['breaks']); self.gamma_curve.setData(x,y,connect='finite')
+-        avg=d['mean']
+-        for curve,values in zip(self.spectra,(avg[0],avg[1],d['mean_abs'])): curve.setData(c.freq/1e6,db(values),connect='finite')
+-        quantity=d['quantity']; isphase=quantity=='Phase'; isgamma=quantity=='Coherence'
+-        if isphase: levels=(-np.pi,np.pi); cmap=pg.colormap.get('CET-C2'); label='Phase [rad]'
+-        elif isgamma: levels=(0,1); cmap=pg.colormap.get('viridis'); label='Magnitude coherence γ'
+-        else:
+-            cmap=pg.colormap.get('inferno'); label='dB re 1 ADC-count²'
+-            if self.fixed.isChecked(): levels=(self.minimum.value(),self.maximum.value())
+-            else:
+-                finite=np.concatenate([m[1][np.isfinite(m[1])] for m in d['meshes']])
+-                levels=tuple(np.percentile(finite,[5,95])) if len(finite) else (0,1)
+-                if levels[0]==levels[1]: levels=(levels[0],levels[0]+1)
+-            if levels[0]>=levels[1]: self.statusBar().showMessage('Color minimum must be less than maximum'); return
+-        for item in self.mesh_items: self.waterfall.removeItem(item)
+-        self.mesh_items=[]
+-        fe=np.r_[c.freq-c.bandwidth/2,c.freq[-1]+c.bandwidth/2]/1e6
+-        for edges,values,g in d['meshes']:
+-            values=values.copy()
+-            if isphase and self.mask.isChecked(): values[(~np.isfinite(g)) | (g<self.threshold.value())]=np.nan
+-            xx,yy=np.meshgrid(fe,edges)
+-            item=pg.PColorMeshItem(xx,yy,values,levels=levels,colorMap=cmap,enableAutoLevels=False,edgecolors=None)
+-            self.waterfall.addItem(item); self.mesh_items.append(item)
+-        self.colorbar.setColorMap(cmap); self.colorbar.setLevels(levels); self.colorbar.getAxis('left').setLabel(label)
+-        self.waterfall.setTitle(f'{quantity}: FFT-weighted coherent mean of up to {d["group"]} records per display row; gaps preserved')
+-        selected=d['frequency']/1e6
+-        self.fringe.setTitle(f'Re / Im at {selected[0]:.6f}–{selected[-1]:.6f} MHz — saved linear visibility')
+-        self.info.setText(f'{len(d["times"])} records | {len(c.freq)} bins | {len(d["meshes"])} continuous segments | '
+-                          f'{int(np.count_nonzero(d["flags"] & 1))} estimated-UTC rows | '
+-                          f'{int(np.count_nonzero(d["flags"] & 4))} partial rows. '
+-                          'No additional phase calibration / fringe stopping. Time gaps and session/calibration changes are not joined.')
+-
+-    def closeEvent(self,event):
+-        if self.worker is not None:
+-            self.closing=True; self.cancel(); event.ignore()
+-        else: event.accept()
+-
+-
+-def main(argv=None):
+-    p=argparse.ArgumentParser(description='Read-only multi-file Solar H5 viewer')
+-    p.add_argument('files', nargs='*'); args=p.parse_args(argv)
+-    app=QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
+-    pg.setConfigOptions(imageAxisOrder='row-major', antialias=False)
+-    pg.setConfigOption('background','#101923'); pg.setConfigOption('foreground','#d8e5ee')
+-    window=OfflineWindow(args.files); window.show()
+-    return app.exec_()
+-
+-
+-if __name__=='__main__': sys.exit(main())
++from viewer_fx import main
++if __name__ == '__main__':
++    sys.argv.insert(1, '--source')
++    sys.argv.insert(2, 'h5')
++    sys.exit(main())
+--- /dev/null
++++ b/h5_raster.py
+@@ -0,0 +1,51 @@
++"""Read-only waterfall raster with transparent invalid cells and exact row edges.
++
++One RGBA image per continuous segment; each image row is painted onto its
++saved UTC support. No interpolation across rows, segments or missing cells.
++"""
++import numpy as np
++import pyqtgraph as pg
++from PyQt5 import QtCore, QtGui
++
++
++class TimeRasterItem(pg.GraphicsObject):
++    def __init__(self, frequency_edges, time_edges, values, levels, color_map):
++        super().__init__()
++        self.edges = np.asarray(time_edges, dtype=float)
++        fe = np.asarray(frequency_edges, dtype=float)
++        values = np.asarray(values, dtype=float)
++        if values.shape != (len(self.edges)-1, len(fe)-1):
++            raise ValueError('Raster dimensions do not match edges')
++        if not np.all(np.diff(self.edges)>0) or not np.all(np.diff(fe)>0):
++            raise ValueError('Raster edges must increase')
++        self._rect = QtCore.QRectF(float(fe[0]),float(self.edges[0]),
++                                  float(fe[-1]-fe[0]),float(self.edges[-1]-self.edges[0]))
++        lo,hi = map(float,levels)
++        if not np.isfinite(lo+hi) or hi<=lo:
++            raise ValueError('Color levels must be finite and increasing')
++        valid = np.isfinite(values)
++        # Only the color lookup receives placeholders. Invalid measurement cells
++        # remain invalid and their alpha is zero, never presented as numeric zero.
++        scaled = np.zeros(values.shape,dtype=float)
++        scaled[valid] = np.clip((values[valid]-lo)/(hi-lo),0,1)
++        lut = color_map.getLookupTable(0,1,256,alpha=True)
++        rgba = np.ascontiguousarray(lut[np.rint(scaled*255).astype(np.uint8)],dtype=np.uint8)
++        rgba[~valid,3]=0
++        self.invalid_cells = int((~valid).sum())
++        height,width = values.shape
++        self.image = QtGui.QImage(rgba.data,width,height,rgba.strides[0],QtGui.QImage.Format_RGBA8888).copy()
++
++    def boundingRect(self):
++        return self._rect
++
++    def paint(self,painter,option,widget=None):
++        painter.save()
++        try:
++            painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform,False)
++            exposed = option.exposedRect
++            for row,(start,end) in enumerate(zip(self.edges[:-1],self.edges[1:])):
++                target = QtCore.QRectF(self._rect.left(),float(start),self._rect.width(),float(end-start))
++                if target.intersects(exposed):
++                    painter.drawImage(target,self.image,QtCore.QRectF(0,row,self.image.width(),1))
++        finally:
++            painter.restore()

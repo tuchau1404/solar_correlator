@@ -1,0 +1,14 @@
+{
+  "h5_offline.py": "969ddc6650e60dbf559aa0b46e6434e2f8caa4939639b1314c3294f7ae8023fe",
+  "viewer_h5.py": "0c00ed7fb6899d127d9b2e53c036116b1578083c657457319113b86d45c61a4e",
+  "requirements.txt": "765e17b5be1a20a979873cba9c3b9b14826f30a46208f9382bb4eb7cfcca8f46",
+  "README_PATCH_VI.md": "f57483bec9bd9b554f415a97a1764088337044701fc77003a691695eaee02a53",
+  "test_results.txt": "dc64bcf553bf1d58fc720b5da0b623f4fa84f3a133f0a9f622b057318513e011",
+  "telemetry_protocol.py": "dc752dece6c173b26a56e16cc28821b41bbc2d66fc7927cf40e5e1b7bc779f5b",
+  "science_model.py": "79f9eaaffd7dcb8e6153c04bc3b72d8162764da20fc2b26fdaf9d2268adf9cb0",
+  "viewer_changes.patch": "3c3d85972d53938db10ceb722c3603603338c4cffa6249f3e4412ecc5bfa09d3",
+  "viewer_ui.py": "2aafc56c66ebce3681ac738ed49ac93e9f51bcfbc205e69ab6022d315ee13029",
+  "offline_h5.py": "f4d45ad0f3cda7a4d4630a97fc7bfb184cc317ec24ab317faf4cb68ed9f887ec",
+  "h5_raster.py": "da7e0b6dd977f305374811b2918ad3a57870a8aa4f2499c938d2d7d058295511",
+  "viewer_fx.py": "02cd8be6e81f5230967d1cd65e08921cfbec17f488ed6352c1ec7b6a82aad890"
+}

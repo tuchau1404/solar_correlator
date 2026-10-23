@@ -15,6 +15,7 @@ import time
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
+import viewer_ui as ui
 from telemetry_protocol import Receiver, BINS, FrameJoiner, S12, S11, S22, PHASE, COHERENCE
 from science_model import ObservationHistory, PERIOD, masked_phase
 
@@ -180,6 +181,8 @@ class DeepIntegrator:
         self.bins = bins
         self.accum_linear = np.zeros(bins, dtype=np.float64)
         self.count = 0
+        self.total_m = 0
+        self.last_stamp = None
         self.deep_frame_id = 0
         self.last_session = None
         self.last_frame_id = None
@@ -187,7 +190,13 @@ class DeepIntegrator:
     def reset(self):
         self.accum_linear.fill(0.0)
         self.count = 0
+        self.total_m = 0
+        self.last_stamp = None
         self.last_frame_id = None
+
+    def time_break(self, stamp, m_frames):
+        expected_us = max(1, m_frames) * 1024 / 10e6 * 1e6
+        return self.last_stamp is not None and (stamp <= self.last_stamp or stamp-self.last_stamp > expected_us*1.5)
 
     def push(self, session, frame_id, stamp, m_frames, db_values):
         completed = []
@@ -200,6 +209,7 @@ class DeepIntegrator:
             gap_frames = frame_id - self.last_frame_id - 1
             self.accum_linear.fill(0.0)
             self.count = 0
+            self.total_m = 0
             missed_groups = min(HISTORY, gap_frames // self.group_size)
             for _ in range(missed_groups):
                 self.deep_frame_id += 1
@@ -213,10 +223,16 @@ class DeepIntegrator:
                     )
                 )
 
+        if self.time_break(stamp, m_frames):
+            self.accum_linear.fill(0.)
+            self.count = 0
+            self.total_m = 0
+        self.last_stamp = stamp
         self.last_frame_id = frame_id
         linear_power = np.power(10.0, np.asarray(db_values, dtype=np.float64) * 0.1)
         self.accum_linear += linear_power
         self.count += 1
+        self.total_m += m_frames
 
         if self.count >= self.group_size:
             mean_linear = np.maximum(self.accum_linear / float(self.count), 1e-12)
@@ -227,12 +243,13 @@ class DeepIntegrator:
                     session,
                     self.deep_frame_id,
                     stamp,
-                    m_frames * self.count,
+                    self.total_m,
                     deep_db,
                 )
             )
             self.accum_linear.fill(0.0)
             self.count = 0
+            self.total_m = 0
 
         return completed
 
@@ -265,13 +282,28 @@ class SlotTimeAxis(pg.AxisItem):
 
 
 class FXViewer(QtWidgets.QMainWindow):
+    def _is_h5(self):
+        return hasattr(self, 'h5') and self.h5.active
+
+    def _open_h5_offline(self):
+        self.h5.choose_files()
+
+    def start_live_receivers(self):
+        if not self.receivers and self._receiver_factory is not None:
+            receivers = self._receiver_factory()
+            self.receivers = receivers
+            self.joiner = FrameJoiner(enabled=receivers)
+
     def __init__(self, receivers, mode='cw', deep_frames=5, frequency=35.5, threshold=.5, window_seconds=120,
-                 *, settings_store=None, persist_settings=True):
+                 *, settings_store=None, persist_settings=True, receiver_factory=None):
         super().__init__()
+        offline_action = self.menuBar().addMenu('File').addAction('Open H5 files…')
+        offline_action.triggered.connect(self._open_h5_offline)
         self._persist_settings = persist_settings
         self.settings = settings_store if settings_store is not None else QtCore.QSettings('SolarCorrelator', 'FXViewer')
         self._paused_since = None
         self.receivers = receivers
+        self._receiver_factory = receiver_factory
         self.deep_frames = max(1, int(deep_frames))
         self.model = ObservationHistory(WF_HISTORY_ROWS, frequency, trace_history=int(np.ceil(1800 / PERIOD)) + 2)
         self.joiner = FrameJoiner(enabled=receivers)
@@ -326,43 +358,11 @@ class FXViewer(QtWidgets.QMainWindow):
         self._focus_key = None
         self._theme_window()
 
-        root = QtWidgets.QWidget()
-        root.setObjectName('appRoot')
-        layout = QtWidgets.QVBoxLayout(root)
-        layout.setContentsMargins(16, 12, 16, 8)
-        layout.setSpacing(12)
-        # Keep every control reachable when all seven plots exceed the screen.
-        self.content_scroll = QtWidgets.QScrollArea()
-        self.content_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.content_scroll.setWidgetResizable(True)
-        self.content_scroll.setWidget(root)
-        self.setCentralWidget(self.content_scroll)
-
-        header = QtWidgets.QHBoxLayout()
-        header.setSpacing(10)
-        mark = QtWidgets.QLabel('S')
-        mark.setObjectName('brandMark')
-        mark.setAlignment(QtCore.Qt.AlignCenter)
-        mark.setFixedSize(34, 34)
-        header.addWidget(mark)
-        title = QtWidgets.QLabel('SOLAR  /  CORRELATOR')
-        title.setObjectName('brandTitle')
-        header.addWidget(title)
-        protocol = QtWidgets.QLabel('SOL2 v3')
-        protocol.setObjectName('protocolTag')
-        header.addWidget(protocol)
-        header.addStretch()
-        self.connection_badge = QtWidgets.QLabel('WAITING FOR FRAMES')
-        self.connection_badge.setObjectName('connectionBadge')
+        root, layout, self.content_scroll = ui.create_root(self)
+        self.connection_badge = ui.brand_header(layout)
         self.connection_badge.setToolTip('Status reflects matched observations, not a TCP-style connection.')
-        header.addWidget(self.connection_badge)
-        layout.addLayout(header)
 
-        toolbar = QtWidgets.QFrame()
-        toolbar.setObjectName('toolbar')
-        toolbar_row = QtWidgets.QHBoxLayout(toolbar)
-        toolbar_row.setContentsMargins(10, 8, 10, 8)
-        toolbar_row.setSpacing(10)
+        toolbar, toolbar_row = ui.toolbar_panel(layout)
         self.sidebar_button = QtWidgets.QPushButton('Controls')
         self.sidebar_button.setCheckable(True)
         self.sidebar_button.setChecked(True)
@@ -396,37 +396,15 @@ class FXViewer(QtWidgets.QMainWindow):
         self.help_button = QtWidgets.QPushButton('Shortcuts')
         self.help_button.setToolTip('Keyboard controls and measurement guide')
         toolbar_row.addWidget(self.help_button)
-        layout.addWidget(toolbar)
 
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitter.setChildrenCollapsible(False)
-        self.splitter.setHandleWidth(10)
-        layout.addWidget(self.splitter, 1)
-        self.sidebar = QtWidgets.QScrollArea()
-        self.sidebar.setObjectName('sidebar')
-        self.sidebar.setWidgetResizable(True)
-        self.sidebar.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.sidebar.setMinimumWidth(250)
-        self.sidebar.setMaximumWidth(330)
-        side_contents = QtWidgets.QWidget()
-        side_contents.setObjectName('sideContents')
-        side = QtWidgets.QVBoxLayout(side_contents)
-        side.setContentsMargins(14, 14, 14, 14)
-        side.setSpacing(10)
-        self.sidebar.setWidget(side_contents)
-        self.splitter.addWidget(self.sidebar)
+        self.splitter = ui.create_splitter(layout)
+        self.sidebar, side = ui.create_sidebar(self.splitter)
 
         def section(title):
-            label = QtWidgets.QLabel(title)
-            label.setObjectName('sectionHeading')
-            side.addWidget(label)
+            return ui.sidebar_section(side, title)
 
         def field(title, widget):
-            label = QtWidgets.QLabel(title)
-            label.setObjectName('fieldLabel')
-            label.setWordWrap(True)
-            side.addWidget(label)
-            side.addWidget(widget)
+            return ui.sidebar_field(side, title, widget)
 
         section('OBSERVATION')
         self.frequency = QtWidgets.QDoubleSpinBox()
@@ -542,43 +520,11 @@ class FXViewer(QtWidgets.QMainWindow):
         footer.setObjectName('mutedLabel')
         side.addWidget(footer)
 
-        workspace = QtWidgets.QWidget()
-        workspace.setObjectName('workspace')
-        self.workspace_layout = right = QtWidgets.QVBoxLayout(workspace)
-        right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(10)
-        self.splitter.addWidget(workspace)
-        self.splitter.setStretchFactor(0, 0)
-        self.splitter.setStretchFactor(1, 1)
-        self.splitter.setSizes([270, 1250])
-
-        cards = QtWidgets.QHBoxLayout()
-        cards.setSpacing(10)
-        self.metric_values = {}
-        self.metric_details = {}
-        for key, caption in [('frequency', 'SELECTED BIN'), ('phase', 'RECEIVED PHASE'),
-                             ('gamma', 'COHERENCE  γ'), ('time', 'FRAME TIME  /  VN')]:
-            card = QtWidgets.QFrame()
-            card.setObjectName('metricCard')
-            card.setMinimumWidth(0)
-            card.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)
-            box = QtWidgets.QVBoxLayout(card)
-            box.setContentsMargins(14, 12, 14, 12)
-            box.setSpacing(4)
-            label = QtWidgets.QLabel(caption)
-            label.setObjectName('metricCaption')
-            value = QtWidgets.QLabel('—')
-            value.setObjectName('metricValue')
-            detail = QtWidgets.QLabel('Waiting for data')
-            detail.setObjectName('metricDetail')
-            for item in (label, value, detail):
-                item.setMinimumWidth(0)
-                item.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)
-                box.addWidget(item)
-            self.metric_values[key] = value
-            self.metric_details[key] = detail
-            cards.addWidget(card, 1)
-        right.addLayout(cards)
+        workspace, right = ui.create_workspace(self.splitter)
+        self.workspace_layout = right
+        self.metric_values, self.metric_details = ui.metric_cards(right, [
+            ('frequency', 'SELECTED BIN'), ('phase', 'RECEIVED PHASE'),
+            ('gamma', 'COHERENCE  γ'), ('time', 'FRAME TIME  /  VN')])
 
         heading = QtWidgets.QHBoxLayout()
         self.workspace_title = QtWidgets.QLabel('CW OBSERVATION')
@@ -828,6 +774,9 @@ class FXViewer(QtWidgets.QMainWindow):
         self._update_bin_buttons()
         self._update_return_live_button()
 
+        from viewer_h5 import H5Source
+        self.h5 = H5Source(self, toolbar_row, side)
+
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self._tick)
         self.timer.start(25)
@@ -852,6 +801,8 @@ class FXViewer(QtWidgets.QMainWindow):
             self.fringe_auto_y.setChecked(False)
 
     def _update_fringe_plot(self, *_):
+        if self._is_h5():
+            return self.h5.render_traces()
         if not hasattr(self, 'fringe_plot'):
             return
         self.fringe_re_curve.setVisible(self.fringe_re_check.isChecked())
@@ -903,11 +854,18 @@ class FXViewer(QtWidgets.QMainWindow):
         self.fringe_plot.setYRange(low, high, padding=0)
 
     def _update_bin_buttons(self):
+        if self._is_h5():
+            self.bin_minus_button.setEnabled(self.h5.worker is None and self.h5.catalog is not None)
+            self.bin_plus_button.setEnabled(self.h5.worker is None and self.h5.catalog is not None)
+            return
         enabled = not self.pause_button.isChecked()
         self.bin_minus_button.setEnabled(enabled and self.model.bin > 0)
         self.bin_plus_button.setEnabled(enabled and self.model.bin < BINS - 1)
 
     def _commit_marker_bin(self, *_):
+        if self._is_h5():
+            self.frequency.setValue(float(self.marker.value()))
+            return
         if self.pause_button.isChecked():
             self.marker.setValue(self.model.actual)
             return
@@ -924,10 +882,17 @@ class FXViewer(QtWidgets.QMainWindow):
         self.marker.setValue(self.model.actual)
 
     def _update_return_live_button(self, *_):
+        if self._is_h5():
+            self.return_live_button.setEnabled(True)
+            return
         self.return_live_button.setEnabled(self.pause_button.isChecked() or not self.follow_live.isChecked()
                                                  or not self.wf_follow.isChecked())
 
     def return_to_live(self, *_):
+        if self._is_h5():
+            self.h5.source.setCurrentIndex(0)
+            if not self._is_h5():self.return_to_live()
+            return
         self.pause_button.setChecked(False)
         self.clear_drift_measurement()
         self.reset_time_view()
@@ -1111,12 +1076,16 @@ class FXViewer(QtWidgets.QMainWindow):
         self.wf_history_label.setText(text)
 
     def _on_wf_y_range(self, key, ranges):
+        if self._is_h5():
+            return self.h5.sync_y(key, ranges)
         if self._wf_syncing:
             return
         self._apply_wf_range(*ranges)
         self._queue_wf_render()
 
     def _pause_wf_follow(self, *args):
+        if self._is_h5():
+            return
         if self._wf_syncing:
             return
         if args and isinstance(args[0], (tuple, list)) and len(args[0]) > 1 and not args[0][1]:
@@ -1124,10 +1093,14 @@ class FXViewer(QtWidgets.QMainWindow):
         self.wf_follow.setChecked(False)
 
     def _change_wf_follow(self, *_):
+        if self._is_h5():
+            return
         self._update_wf_view()
         self._queue_wf_render()
 
     def _change_wf_window(self, *_):
+        if self._is_h5():
+            return
         if self.wf_follow.isChecked():
             self._update_wf_view()
         else:
@@ -1139,6 +1112,8 @@ class FXViewer(QtWidgets.QMainWindow):
         self._queue_wf_render()
 
     def _queue_wf_render(self, *_):
+        if self._is_h5():
+            return self.h5.render_waterfalls()
         if not hasattr(self, 'wf_fast_plot') or self._wf_render_pending:
             return
         self._wf_render_pending = True
@@ -1160,7 +1135,7 @@ class FXViewer(QtWidgets.QMainWindow):
         previous = self.integrator.last_frame_id
         if not new_session and previous is not None and fid <= previous:
             return
-        if new_session or self.integrator.count == 0 or (previous is not None and fid != previous+1):
+        if new_session or self.integrator.count == 0 or self.integrator.time_break(stamp, count) or (previous is not None and fid != previous+1):
             self._deep_group_start = fid, stamp
         start_fid, start_stamp = self._deep_group_start
         for deep in self.integrator.push(session, fid, stamp, count, values):
@@ -1193,6 +1168,8 @@ class FXViewer(QtWidgets.QMainWindow):
             self._power_levels_syncing = False
 
     def _render_wf_window(self):
+        if self._is_h5():
+            return self.h5.render_waterfalls()
         if self.link_power_scales.isChecked():
             source = self.cbar_fast
             if (tuple(self.cbar_fast.values) == getattr(self, '_last_linked_power_levels', None)
@@ -1249,77 +1226,11 @@ class FXViewer(QtWidgets.QMainWindow):
             self.img_deep.setRect(rect)
 
     def _theme_window(self):
-        pg.setConfigOption('foreground', '#90a7be')
-        self.setFont(QtGui.QFont('Segoe UI', 10))
-        self.setStyleSheet('''
-            QMainWindow, QWidget#appRoot { background: #0a1018; color: #cbd9e8; }
-            QWidget { color: #cbd9e8; font-size: 12px; }
-            QWidget#workspace, QWidget#sideContents { background: transparent; }
-            QLabel { background: transparent; }
-            QLabel#brandMark { background: #213d3e; color: #7be0cd;
-                border: 1px solid #39635f; border-radius: 10px; font-size: 22px; font-weight: 700; }
-            QLabel#brandTitle { font-size: 16px; font-weight: 700; color: #eef4fc; }
-            QLabel#protocolTag { color: #8ca2b9; padding: 5px 8px; background: #152131; border-radius: 4px; }
-            QLabel#connectionBadge { color: #91a4b9; font-size: 10px; padding: 5px 9px;
-                border: 1px solid #2b3d51; border-radius: 5px; }
-            QLabel#displayBadge { color: #7ad4c1; font-size: 10px; }
-            QFrame#toolbar, QScrollArea#sidebar, QFrame#metricCard, QFrame#readoutPanel {
-                background: #101a27; border: 1px solid #213247; border-radius: 8px; }
-            QLabel#sectionHeading { color: #81acbc; font-size: 10px; font-weight: 700;
-                padding-top: 14px; padding-bottom: 3px; }
-            QLabel#fieldLabel { color: #bac9d9; }
-            QLabel#mutedLabel { color: #778ea5; font-size: 11px; }
-            QLabel#metricCaption { color: #829bb2; font-size: 10px; font-weight: 600; }
-            QLabel#metricValue { color: #ebf4ff; font-family: monospace; font-size: 20px; font-weight: 600; }
-            QLabel#metricDetail { color: #88a3b6; font-size: 10px; }
-            QLabel#workspaceTitle { color: #8ca6be; font-size: 10px; font-weight: 700; }
-            QLabel#emptyLabel { background: #101a27; color: #91a8be; padding: 14px; border-radius: 6px; }
-            QPushButton { background: #18283a; border: 1px solid #2d435a; border-radius: 5px;
-                color: #cbd9e8; padding: 7px 10px; min-height: 16px; }
-            QPushButton:hover { background: #223950; border-color: #52728b; }
-            QPushButton:pressed { background: #2b485e; }
-            QPushButton:checked { background: #203f43; border-color: #467e7b; color: #91e6d5; }
-            QPushButton#pauseButton { background: #204540; border-color: #3b7970; color: #9be6d6; }
-            QComboBox, QSpinBox, QDoubleSpinBox { background: #0c1521; border: 1px solid #2a4057;
-                border-radius: 5px; padding: 6px 8px; min-height: 18px; selection-background-color: #285b62; }
-            QComboBox:hover, QSpinBox:hover, QDoubleSpinBox:hover { border-color: #557d96; }
-            QComboBox QAbstractItemView { background: #152335; selection-background-color: #28495b;
-                color: #dfebf7; border: 1px solid #3a556d; }
-            QCheckBox { spacing: 8px; padding: 3px 0; }
-            QCheckBox::indicator { width: 14px; height: 14px; }
-            QCheckBox::indicator:unchecked { background: #0c1521; border: 1px solid #3a526a; border-radius: 3px; }
-            QCheckBox::indicator:checked { background: #5bbfae; border: 1px solid #83ddca; border-radius: 3px; }
-            QCheckBox:disabled, QPushButton:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled { color: #526577; }
-            QSplitter::handle { background: #0a1018; }
-            QSplitter::handle:hover { background: #24384b; }
-            QScrollArea { border: none; background: transparent; }
-            QScrollBar:vertical { background: #0d1723; width: 7px; margin: 0; }
-            QScrollBar::handle:vertical { background: #304b60; border-radius: 3px; min-height: 28px; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
-            QStatusBar { background: #0a1018; color: #718da5; font-size: 10px; }
-            QStatusBar::item { border: none; }
-            QToolTip { background: #182a3a; color: #dfebf7; border: 1px solid #426078; padding: 6px; }
-            QMessageBox { background: #101a27; }
-        ''')
+        ui.apply_window_theme(self)
 
     def _theme_plots(self):
-        font = QtGui.QFont('Segoe UI', 9)
-        for plot in self.all_plots:
-            plot.vb.setBackgroundColor('#0b121c')
-            plot.showGrid(x=True, y=True, alpha=.10)
-            plot.setMenuEnabled(True)
-            plot.hideButtons()
-            for name in ('left', 'bottom'):
-                axis = plot.getAxis(name)
-                axis.setPen(pg.mkPen('#2c4054'))
-                axis.setTextPen(pg.mkPen('#8ca5bd'))
-                axis.setTickFont(font)
-            plot.getAxis('left').setWidth(92)
-        for bar in (self.cbar_fast, self.cbar_phase, self.cbar_deep):
-            bar.setMinimumWidth(68)
-            bar.setPreferredWidth(78)
-            bar.setMaximumWidth(92)
+        ui.style_plots(self.all_plots)
+        ui.style_colorbars((self.cbar_fast, self.cbar_phase, self.cbar_deep))
         self.phase_plot.setLabel('bottom', 'Vietnam time (UTC+07:00)')
         self.gamma_plot.setLabel('bottom', 'Vietnam time (UTC+07:00)')
         self.phase_points.setSize(4)
@@ -1337,6 +1248,10 @@ class FXViewer(QtWidgets.QMainWindow):
 
     def _tick(self):
         # Keep the validated receive/join/integrate path in update_data unchanged.
+        if self._is_h5():
+            self.update_data()
+            self.h5.status()
+            return
         self.update_data()
         key = (self.model.session, self.model.last_id)
         if self.model.last_id is not None and key != self._last_observation_key:
@@ -1503,7 +1418,7 @@ class FXViewer(QtWidgets.QMainWindow):
     def apply_mode(self, *_):
         self.focus_combo.setCurrentIndex(0)
         self._focus_key = None
-        self.workspace_title.setText(self.mode.currentText().upper() + ' OBSERVATION')
+        self.workspace_title.setText(self.mode.currentText().upper() + (' / H5 OBSERVATION' if self._is_h5() else ' OBSERVATION'))
         solar = self.mode.currentText() == 'Solar'
         preset = {
             'spectrum': True,
@@ -1552,11 +1467,11 @@ class FXViewer(QtWidgets.QMainWindow):
                     self.graphics.ci.removeItem(item)
                 item.setVisible(visible)
             if visible:
-                plot.getAxis('left').setWidth(92)
+                plot.getAxis('left').setWidth(125 if self._is_h5() and key.startswith('wf_') else 92)
                 stretch = (5 if key.startswith('wf_') else 2) if self.mode.currentText() == 'Solar' else default_stretch
                 if key == 'phase' and wf_visible_count <= 1:
                     stretch = 4
-                grid.setRowMinimumHeight(row_idx, 0)
+                grid.setRowMinimumHeight(row_idx, 170 if key.startswith('wf_') else 140)
                 grid.setRowMaximumHeight(row_idx, 16777215)
                 grid.setRowPreferredHeight(row_idx, -1)
                 grid.setRowStretchFactor(row_idx, stretch)
@@ -1634,6 +1549,8 @@ class FXViewer(QtWidgets.QMainWindow):
         self._schedule_layout_sync()
 
     def update_curve_visibility(self, *_):
+        if self._is_h5():
+            return self.h5.render()
         for kind, curve in self.curves.items():
             curve.setVisible(self.curve_checks[kind].isChecked())
         self.deep_curve.setVisible(self.curve_checks['DEEP'].isChecked())
@@ -1656,6 +1573,8 @@ class FXViewer(QtWidgets.QMainWindow):
         self.autoscale_y_check.blockSignals(False)
 
     def fit_spectrum_y(self, *_):
+        if self._is_h5():
+            return self.h5.fit_spectrum()
         visible_arrays = []
         for kind in (S12, S11, S22):
             if self.curves[kind].isVisible():
@@ -1689,6 +1608,8 @@ class FXViewer(QtWidgets.QMainWindow):
             self.follow_live.setChecked(False)
 
     def update_time_view(self, *_):
+        if self._is_h5():
+            return
         if self.pause_button.isChecked() or not self.follow_live.isChecked() or not self.model.trace:
             return
         latest = next((row for row in reversed(self.model.trace) if row is not None), None)
@@ -1701,12 +1622,16 @@ class FXViewer(QtWidgets.QMainWindow):
                 self._updating_time_x = False
 
     def reset_time_view(self, *_):
+        if self._is_h5():
+            return self.h5.fit_time()
         self.phase_plot.setYRange(-180, 180, padding=0)
         self.gamma_plot.setYRange(0, 1.05, padding=0)
         self.follow_live.setChecked(True)
         self.update_time_view()
 
     def select_frequency(self, frequency):
+        if self._is_h5():
+            return self.h5.select(frequency)
         if self.pause_button.isChecked():
             return
         if nearest_frequency_bin(frequency) != self.model.bin:
@@ -1719,6 +1644,8 @@ class FXViewer(QtWidgets.QMainWindow):
         self.render()
 
     def step_bin(self, delta_bins):
+        if self._is_h5():
+            return self.h5.step(delta_bins)
         if self.pause_button.isChecked():
             return
         target_bin = int(np.clip(self.model.bin + int(delta_bins), 0, BINS - 1))
@@ -1732,9 +1659,13 @@ class FXViewer(QtWidgets.QMainWindow):
         self.step_bin(1)
 
     def toggle_pause_shortcut(self):
+        if self._is_h5():
+            return
         self.pause_button.setChecked(not self.pause_button.isChecked())
 
     def on_pause_toggled(self, paused):
+        if self._is_h5():
+            return
         self._paused_since = time.monotonic() if paused else None
         self.marker.setMovable(not paused)
         self._update_bin_buttons()
@@ -1787,6 +1718,9 @@ class FXViewer(QtWidgets.QMainWindow):
     # --- Đỉnh Phổ |S12| & Nút Snap to Peak ---
 
     def update_peak_marker_and_metrics(self):
+        if self._is_h5():
+            self.peak_marker.hide()
+            return
         s12 = self.displayed_streams.get(S12)
         if s12 is None or not np.isfinite(s12).any():
             self.peak_marker.setData([], [])
@@ -1809,6 +1743,8 @@ class FXViewer(QtWidgets.QMainWindow):
         self.update_metrics_readout()
 
     def snap_to_peak_s12(self, *_):
+        if self._is_h5():
+            return self.h5.snap()
         if self.pause_button.isChecked():
             return
         s12 = self.displayed_streams.get(S12)
@@ -1852,6 +1788,8 @@ class FXViewer(QtWidgets.QMainWindow):
         return False
 
     def handle_drift_click(self, plot_key, freq_x, y_val):
+        if self._is_h5():
+            return self.h5.measure(plot_key, freq_x, y_val)
         low, high = self._wf_display_end - len(self._display_rows), self._wf_display_end
         if not (np.isfinite(freq_x) and np.isfinite(y_val) and low <= y_val < high):
             return
@@ -1925,6 +1863,8 @@ class FXViewer(QtWidgets.QMainWindow):
     # --- Sự kiện Click & Rê chuột (Crosshair + Multi-Plot Hover Readout) ---
 
     def scene_mouse_clicked(self, event):
+        if self._is_h5():
+            return self.h5.mouse_click(event)
         if event.button() != QtCore.Qt.LeftButton:
             return
         pos = event.scenePos()
@@ -2001,6 +1941,8 @@ class FXViewer(QtWidgets.QMainWindow):
         return 'VALID'
 
     def scene_mouse_moved(self, pos):
+        if self._is_h5():
+            return self.h5.mouse_move(pos)
         threshold = self.threshold.value()
 
         # 1. Kiểm tra nhóm đồ thị miền Tần số
@@ -2185,6 +2127,8 @@ class FXViewer(QtWidgets.QMainWindow):
         )
 
     def sync_displayed_curves(self):
+        if self._is_h5():
+            return
         for kind in (S12, S11, S22):
             self.displayed_streams[kind] = self.latest_streams[kind].copy()
             self.curves[kind].setData(self.freq, self.displayed_streams[kind])
@@ -2220,7 +2164,7 @@ class FXViewer(QtWidgets.QMainWindow):
                     streams.get(kind, np.full(BINS, np.nan, dtype=np.float32)), dtype=np.float32
                 )
 
-        if complete and not self.pause_button.isChecked():
+        if complete and not self.pause_button.isChecked() and not self._is_h5():
             self.sync_displayed_curves()
             self.render()
 
@@ -2230,6 +2174,8 @@ class FXViewer(QtWidgets.QMainWindow):
         )
 
     def render(self, *_):
+        if self._is_h5():
+            return self.h5.render()
         if self.pause_button.isChecked():
             return
         self._display_rows = tuple(self.model.rows)
@@ -2268,7 +2214,12 @@ class FXViewer(QtWidgets.QMainWindow):
             plot.getAxis('left').update()
 
     def closeEvent(self, event):
-        if self._persist_settings:
+        if self.h5.worker is not None:
+            self.h5.cancel()
+            event.ignore()
+            QtCore.QTimer.singleShot(100, self.close)
+            return
+        if self._persist_settings and not self._is_h5():
             self._save_ui_settings()
         self.timer.stop()
         for receiver in self.receivers.values():
@@ -2278,6 +2229,10 @@ class FXViewer(QtWidgets.QMainWindow):
 
 def main():
     parser = argparse.ArgumentParser(description='Typed SOL2 v3 CW / Solar viewer; legacy v2 is rejected')
+    parser.add_argument('--source', choices=('live', 'h5'), default='live')
+    parser.add_argument('--offline', action='store_true', help='Alias for --source h5; same viewer window')
+    parser.add_argument('--h5', nargs='*', default=[], help='Closed H5 files to open in this viewer')
+    parser.add_argument('files', nargs='*', help='Optional H5 file paths (same viewer)')
     parser.add_argument('--bind', default='0.0.0.0')
     parser.add_argument('--port', '--port-s12', dest='port_s12', type=int, default=9999)
     parser.add_argument('--port-s11', type=int, default=9998)
@@ -2318,20 +2273,31 @@ def main():
     app = QtWidgets.QApplication(sys.argv[:1])
     pg.setConfigOptions(antialias=False, imageAxisOrder='row-major')
     receivers = {}
+    def receiver_factory():
+        created = {}
+        try:
+            for kind, port in ports.items():
+                if port:
+                    created[kind] = Receiver(args.bind, port, args.source_ip, expected_type=kind)
+            for receiver in created.values(): receiver.start()
+            receivers.update(created)
+            return created
+        except Exception:
+            for receiver in created.values(): receiver.close()
+            raise
     try:
-        for kind, port in ports.items():
-            if port:
-                receivers[kind] = Receiver(args.bind, port, args.source_ip, expected_type=kind)
+        h5_paths = args.h5 + args.files
+        h5_source = args.source == 'h5' or args.offline or bool(h5_paths)
+        initial = {} if h5_source else receiver_factory()
         window = FXViewer(
-            receivers,
-            args.mode,
-            args.deep_frames,
-            args.frequency_mhz,
-            args.coherence_threshold,
-            args.time_window,
+            initial, args.mode, args.deep_frames, args.frequency_mhz,
+            args.coherence_threshold, args.time_window,
+            receiver_factory=receiver_factory,
         )
-        for receiver in receivers.values():
-            receiver.start()
+        if h5_source:
+            window.h5.source.setCurrentIndex(1)
+            if h5_paths:
+                QtCore.QTimer.singleShot(0, lambda: window.h5.open(h5_paths))
         signal.signal(signal.SIGINT, lambda *_: window.close())
         signal.signal(signal.SIGTERM, lambda *_: window.close())
         window.show()
