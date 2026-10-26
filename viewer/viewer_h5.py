@@ -5,6 +5,7 @@ Live receivers/history remain independent while H5 owns the display.
 """
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+from dataclasses import replace
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets
@@ -46,15 +47,21 @@ class SavedTimeAxis(pg.AxisItem):
 
 
 class ReaderWorker(QtCore.QThread):
+    progress = QtCore.pyqtSignal(int,int)
     ready = QtCore.pyqtSignal(object)
     failed = QtCore.pyqtSignal(str)
 
     def __init__(self, function, parent):
         super().__init__(parent); self.function = function
 
+    def report_progress(self,done,total):
+        percent=int(100*done/max(total,1))
+        if percent!=getattr(self,'last_percent',None):
+            self.last_percent=percent;self.progress.emit(done,total)
+
     def run(self):
         try:
-            result = self.function(self.isInterruptionRequested)
+            result = self.function(self.isInterruptionRequested,self.report_progress)
             if not self.isInterruptionRequested(): self.ready.emit(result)
         except InterruptedError: pass
         except Exception as e: self.failed.emit(f'{type(e).__name__}: {e}')
@@ -67,7 +74,8 @@ class H5Source(QtCore.QObject):
         self.catalog = None; self.data = None; self.deep = None
         self.generation = 0; self.pending_load = False; self.error_text = ''
         self.mesh_items = []; self.mesh_key = None; self.syncing = False
-        self.drift = []; self.saved = None
+        self.drift = []; self.saved = None; self.fit_next=False
+        self.rolling_cache=None;self.cache_hits=0;self.median_runs=0
         self.source = QtWidgets.QComboBox()
         self.source.addItem('Live UDP', 'live'); self.source.addItem('H5 files', 'h5')
         self.source.setToolTip('Select the data source for this same viewer and plots')
@@ -122,7 +130,7 @@ class H5Source(QtCore.QObject):
     def open(self, paths):
         if not self.active:self.source.setCurrentIndex(1)
         if not self.active or self.worker is not None:return
-        def task(cancel):
+        def task(cancel,progress):
             from offline_h5 import Catalog
             return Catalog(paths,cancel)
         self.launch(task,self.indexed)
@@ -130,11 +138,13 @@ class H5Source(QtCore.QObject):
     def launch(self, function, callback):
         if self.worker is not None:return
         self.error_text=''; token=self.generation
+        self.task_kind="index" if callback.__name__=="indexed" else "data"
         self.worker=worker=ReaderWorker(function,self)
         worker.ready.connect(lambda value: callback(value) if self.active and token==self.generation else None)
         worker.failed.connect(lambda error:self.failed(error) if self.active and token==self.generation else None)
+        worker.progress.connect(lambda done,total:self.v.rolling.set_progress(done,total) if self.active and token==self.generation else None)
         worker.finished.connect(self.finished)
-        self.busy(True); worker.start()
+        self.busy(True); self.rolling_status();self.v.rolling.set_progress(0,0);worker.start()
 
     def busy(self, yes):
         for w in (self.open_button,self.folder_button,self.start,self.end,self.high,self.roi,
@@ -147,8 +157,9 @@ class H5Source(QtCore.QObject):
     def finished(self):
         worker=self.worker; self.worker=None
         if worker:worker.deleteLater()
+        self.v.rolling.panel.cancel.setEnabled(False)
         if self.active:
-            self.busy(False)
+            self.busy(False);self.rolling_status()
             if self.pending_load:
                 self.pending_load=False; QtCore.QTimer.singleShot(0,self.load)
         else:
@@ -159,6 +170,7 @@ class H5Source(QtCore.QObject):
 
     def cancel(self):
         self.pending_load=False
+        self.v.rolling.panel.cancel.setEnabled(False)
         self.generation += 1
         if self.worker:self.worker.requestInterruption()
 
@@ -169,6 +181,7 @@ class H5Source(QtCore.QObject):
     def enter(self):
         if self.active:return
         v=self.v
+        v.rolling.remember_levels()
         if v._persist_settings:v._save_ui_settings()
         self.saved={
             'frequency':(v.frequency.minimum(),v.frequency.maximum(),v.frequency.singleStep(),v.frequency.value()),
@@ -189,6 +202,7 @@ class H5Source(QtCore.QObject):
             for curve in (*v.curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve)]
         self.saved['labels'] = [(label,label.text(),label.toolTip()) for label in
             (*v.metric_values.values(),*v.metric_details.values(),v.readout_pinned,v.readout_hover,v.bin_label)]
+        self.v.rolling.invalidate()
         self.active=True; self.generation+=1
         tag=v.findChild(QtWidgets.QLabel,'protocolTag')
         if tag:tag.setText('H5 SCHEMA 1')
@@ -212,6 +226,11 @@ class H5Source(QtCore.QObject):
         v.return_live_button.setText('Return to live')
         self.clear_plots(); self.set_titles(); self.status()
         self.busy(self.worker is not None)
+        if self.data is not None and self.data.get('rolling_config')!=v.rolling.config:
+            self.data=self.deep=None
+            self.pending_load=True
+            if self.worker is None:
+                self.pending_load=False;QtCore.QTimer.singleShot(0,self.load)
         if self.catalog:
             if self.data is not None:
                 v.frequency.blockSignals(True);v.frequency.setValue(float(self.data['frequency'][0]/1e6));v.frequency.blockSignals(False)
@@ -224,6 +243,8 @@ class H5Source(QtCore.QObject):
         except Exception as e:
             self.source.blockSignals(True); self.source.setCurrentIndex(1); self.source.blockSignals(False)
             QtWidgets.QMessageBox.warning(v,'Live UDP could not start',str(e));return
+        self.v.rolling.remember_levels()
+        self.v.rolling.invalidate()
         self.active=False; self.generation+=1; self.cancel(); self.panel.hide()
         tag=v.findChild(QtWidgets.QLabel,'protocolTag')
         if tag:tag.setText('SOL2 v3')
@@ -244,7 +265,8 @@ class H5Source(QtCore.QObject):
             widget.blockSignals(False)
         for widget,key in ((v.pause_button,'pause'),(v.follow_live,'follow'),(v.wf_follow,'wf_follow'),(v.link_power_scales,'link')):
             widget.blockSignals(True);widget.setChecked(self.saved[key]);widget.blockSignals(False)
-        for bar,levels in zip((v.cbar_fast,v.cbar_phase,v.cbar_deep),self.saved['levels']):bar.setLevels(levels)
+        for bar,levels in zip((v.cbar_fast,v.cbar_phase,v.cbar_deep),self.saved['levels']):
+            bar.blockSignals(True);bar.setLevels(levels);bar.blockSignals(False)
         for k,on in self.saved['checks'].items():
             v.plot_checks[k].blockSignals(True);v.plot_checks[k].setChecked(on);v.plot_checks[k].blockSignals(False)
         v.mode.blockSignals(True);v.mode.setCurrentIndex(self.saved['mode']);v.mode.blockSignals(False)
@@ -269,8 +291,9 @@ class H5Source(QtCore.QObject):
         v._update_wf_view();v._render_wf_window();v.update_time_view()
 
     def indexed(self, catalog):
+        self.rolling_cache=None
         self.catalog=catalog;self.data=None;self.deep=None;self.clear_plots()
-        self.configure_frequency();self.set_dates();self.pending_load=True
+        self.configure_frequency();self.set_dates();self.pending_load=True;self.fit_next=True
 
     def configure_frequency(self):
         if self.catalog is None:return
@@ -284,7 +307,7 @@ class H5Source(QtCore.QObject):
                 widget.setDateTime(QtCore.QDateTime.fromMSecsSinceEpoch(round((t+25200)*1000),QtCore.Qt.UTC))
 
     def full_range(self):
-        self.set_dates();self.load()
+        self.fit_next=True;self.set_dates();self.load()
 
     def load(self, *_):
         if not self.active or self.catalog is None or self.worker is not None:return
@@ -293,14 +316,56 @@ class H5Source(QtCore.QObject):
         low=self.v.frequency.value()*1e6;high=self.high.value()*1e6 if self.roi.isChecked() else low
         group=self.v.deep_frames
         quantity=self.quantity.currentText()
-        def task(cancel):
+        config=self.v.rolling.config
+        # One complete signed result only: bounded by existing display mesh limits.
+        key=(id(c),start,end,quantity,group,config.window_s,config.alignment,config.min_samples)
+        cached=self.rolling_cache
+        def task(cancel,progress):
             fast=c.load(start,end,low,high,quantity=quantity,cancelled=cancel)
+            progress(1,4)
             deep=c.load(start,end,low,high,quantity=quantity,cancelled=cancel,display_group=group)
+            progress(2,4)
+            fast['rolling_config']=deep['rolling_config']=config
+            if config.enabled:
+                from rolling_median import h5_residuals
+                if cached is not None and cached[0]==key:
+                    signed=cached[1];self.cache_hits+=1
+                else:
+                    self.median_runs+=1
+                    pair=h5_residuals(c,fast,deep,replace(config,clip=False),cancel,
+                        lambda done,total:progress(50+int(50*done/max(total,1)),100))
+                    signed=tuple(item['meshes'] for item in pair)
+                if cancel():raise InterruptedError('Cancelled')
+                for item,meshes in zip((fast,deep),signed):
+                    item['meshes']=[(edges,np.maximum(values,0) if config.clip else values,gamma)
+                                    for edges,values,gamma in meshes]
+                fast['_rolling_cache']=(key,signed)
+            progress(100,100)
             return fast,deep
         self.launch(task,self.loaded)
 
+    def reclip(self,config):
+        if self.data is None or self.worker is not None:return False
+        old=self.data['rolling_config']
+        if not old.enabled or replace(old,clip=False)!=replace(config,clip=False):return False
+        if self.rolling_cache is None:return False
+        pair=[]
+        for source,meshes in zip((self.data,self.deep),self.rolling_cache[1]):
+            item=dict(source);item['rolling_config']=config
+            item['meshes']=[(edges,np.maximum(values,0) if config.clip else values,gamma) for edges,values,gamma in meshes]
+            pair.append(item)
+        self.loaded(pair);return True
+
     def loaded(self, pair):
-        self.data,self.deep=pair;self.mesh_key=None;self.render();self.fit_time()
+        if pair[0]['rolling_config']!=self.v.rolling.config:
+            self.pending_load=True;return
+        cache=pair[0].pop('_rolling_cache',None)
+        if cache is not None:self.rolling_cache=cache
+        old=self.data
+        fit=self.fit_next or old is None or not (np.array_equal(old['starts'],pair[0]['starts']) and np.array_equal(old['ends'],pair[0]['ends']))
+        self.fit_next=False
+        self.data,self.deep=pair;self.mesh_key=None;self.render()
+        if fit:self.fit_time()
         self.v.update_layout_geometry();self.status()
 
     def select(self, frequency):
@@ -385,7 +450,8 @@ class H5Source(QtCore.QObject):
             i=int(np.nanargmax(d['mean_abs']))
             v.peak_summary_text=f'H5 mean |S12| peak: {freq[i]:.6f} MHz, {db(d["mean_abs"][i]):.2f} dB'
             v.update_metrics_readout()
-        self.render_traces();self.render_waterfalls();self.status()
+        self.v.rolling.style(self.data["rolling_config"])
+        self.render_traces();self.render_waterfalls();self.status();self.rolling_status()
 
     def fit_spectrum(self):
         if self.data is None:return
@@ -459,6 +525,7 @@ class H5Source(QtCore.QObject):
         v.wf_fast_plot.setTitle(f'H5 {quantity} — FFT-weighted display mean ≤{self.data["group"]} saved records/row')
         v.wf_deep_plot.setTitle(f'H5 deep {quantity} — FFT-weighted display mean ≤{self.deep["group"]} saved records/row')
         for bar in (v.cbar_fast,v.cbar_deep):bar.getAxis('left').setLabel(quantity+' [dB]' )
+        v.rolling.style(self.data['rolling_config'])
         v.wf_history_label.setText(f'H5: {len(self.data["times"])} rows · {len(self.catalog.freq)} saved bins · actual UTC axis')
 
     def status(self):
@@ -468,7 +535,7 @@ class H5Source(QtCore.QObject):
         if self.error_text:text='H5 READ FAILED'
         v.connection_badge.setText(text)
         v.data_age_label.setText('Saved observations · read only')
-        v.display_badge.setText('H5  /  READ ONLY');v.return_live_button.setEnabled(True)
+        v.display_badge.setText('H5 / PREVIOUS CONFIGURATION' if self.data is not None and self.data['rolling_config']!=v.rolling.config else 'H5 / READ ONLY');v.return_live_button.setEnabled(True)
         v.statusBar().showMessage(self.error_text or (f'H5: {len(self.catalog.records)} indexed records; background Live UDP history remains separate' if self.catalog else 'Open one or more closed H5 files'))
 
     def metadata(self):
@@ -526,6 +593,8 @@ class H5Source(QtCore.QObject):
                     _,phase,gamma=derived(a,b,re,im)
                     quality='VALID' if np.isfinite(gamma) and gamma>0 and gamma>=v.threshold.value() else 'MASKED / INVALID'
                     message=f'H5 raw [{quality}] | {datetime.fromtimestamp(self.data["times"][i],VN):%d/%m %H:%M:%S} | Re {re:.5g} Im {im:.5g} ADC-count²/bin | phase {np.rad2deg(phase):+.2f}° | γ {gamma:.4f} | flags {self.data["flags"][i]}'
+            if key in ('wf_fast','wf_deep') and self.data['rolling_config'].enabled:
+                message+=' | dB relative to rolling median'+(' (display clipped)' if self.data['rolling_config'].clip else ' (signed)')
             v.readout_hover.setText(message);v.readout_hover.setToolTip(message)
             v.crosshair_v[key].setValue(x);v.crosshair_h[key].setValue(y)
             v.crosshair_v[key].show();v.crosshair_h[key].show()
@@ -555,3 +624,20 @@ class H5Source(QtCore.QObject):
             rate=f'{df/dt:+.6f} MHz/s' if abs(dt)>1e-9 else 'undefined (same display row)'
             self.v.drift_summary_text=f'H5 drift: Δf={df:+.6f} MHz; Δt={dt:+.6f} s; {rate}; saved UTC row centers'
         self.v.update_metrics_readout()
+
+    def rolling_status(self):
+        if not self.active:return
+        v=self.v
+        if self.data is None:
+            v.rolling.panel.status.setText('H5: reading input…' if self.worker is not None else 'H5: load a time range')
+            return
+        cfg=self.data['rolling_config']
+        if cfg!=v.rolling.config:
+            state='Recomputing' if self.worker is not None or self.pending_load else 'Not applied / cancelled; Load to retry'
+            v.display_badge.setText('H5 / PREVIOUS CONFIGURATION')
+            v.rolling.panel.status.setText(state+' — showing previous complete H5 result')
+        elif cfg.enabled:
+            v.rolling.panel.status.setText(f'H5 rolling {cfg.window_s:g} s {cfg.alignment.lower()} · {len(self.data["times"])} input records\n'
+                f'Window clipped at selected range/segment edges. Bins with fewer than {cfg.min_samples} finite records are gaps.\n'
+                'Fast/Deep power only; spectra, phase, coherence and fringe use original statistics.')
+        else:v.rolling.panel.status.setText('H5 rolling off — original data')

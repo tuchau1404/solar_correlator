@@ -60,10 +60,10 @@ class ObservationHistory:
                 result[i] = masked_phase(row[4], threshold) if kind == PHASE else row[4].get(kind, np.nan)
         return result
 
-    def time_series(self, threshold):
+    def time_series(self, threshold, trace=None):
         x, y, coherence = [], [], []
         previous = None
-        for row in self.trace:
+        for row in (self.trace if trace is None else trace):
             if row is None:
                 previous = None
                 x.append(np.nan); y.append(np.nan); coherence.append(np.nan)

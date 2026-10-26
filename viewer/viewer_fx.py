@@ -776,6 +776,8 @@ class FXViewer(QtWidgets.QMainWindow):
 
         from viewer_h5 import H5Source
         self.h5 = H5Source(self, toolbar_row, side)
+        from rolling_controls import RollingController
+        self.rolling = RollingController(self, side)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self._tick)
@@ -916,8 +918,8 @@ class FXViewer(QtWidgets.QMainWindow):
             'fringe_auto_y': self.fringe_auto_y.isChecked(),
             'waterfall_window': self.wf_window.value(),
             'linked_power_scales': self.link_power_scales.isChecked(),
-            'fast_power_levels': list(self.cbar_fast.values),
-            'deep_power_levels': list(self.cbar_deep.values),
+            'fast_power_levels': list(self.rolling.original_levels.get('live',(self.cbar_fast.values,self.cbar_deep.values))[0]) if hasattr(self,'rolling') and self.rolling.config.enabled else list(self.cbar_fast.values),
+            'deep_power_levels': list(self.rolling.original_levels.get('live',(self.cbar_fast.values,self.cbar_deep.values))[1]) if hasattr(self,'rolling') and self.rolling.config.enabled else list(self.cbar_deep.values),
             'follow_live': self.follow_live.isChecked(),
             'autoscale_y': self.autoscale_y_check.isChecked(),
             'sidebar': self.sidebar_button.isChecked(),
@@ -1201,7 +1203,7 @@ class FXViewer(QtWidgets.QMainWindow):
             data = np.full((height, BINS), np.nan, dtype=np.float32)
             for i, row in enumerate(subset):
                 if row is not None:
-                    data[i] = row[4].get(S12, np.nan)
+                    data[i] = self.rolling.fast_values(row) if hasattr(self,"rolling") else row[4].get(S12,np.nan)
             self.img_fast.setImage(data, autoLevels=False)
             self.img_fast.setRect(rect)
         if show_phase:
@@ -1221,7 +1223,7 @@ class FXViewer(QtWidgets.QMainWindow):
                 if index < len(groups) and groups[index][2] <= row[1] <= groups[index][3]:
                     # Hold the group's single mean across its actual source-frame
                     # rows. This is a block display, not additional integration.
-                    data[i] = groups[index][6]
+                    data[i] = self.rolling.deep_values(groups[index]) if hasattr(self,"rolling") else groups[index][6]
             self.img_deep.setImage(data, autoLevels=False)
             self.img_deep.setRect(rect)
 
@@ -1772,13 +1774,13 @@ class FXViewer(QtWidgets.QMainWindow):
     def _waterfall_point_is_valid(self, plot_key, y, bin_index):
         if plot_key == 'wf_deep':
             group = self._deep_group_at(y)
-            return group is not None and np.isfinite(group[6][bin_index])
+            return group is not None and np.isfinite(self.rolling.deep_values(group)[bin_index])
         row = self._wf_row_at(y)
         if row is None:
             return False
         streams = row[4]
         if plot_key == 'wf_fast':
-            values = streams.get(S12)
+            values = self.rolling.fast_values(row)
             return values is not None and np.isfinite(values[bin_index])
         if plot_key == 'wf_phase':
             phase, gamma = streams.get(PHASE), streams.get(COHERENCE)
@@ -1943,6 +1945,7 @@ class FXViewer(QtWidgets.QMainWindow):
     def scene_mouse_moved(self, pos):
         if self._is_h5():
             return self.h5.mouse_move(pos)
+        if self.rolling.hover(pos):return
         threshold = self.threshold.value()
 
         # 1. Kiểm tra nhóm đồ thị miền Tần số
@@ -2200,6 +2203,7 @@ class FXViewer(QtWidgets.QMainWindow):
         self._update_dashboard_metrics(threshold)
         self.update_time_view()
         self._render_wf_window()
+        if hasattr(self,'rolling'):self.rolling.style()
         self.wf_phase_plot.setTitle(f'Phase ° — display mask γ ≥ {threshold:.2f}; missing/invalid = transparent')
         latest = next((row for row in reversed(self.model.rows) if row is not None), None)
         stamp = (
@@ -2214,6 +2218,8 @@ class FXViewer(QtWidgets.QMainWindow):
             plot.getAxis('left').update()
 
     def closeEvent(self, event):
+        if not self.rolling.close():
+            event.ignore();QtCore.QTimer.singleShot(100,self.close);return
         if self.h5.worker is not None:
             self.h5.cancel()
             event.ignore()

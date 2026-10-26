@@ -194,6 +194,7 @@ class Catalog:
             with h5py.File(e.path, 'r') as f:
                 block = np.array([f['data/'+k][ri:ri+stop-pos] for k in ARRAYS], dtype=float)
             for off in range(stop-pos):
+                if cancelled():raise InterruptedError("Cancelled")
                 j = pos+off; row = ri+off
                 if breaks[j]:
                     finish_segment()
