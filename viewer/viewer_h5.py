@@ -191,7 +191,7 @@ class H5Source(QtCore.QObject):
             'ranges':[p.viewRange() for p in v.all_plots],
             'enabled':[(w,w.isEnabled()) for w in self.live_controls],
             'axes':[(p,p.getAxis('left')) for p in (v.wf_fast_plot,v.wf_phase_plot,v.wf_deep_plot)],
-            'time_axes':[(p,p.getAxis('bottom')) for p in (v.phase_plot,v.fringe_plot,v.gamma_plot)],
+            'time_axes':[(p,p.getAxis('bottom')) for p in (v.phase_plot,v.fringe_plot,v.gamma_plot,v.power_plot)],
             'titles':[(p,p.titleLabel.text) for p in v.all_plots],
             'peak':v.peak_summary_text,
             'bar_labels':[b.getAxis('left').labelText for b in (v.cbar_fast,v.cbar_deep)],
@@ -199,7 +199,7 @@ class H5Source(QtCore.QObject):
             'mode':v.mode.currentIndex(),
         }
         self.saved['curves'] = [(curve, tuple(None if x is None else x.copy() for x in curve.getData()), curve.isVisible())
-            for curve in (*v.curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve)]
+            for curve in (*v.curves.values(),*v.power_curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve)]
         self.saved['labels'] = [(label,label.text(),label.toolTip()) for label in
             (*v.metric_values.values(),*v.metric_details.values(),v.readout_pinned,v.readout_hover,v.bin_label)]
         self.v.rolling.invalidate()
@@ -309,10 +309,28 @@ class H5Source(QtCore.QObject):
     def full_range(self):
         self.fit_next=True;self.set_dates();self.load()
 
-    def load(self, *_):
+    def load(self, *_, use_loaded_range=False):
         if not self.active or self.catalog is None or self.worker is not None:return
-        c=self.catalog;start=self.start.dateTime().toMSecsSinceEpoch()/1000-25200-.0005
-        end=self.end.dateTime().toMSecsSinceEpoch()/1000-25200+.0005
+        c=self.catalog
+        if use_loaded_range and self.data is not None:
+            # A bin change acts on the displayed observation, not uncommitted
+            # edits in From/To. Keep the exact successful request for caching.
+            start,end=self.data.get('_time_range',
+                (float(self.data['times'][0])-.0005,float(self.data['times'][-1])+.0005))
+        else:
+            # Interpret displayed calendar fields as UTC+07, independently of
+            # Qt/OS timezone settings; the editor stores a wall-clock display.
+            def utc_seconds(widget):
+                dt=widget.dateTime()
+                wall=QtCore.QDateTime(dt.date(),dt.time(),QtCore.Qt.UTC)
+                return wall.toMSecsSinceEpoch()/1000-25200
+            start=utc_seconds(self.start)-.0005
+            end=utc_seconds(self.end)+.0005
+        if start>end or not np.any((c.times>=start)&(c.times<=end)):
+            self.error_text=('No H5 records in From/To. Choose a range containing saved records '
+                             'or click Full H5 time range. Previous display is retained.')
+            self.status()
+            return
         low=self.v.frequency.value()*1e6;high=self.high.value()*1e6 if self.roi.isChecked() else low
         group=self.v.deep_frames
         quantity=self.quantity.currentText()
@@ -320,11 +338,22 @@ class H5Source(QtCore.QObject):
         # One complete signed result only: bounded by existing display mesh limits.
         key=(id(c),start,end,quantity,group,config.window_s,config.alignment,config.min_samples)
         cached=self.rolling_cache
+        previous,previous_deep=self.data,self.deep
+        selection_only=(use_loaded_range and previous is not None and previous_deep is not None
+                        and previous['quantity']==quantity
+                        and previous['rolling_config']==config
+                        and previous_deep['group']==max(1,int(group),int(np.ceil(len(previous['times'])/1200))))
         def task(cancel,progress):
+            if selection_only:
+                fast=c.select_traces(previous,low,high,cancel)
+                deep=dict(previous_deep);deep['traces']=fast['traces'];deep['frequency']=fast['frequency'];deep['power_traces']=fast['power_traces']
+                return fast,deep
             fast=c.load(start,end,low,high,quantity=quantity,cancelled=cancel)
             progress(1,4)
-            deep=c.load(start,end,low,high,quantity=quantity,cancelled=cancel,display_group=group)
+            deep=(dict(fast) if max(1,int(group),int(np.ceil(len(fast['times'])/1200)))==fast['group']
+                  else c.load(start,end,low,high,quantity=quantity,cancelled=cancel,display_group=group))
             progress(2,4)
+            fast['_time_range']=deep['_time_range']=(start,end)
             fast['rolling_config']=deep['rolling_config']=config
             if config.enabled:
                 from rolling_median import h5_residuals
@@ -364,7 +393,14 @@ class H5Source(QtCore.QObject):
         old=self.data
         fit=self.fit_next or old is None or not (np.array_equal(old['starts'],pair[0]['starts']) and np.array_equal(old['ends'],pair[0]['ends']))
         self.fit_next=False
-        self.data,self.deep=pair;self.mesh_key=None;self.render()
+        reuse_display=(old is not None and old['meshes'] is pair[0]['meshes']
+                       and old['phase_meshes'] is pair[0]['phase_meshes'])
+        self.data,self.deep=pair
+        if reuse_display:
+            self.v.marker.setValue(float(self.data['frequency'][0]/1e6))
+            self.render_traces();self.rolling_status()
+        else:
+            self.mesh_key=None;self.render()
         if fit:self.fit_time()
         self.v.update_layout_geometry();self.status()
 
@@ -373,7 +409,7 @@ class H5Source(QtCore.QObject):
         i=int(np.argmin(abs(self.catalog.freq-frequency*1e6)))
         self.v.marker.setValue(float(self.catalog.freq[i]/1e6))
         self.v.bin_label.setText(f'H5 bin {i} → {self.catalog.freq[i]/1e6:.6f} MHz')
-        self.load()
+        self.load(use_loaded_range=True)
 
     def step(self, delta):
         if self.catalog is None or self.worker is not None:return
@@ -389,7 +425,7 @@ class H5Source(QtCore.QObject):
     def fit_time(self):
         if self.data is None:return
         v=self.v;d=self.data
-        for p in (v.phase_plot,v.fringe_plot,v.gamma_plot):p.setXRange(float(d['starts'][0]),float(d['ends'][-1]),padding=.01)
+        for p in (v.phase_plot,v.fringe_plot,v.gamma_plot,v.power_plot):p.setXRange(float(d['starts'][0]),float(d['ends'][-1]),padding=.01)
         self.syncing=True
         try:
             for p in (v.wf_fast_plot,v.wf_phase_plot,v.wf_deep_plot):
@@ -413,7 +449,8 @@ class H5Source(QtCore.QObject):
 
     def clear_plots(self):
         self.clear_meshes();v=self.v
-        for curve in (*v.curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve):curve.setData([],[])
+        for curve in v.power_curves.values():curve.setData([],[])
+        for curve in (*v.curves.values(),*v.power_curves.values(),v.deep_curve,v.phase_curve,v.phase_points,v.gamma_curve,v.fringe_re_curve,v.fringe_im_curve):curve.setData([],[])
         v._hide_all_hover_overlays()
         v.readout_hover.setText('H5: no hover sample' if self.active else 'Live: hover a sample')
         v.readout_hover.setToolTip('')
@@ -461,9 +498,21 @@ class H5Source(QtCore.QObject):
         vals=np.concatenate([a[np.isfinite(a)] for a in values]) if values else np.array([])
         if len(vals):self.v.spectrum_plot.setYRange(float(vals.min())-3,float(vals.max())+3,padding=0)
 
+    def render_power(self):
+        if self.data is None:return
+        from offline_h5 import broken_series,db
+        from telemetry_protocol import S11,S22
+        d=self.data
+        for key,values in zip((S11,S22),d['power_traces']):
+            x,y=broken_series(d['times'],db(values),d['breaks'])
+            self.v.power_curves[key].setData(x,y,connect='finite')
+            self.v.power_curves[key].setVisible(self.v.power_checks[key].isChecked())
+        self.v.power_plot.setTitle(f'H5 power vs time — {d["frequency"][0]/1e6:.6f} MHz (single saved bin; no coherence mask)')
+
     def render_traces(self):
         if not self.active or self.data is None:return
         from offline_h5 import derived,broken_series
+        self.render_power()
         v=self.v;d=self.data;a,b,re,im=d['traces'];mag,phase,gamma=derived(a,b,re,im)
         good=np.isfinite(phase)&np.isfinite(gamma)&(gamma>0)&(gamma>=v.threshold.value())
         x,y=broken_series(d['times'],np.where(good,np.rad2deg(phase),np.nan),d['breaks'])

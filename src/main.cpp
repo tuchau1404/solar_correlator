@@ -115,6 +115,7 @@ struct CliOptions {
     uint16_t port_coherence = SolarConfig::Network::UDP_PORT_COHERENCE;
     bool skip_align          = false;
     bool cal_phase           = false;
+    std::string observation_source = "antenna";
     int max_align_retries    = 8;
     std::string serial_ch1   = "";
     std::string serial_ch2   = "";
@@ -136,6 +137,7 @@ void print_usage(const char* prog_name) {
         << "  --port-phase <0..65535>   Phase rad, default 9996; 0 disables\n"
         << "  --port-coherence <0..65535> Coherence amplitude gamma, default 9995; 0 disables\n"
         << "  --skip-align, --no-align  Bỏ qua căn chỉnh trễ mẫu Module 2 (chế độ chẩn đoán CW / tải giả 50 Ohm)\n"
+        << "  --input-source <antenna|noise>  Observation source (default: antenna); selected after alignment/calibration\n"
         << "  --cal-phase               Chụp và bù pha thiết bị tĩnh (phi_rad) ngay sau khi khóa mẫu k = 0\n"
         << "  --max-align-retries <n>   Số lần thử căn chỉnh tối đa ở Module 2 (mặc định: 8)\n"
         << "  --serial-ch1 <ser>        Chỉ định cứng Serial Number RSPdx cho Kênh 1\n"
@@ -230,6 +232,14 @@ bool parse_and_validate_cli(int argc, char* argv[], CliOptions& opts, std::strin
             return false;
         } else if (arg == "--skip-align" || arg == "--no-align") {
             opts.skip_align = true;
+        } else if (arg == "--input-source") {
+            const char* v = require_next(arg);
+            if (!v) return false;
+            opts.observation_source = v;
+            if (opts.observation_source != "antenna" && opts.observation_source != "noise") {
+                err_msg = "--input-source must be antenna or noise";
+                return false;
+            }
         } else if (arg == "--cal-phase") {
             opts.cal_phase = true;
         } else if (arg == "--max-align-retries") {
@@ -671,6 +681,18 @@ bool force_antenna_off() noexcept {
     return noise_ok && switch_ok;
 }
 
+// Same GPIO polarity as HardwareGuard: HIGH selects Cal/Splitter and noise ON.
+// Every failure attempts to return both outputs to the existing safe state.
+bool select_observation_source(bool noise) noexcept {
+    if (!noise) return force_antenna_off();
+    if (!set_gpio_level(SolarConfig::Hardware::PIN_RF_SWITCH, true) ||
+        !set_gpio_level(SolarConfig::Hardware::PIN_NOISE_SOURCE, true)) {
+        (void)force_antenna_off();
+        return false;
+    }
+    return true;
+}
+
 struct SafeGpioOnExit {
     ~SafeGpioOnExit() {
         if (!force_antenna_off())
@@ -951,6 +973,7 @@ int main(int argc, char* argv[]) {
                     solar::storage::PartialPolicy::Emit : solar::storage::PartialPolicy::Discard};
             nlohmann::json metadata={
                 {"session_id",std::to_string(telemetry_session)},
+                {"observation_source",cli.observation_source},
                 {"baseline_revision",SOLAR_BASELINE_REVISION},{"patch_state",SOLAR_PATCH_STATE},
                 {"center_freq_hz",SolarConfig::SDR::RF_CENTER_FREQ_HZ},
                 {"sample_rate_hz",SolarConfig::SDR::SAMPLE_RATE_HZ},{"input_fft_bins",n_bins},
@@ -1162,17 +1185,25 @@ int main(int argc, char* argv[]) {
                 check_alignment_health();
             }
 #endif
-            // NGẮT NGUỒN TẠP ÂM 15V VÀ GẠT RF SWITCH VỀ 2 ANTEN NGOÀI TRỜI TRƯỚC KHI QUAN SÁT
-            if (state != SystemState::STOPPING && hw_guard.has_value() && hw_guard->is_active()) {
+            // Select a fixed source for this observation/session. Do not mix
+            // startup calibration/switch transients into saved observations.
+            if (state != SystemState::STOPPING &&
+                (cli.observation_source == "noise" ||
+                 (hw_guard.has_value() && hw_guard->is_active()))) {
                 const uint32_t ov1_pre_sw = rb1.get_overflow_count();
                 const uint32_t ov2_pre_sw = rb2.get_overflow_count();
 
                 check_alignment_health();
-                mark("antenna.begin");
-                hw_guard->turn_off();
-                if (!force_antenna_off()) throw std::runtime_error("GPIO observation command failed");
-                std::this_thread::sleep_for(std::chrono::milliseconds(
-                    SolarConfig::Hardware::SWITCH_SETTLE_MS));
+                const bool observe_noise = cli.observation_source == "noise";
+                mark("observation_source.begin");
+                if (!observe_noise && hw_guard.has_value()) hw_guard->turn_off();
+                if (!select_observation_source(observe_noise))
+                    throw std::runtime_error("GPIO observation source command failed");
+                const int settle_ms = observe_noise
+                    ? std::max(SolarConfig::Hardware::WARMUP_DELAY_MS,
+                               SolarConfig::Hardware::SWITCH_SETTLE_MS)
+                    : SolarConfig::Hardware::SWITCH_SETTLE_MS;
+                std::this_thread::sleep_for(std::chrono::milliseconds(settle_ms));
                 check_alignment_health();
 
                 // Discard every sample already committed on EITHER channel.
@@ -1181,12 +1212,15 @@ int main(int argc, char* argv[]) {
                 const uint32_t boundary = std::max(rb1.available_read(), rb2.available_read());
                 skip_pair(boundary);
                 check_alignment_health();
-                mark("antenna.paired_boundary");
+                mark("observation_source.paired_boundary");
 
                 if (rb1.get_overflow_count() != ov1_pre_sw || rb2.get_overflow_count() != ov2_pre_sw) {
                     throw std::runtime_error(
-                        "[FAIL-CLOSED] Xảy ra tràn bộ đệm SHM trong lúc chuyển mạch RF Switch về Anten!");
+                        "[FAIL-CLOSED] SHM overflow while selecting observation source");
                 }
+                std::cout << "[INPUT] Observation source=" << cli.observation_source
+                          << " (RF switch=" << (observe_noise ? "HIGH" : "LOW")
+                          << ", noise=" << (observe_noise ? "ON" : "OFF") << ")\n";
             }
 
             if (state != SystemState::STOPPING) {
@@ -1394,6 +1428,11 @@ int main(int argc, char* argv[]) {
         hw_guard->turn_off();
     }
 
+    // Noise observation also works without HardwareGuard (--skip-align).
+    if (!force_antenna_off()) {
+        std::cerr << "[GPIO ERROR] Unable to command Noise OFF / Antenna at shutdown.\n";
+        exit_code = 1;
+    }
     children.terminate_and_reap_all();
 #ifdef SOLAR_STORAGE_ENABLED
     auto_maintenance.stop();

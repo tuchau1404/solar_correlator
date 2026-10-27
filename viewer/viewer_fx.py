@@ -504,7 +504,7 @@ class FXViewer(QtWidgets.QMainWindow):
         section('VISIBLE PLOTS')
         self.plot_checks = {}
         self._plot_names = {
-            'spectrum': 'Spectrum', 'phase': 'Phase trace', 'fringe': 'Fringes Re / Im', 'gamma': 'Coherence trace',
+            'power': 'S11 / S22 power trace', 'spectrum': 'Spectrum', 'phase': 'Phase trace', 'fringe': 'Fringes Re / Im', 'gamma': 'Coherence trace',
             'wf_fast': 'Fast waterfall', 'wf_phase': 'Phase waterfall', 'wf_deep': 'Deep waterfall',
         }
         for key, label in self._plot_names.items():
@@ -512,6 +512,11 @@ class FXViewer(QtWidgets.QMainWindow):
             cb.setChecked(True)
             self.plot_checks[key] = cb
             side.addWidget(cb)
+        self.power_checks={}
+        for key,label in ((S11,'Power trace S11'),(S22,'Power trace S22')):
+            cb=QtWidgets.QCheckBox(label);cb.setChecked(True)
+            cb.toggled.connect(lambda *_: self._update_power_plot())
+            self.power_checks[key]=cb;side.addWidget(cb)
         self.clear_measure_button = QtWidgets.QPushButton('Clear drift measurement')
         self.clear_measure_button.setToolTip('Esc: clear the measurement. Space: resume after measuring.')
         side.addWidget(self.clear_measure_button)
@@ -678,9 +683,18 @@ class FXViewer(QtWidgets.QMainWindow):
         self.cbar_deep.setImageItem(self.img_deep)
         g.addItem(self.cbar_deep, row=6, col=1)
 
+        self.power_plot=g.addPlot(row=7,col=0,colspan=2,
+            axisItems={'bottom':VietnamTimeAxis(orientation='bottom')})
+        self.power_plot.setLabel('left','Power [dB re 1 ADC-count²/bin]')
+        self.power_plot.setLabel('bottom','Vietnam time (UTC+07:00)')
+        self.power_plot.addLegend()
+        self.power_curves={key:self.power_plot.plot(name=name,pen=pg.mkPen(color,width=1.5),connect='finite')
+                           for key,name,color in ((S11,'S11','#38bdf8'),(S22,'S22','#f87171'))}
+        self.power_plot.enableAutoRange(x=False,y=True)
         # Căn lề trục tung đồng nhất 110px và tắt SI prefix cho toàn bộ đồ thị
         self.all_plots = (
             self.spectrum_plot,
+            self.power_plot,
             self.phase_plot,
             self.fringe_plot,
             self.gamma_plot,
@@ -1332,6 +1346,7 @@ class FXViewer(QtWidgets.QMainWindow):
             'wf_deep': self.wf_deep_plot,
         }
         self.time_plots = {
+            'power': self.power_plot,
             'phase': self.phase_plot,
             'fringe': self.fringe_plot,
             'gamma': self.gamma_plot,
@@ -1423,6 +1438,7 @@ class FXViewer(QtWidgets.QMainWindow):
         self.workspace_title.setText(self.mode.currentText().upper() + (' / H5 OBSERVATION' if self._is_h5() else ' OBSERVATION'))
         solar = self.mode.currentText() == 'Solar'
         preset = {
+            'power': True,
             'spectrum': True,
             'phase': True,
             'fringe': not solar,
@@ -1443,6 +1459,7 @@ class FXViewer(QtWidgets.QMainWindow):
             return
         row_configs = [
             (0, 'spectrum', self.spectrum_plot, None, 2),
+            (7, 'power', self.power_plot, None, 2),
             (1, 'phase', self.phase_plot, None, 2),
             (2, 'fringe', self.fringe_plot, None, 3),
             (3, 'gamma', self.gamma_plot, None, 2),
@@ -1630,6 +1647,20 @@ class FXViewer(QtWidgets.QMainWindow):
         self.gamma_plot.setYRange(0, 1.05, padding=0)
         self.follow_live.setChecked(True)
         self.update_time_view()
+
+    def _update_power_plot(self):
+        if not hasattr(self,'power_curves'):return
+        if self._is_h5():
+            if self.h5.data is not None:self.h5.render_power()
+            return
+        if self.pause_button.isChecked():
+            for key,curve in self.power_curves.items():curve.setVisible(self.power_checks[key].isChecked())
+            return
+        x,a,b=self.model.power_time_series()
+        for key,values in ((S11,a),(S22,b)):
+            self.power_curves[key].setData(x,values,connect='finite')
+            self.power_curves[key].setVisible(self.power_checks[key].isChecked())
+        self.power_plot.setTitle(f'Power vs time — bin {self.model.bin} / {self.model.actual:.6f} MHz (no coherence mask)')
 
     def select_frequency(self, frequency):
         if self._is_h5():
@@ -2058,6 +2089,13 @@ class FXViewer(QtWidgets.QMainWindow):
                     self.crosshair_h[k].setPos(y_val)
                     self.crosshair_h[k].setVisible(k == key)
 
+            if key == 'power':
+                x,a,b=self.model.power_time_series()
+                good=np.flatnonzero(np.isfinite(x))
+                if len(good):
+                    i=good[np.argmin(abs(x[good]-t_x))]
+                    self.readout_hover.setText(f'Power | S11={a[i]:.3f} dB | S22={b[i]:.3f} dB | VN {format_vn_time(x[i])}')
+                return
             valid_samples = [row for row in self._display_trace if row is not None]
             plot_label = {'phase': 'Phase(t)', 'gamma': 'γ(t)', 'fringe': 'Fringes Re/Im'}[key]
             if not valid_samples:
@@ -2199,6 +2237,7 @@ class FXViewer(QtWidgets.QMainWindow):
         coherence_x, gamma = coherence_time_series(self._display_trace)
         self.gamma_curve.setData(coherence_x, gamma, connect='finite')
         self._update_fringe_plot()
+        self._update_power_plot()
         self.update_readout(threshold)
         self._update_dashboard_metrics(threshold)
         self.update_time_view()

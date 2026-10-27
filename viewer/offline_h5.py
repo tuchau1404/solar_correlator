@@ -1,6 +1,7 @@
 """Bounded, read-only solar storage schema-1 reader. No Qt or UDP dependency."""
 from dataclasses import dataclass
 from pathlib import Path
+from collections import OrderedDict
 import hashlib
 import json
 import numpy as np
@@ -47,6 +48,9 @@ class Entry:
 
 class Catalog:
     def __init__(self, paths, cancelled=lambda: False):
+        self._blocks = OrderedDict()
+        self._cache_bytes = 0
+        self.cache_limit = 64 * 1024 * 1024
         self.entries = []
         self.records = []
         self.duplicates = 0
@@ -136,6 +140,57 @@ class Catalog:
             self.breaks[j] = (a.signature != b.signature or not contiguous or gap > 1000
                               or bool(int(bv['quality_flags'][bi]) & (8 | 16)))
 
+    def read_block(self, ei, first):
+        """Worker-only 64 MiB LRU; immutable 128-row blocks shared by all views."""
+        e = self.entries[ei]; stat = Path(e.path).stat()
+        if (stat.st_size, stat.st_mtime_ns) != e.stat:
+            self._blocks.clear(); self._cache_bytes = 0
+            raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
+        key = (ei, first)
+        if key in self._blocks:
+            self._blocks.move_to_end(key)
+            return self._blocks[key]
+        with h5py.File(e.path, 'r') as f:
+            block = np.array([f['data/'+k][first:first+128] for k in ARRAYS], dtype=float)
+        block.setflags(write=False)
+        while self._blocks and self._cache_bytes + block.nbytes > self.cache_limit:
+            _, old = self._blocks.popitem(last=False); self._cache_bytes -= old.nbytes
+        if block.nbytes <= self.cache_limit:
+            self._blocks[key] = block; self._cache_bytes += block.nbytes
+        return block
+
+    def select_traces(self, source, low, high, cancelled=lambda: False):
+        """Read only requested columns; retain full-band display products."""
+        if not np.isfinite(low+high) or low > high:
+            raise ValueError('Invalid frequency selection')
+        if low == high:
+            if not self.freq[0]-self.bandwidth/2 <= low <= self.freq[-1]+self.bandwidth/2:
+                raise ValueError('Selected frequency is outside the saved band')
+            left = int(np.argmin(abs(self.freq-low))); right = left+1
+        else:
+            left = int(np.searchsorted(self.freq, low)); right = int(np.searchsorted(self.freq, high, side='right'))
+        if left == right: raise ValueError('ROI contains no saved bin centers')
+        chosen = np.searchsorted(self.times, source['times'])
+        traces = np.full((4,len(chosen)), np.nan); power_traces=np.full((2,len(chosen)),np.nan); pos = 0
+        while pos < len(chosen):
+            if cancelled(): raise InterruptedError('Cancelled')
+            _,ei,ri = self.records[chosen[pos]]; stop = pos+1
+            while stop < min(len(chosen),pos+128):
+                _,ne,nr = self.records[chosen[stop]]
+                if ne != ei or nr != ri+stop-pos: break
+                stop += 1
+            e=self.entries[ei]; stat=Path(e.path).stat()
+            if (stat.st_size,stat.st_mtime_ns)!=e.stat:
+                raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
+            with h5py.File(e.path,'r') as f:
+                vals=np.array([f['data/'+k][ri:ri+stop-pos,left:right] for k in ARRAYS],dtype=float)
+            power_traces[:,pos:stop]=vals[:2,:,0]
+            valid=np.all(np.isfinite(derived(*vals)[2]),axis=1)
+            traces[:,pos:stop]=np.where(valid[None,:],vals.mean(axis=2),np.nan)
+            pos=stop
+        result=dict(source);result['traces']=traces;result['frequency']=self.freq[left:right];result['power_traces']=power_traces
+        return result
+
     def load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1):
         chosen = np.flatnonzero((self.times >= start) & (self.times <= end))
         if not len(chosen): raise ValueError('No records in the selected time range')
@@ -151,6 +206,7 @@ class Catalog:
         # Only bounded blocks and <=1600 frequency rows reside in memory.
         group = max(1, int(display_group), int(np.ceil(len(chosen)/1200)))
         traces = np.full((4, len(chosen)), np.nan)
+        power_traces=np.full((2,len(chosen)),np.nan)
         weights = np.zeros(len(chosen)); flags = np.zeros(len(chosen), np.uint32)
         meshes = []; phase_meshes = []; total = np.zeros((4, len(self.freq))); count = np.zeros(len(self.freq))
         total_mag = np.zeros(len(self.freq))
@@ -184,15 +240,25 @@ class Catalog:
             if cancelled(): raise InterruptedError('Cancelled')
             _, ei, ri = self.records[chosen[pos]]
             stop = pos + 1
-            while stop < min(len(chosen), pos+256):
+            while stop < min(len(chosen), pos+128-ri%128):
                 _, ne, nr = self.records[chosen[stop]]
                 if ne != ei or nr != ri + stop-pos: break
                 stop += 1
             e = self.entries[ei]; stat = Path(e.path).stat()
             if (stat.st_size, stat.st_mtime_ns) != e.stat:
                 raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
-            with h5py.File(e.path, 'r') as f:
-                block = np.array([f['data/'+k][ri:ri+stop-pos] for k in ARRAYS], dtype=float)
+            first=(ri//128)*128
+            block=self.read_block(ei,first)[:,ri-first:ri-first+stop-pos].copy()
+            power_traces[:,pos:stop]=block[:2,:,np.flatnonzero(mask)[0]]
+            block_valid=np.isfinite(derived(*block)[2])
+            block=np.where(block_valid[None,:,:],block,np.nan)
+            block_weights=e.vectors['valid_fft_frames'][ri:ri+stop-pos].astype(float)
+            clean=np.nan_to_num(block,nan=0)
+            total += (clean*block_weights[None,:,None]).sum(axis=1)
+            count += (block_valid*block_weights[:,None]).sum(axis=0)
+            total_mag += (np.nan_to_num(np.hypot(block[2],block[3]),nan=0)*block_weights[:,None]).sum(axis=0)
+            selected_valid=np.all(block_valid[:,mask],axis=1)
+            traces[:,pos:stop]=np.where(selected_valid[None,:],block[:,:,mask].mean(axis=2),np.nan)
             for off in range(stop-pos):
                 if cancelled():raise InterruptedError("Cancelled")
                 j = pos+off; row = ri+off
@@ -200,24 +266,20 @@ class Catalog:
                     finish_segment()
                     if len(meshes) >= 200: raise ValueError('Too many discontinuities; choose a shorter range')
                 vals = block[:, off]
-                valid = np.isfinite(derived(*vals)[2])
-                vals[:, ~valid] = np.nan
+                valid = block_valid[off]
                 v = e.vectors; w = float(v['valid_fft_frames'][row]); weights[j] = w
                 flags[j] = v['quality_flags'][row]
-                if np.all(valid[mask]): traces[:, j] = vals[:, mask].mean(axis=1)
                 starts[j] = int(v['start_utc_us'][row])/1e6
                 ends[j] = int(v['end_utc_us'][row])/1e6
-                total += np.nan_to_num(vals, nan=0) * w; count += valid*w
-                total_mag += np.nan_to_num(np.hypot(vals[2], vals[3]), nan=0)*w
                 if tile_n == 0: tile_first = starts[j]
                 tile_last = ends[j]; tile_n += 1
-                tile_sum += np.nan_to_num(vals, nan=0)*w; tile_w += valid*w
+                tile_sum += clean[:,off]*w; tile_w += valid*w
                 if tile_n >= group: finish_tile()
             pos = stop
         finish_segment()
         mean = np.divide(total, count, out=np.full_like(total, np.nan), where=count > 0)
         mean_abs = np.divide(total_mag, count, out=np.full_like(total_mag, np.nan), where=count > 0)
-        return dict(times=self.times[chosen], starts=starts, ends=ends, traces=traces,
+        return dict(times=self.times[chosen], starts=starts, ends=ends, traces=traces, power_traces=power_traces,
                     flags=flags, weights=weights, breaks=breaks, meshes=meshes, mean=mean,
                     group=group, frequency=self.freq[mask], quantity=quantity, mean_abs=mean_abs,
                     phase_meshes=phase_meshes)

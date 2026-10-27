@@ -156,8 +156,7 @@ class H5Rows:
         if key not in self.blocks:
             e=self.catalog.entries[ei];stat=Path(e.path).stat()
             if (stat.st_size,stat.st_mtime_ns)!=e.stat:raise ValueError('H5 changed; reopen a closed file')
-            with h5py.File(e.path,'r') as h:
-                vals=np.array([h['data/'+k][first:first+128] for k in ARRAYS],dtype=float)
+            vals=self.catalog.read_block(ei,first)
             mag,_,gamma=derived(*vals)
             value={'S12':mag,'S11':vals[0],'S22':vals[1]}[self.quantity]
             with np.errstate(divide='ignore',invalid='ignore'):
