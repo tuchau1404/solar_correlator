@@ -2,3 +2,6 @@ numpy>=1.25,<3
 PyQt5>=5.15.9,<6
 pyqtgraph==0.13.7
 h5py>=3.10,<4
+
+# Optional exact incremental rolling median accelerator (fallback works without it).
+numba>=0.60

@@ -365,32 +365,41 @@ class H5Source(QtCore.QObject):
                         and previous['quantity']==quantity
                         and previous['rolling_config']==config
                         and previous_deep['group']==max(1,int(group),int(np.ceil(len(previous['times'])/1200))))
+        reuse_raw=(previous is not None and previous_deep is not None
+                   and previous.get('_time_range')==(start,end)
+                   and previous['quantity']==quantity
+                   and previous_deep['group']==max(1,int(group),int(np.ceil(len(previous['times'])/1200))))
         def task(cancel,progress):
             if selection_only:
                 fast=c.select_traces(previous,low,high,cancel)
                 deep=dict(previous_deep);deep['traces']=fast['traces'];deep['frequency']=fast['frequency'];deep['power_traces']=fast['power_traces']
                 return fast,deep
-            fast=c.load(start,end,low,high,quantity=quantity,cancelled=cancel)
-            progress(1,4)
-            deep=(dict(fast) if max(1,int(group),int(np.ceil(len(fast['times'])/1200)))==fast['group']
-                  else c.load(start,end,low,high,quantity=quantity,cancelled=cancel,display_group=group))
+            if reuse_raw:
+                # Validate sources even when no spectral block needs reading.
+                from h5_cache import fingerprint
+                fingerprint(c,('reuse-raw',))
+                fast=dict(previous);deep=dict(previous_deep)
+                for item in (fast,deep):
+                    item['meshes']=item.get('_raw_meshes',item['meshes'])
+                    item.pop('_rolling_deferred',None)
+                if not (len(fast['frequency'])==1 and low==high==fast['frequency'][0]):
+                    fast=c.select_traces(fast,low,high,cancel)
+                    for name in ('traces','frequency','power_traces'):deep[name]=fast[name]
+            else:
+                fast=c.load(start,end,low,high,quantity=quantity,cancelled=cancel,
+                    progress=lambda done,total:progress(int(40*done/max(total,1)),100))
+                deep=(dict(fast) if max(1,int(group),int(np.ceil(len(fast['times'])/1200)))==fast['group']
+                      else c.load(start,end,low,high,quantity=quantity,cancelled=cancel,display_group=group))
             progress(2,4)
             fast['_time_range']=deep['_time_range']=(start,end)
             fast['rolling_config']=deep['rolling_config']=config
             if config.enabled:
-                from rolling_median import h5_residuals
-                if cached is not None and cached[0]==key:
-                    signed=cached[1];self.cache_hits+=1
-                else:
-                    self.median_runs+=1
-                    pair=h5_residuals(c,fast,deep,replace(config,clip=False),cancel,
-                        lambda done,total:progress(50+int(50*done/max(total,1)),100))
-                    signed=tuple(item['meshes'] for item in pair)
-                if cancel():raise InterruptedError('Cancelled')
-                for item,meshes in zip((fast,deep),signed):
-                    item['meshes']=[(edges,np.maximum(values,0) if config.clip else values,gamma)
-                                    for edges,values,gamma in meshes]
-                fast['_rolling_cache']=(key,signed)
+                # Compute residuals only after the loaded viewport is known.
+                for item in (fast,deep):
+                    item['_raw_meshes']=item['meshes']
+                    item['meshes']=[(edges,np.full_like(values,np.nan),gamma)
+                                    for edges,values,gamma in item['meshes']]
+                    item['_rolling_deferred']=True
             progress(100,100)
             return fast,deep
         self.launch(task,self.loaded)
@@ -410,6 +419,7 @@ class H5Source(QtCore.QObject):
     def loaded(self, pair):
         if pair[0]['rolling_config']!=self.v.rolling.config:
             self.pending_load=True;return
+        if pair[0].get('_rolling_deferred'):self.rolling_cache=None
         cache=pair[0].pop('_rolling_cache',None)
         if cache is not None:self.rolling_cache=cache
         old=self.data
@@ -428,6 +438,8 @@ class H5Source(QtCore.QObject):
         else:
             self.mesh_key=None;self.render()
         if fit:self.fit_time()
+        if self.data.get('_rolling_deferred') and len(self.data['times'])>1200 and (fit or old is None or not old['rolling_config'].enabled):
+            self.v.wf_fast_plot.setYRange(float(self.data['starts'][-1200]),float(self.data['ends'][-1]),padding=0)
         self.v.update_layout_geometry();self.status()
         if not reuse_display:self.view_timer.start()
 
@@ -494,7 +506,7 @@ class H5Source(QtCore.QObject):
         if stop<=first:
             self.view_data=None;self.mesh_key=None;self.render_waterfalls();return
         group=max(1,int(np.ceil((stop-first)/1200)))
-        if first==0 and stop==len(d['times']):
+        if first==0 and stop==len(d['times']) and not d['rolling_config'].enabled:
             self.view_data=None;self.mesh_key=None;self.render_waterfalls();return
         # Prefetch nearby records in fixed blocks, so small pans reuse the mesh.
         first=max(0,(first//64)*64)
@@ -706,7 +718,8 @@ class H5Source(QtCore.QObject):
         def detail(source):
             return ('1 saved record/row' if source['group']==1 else
                     f'FFT-weighted display mean ≤{source["group"]} saved records/row')
-        v.wf_fast_plot.setTitle(f'H5 {quantity} — {detail(fast)}')
+        pending=' — rolling background pending…' if self.view_data is None and self.data.get('_rolling_deferred') else ''
+        v.wf_fast_plot.setTitle(f'H5 {quantity} — {detail(fast)}{pending}')
         v.wf_deep_plot.setTitle(f'H5 deep {quantity} — {detail(deep)}')
         v.wf_phase_plot.setTitle(f'H5 phase ° — {detail(fast)} — coherence display mask')
         for bar in (v.cbar_fast,v.cbar_deep):bar.getAxis('left').setLabel(quantity+' [dB]' )
@@ -833,7 +846,11 @@ class H5Source(QtCore.QObject):
             v.display_badge.setText('H5 / PREVIOUS CONFIGURATION')
             v.rolling.panel.status.setText(state+' — showing previous complete H5 result')
         elif cfg.enabled:
+            from rolling_background import incremental
+            engine=('Numba incremental' if incremental is not None else
+                    'SLOW NumPy fallback — install viewer/requirements.txt')
             v.rolling.panel.status.setText(f'H5 rolling {cfg.window_s:g} s {cfg.alignment.lower()} · {len(self.data["times"])} input records\n'
+                f'{engine} · visible range only; zooming out computes more records.\n'
                 f'Window clipped at selected range/segment edges. Bins with fewer than {cfg.min_samples} finite records are gaps.\n'
                 'Fast/Deep power only; spectra, phase, coherence and fringe use original statistics.')
         else:v.rolling.panel.status.setText('H5 rolling off — original data')

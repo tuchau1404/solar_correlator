@@ -52,10 +52,9 @@ def window_bounds(times, breaks, config):
         if np.any(np.diff(seg)<=0):raise ValueError('Time must increase within a segment')
         before=config.window_s if config.alignment=='Trailing' else config.window_s/2
         after=0 if config.alignment=='Trailing' else config.window_s/2
-        for j,x in enumerate(seg,a):
-            lo=a+int(np.searchsorted(seg,x-before,side='left'))
-            hi=a+int(np.searchsorted(seg,x+after,side='right'))
-            result[j]=(lo,hi)
+        lows=a+np.searchsorted(seg,seg-before,side='left')
+        highs=a+np.searchsorted(seg,seg+after,side='right')
+        result[a:b]=list(zip(lows,highs))
     return result
 
 
@@ -145,7 +144,12 @@ class H5Rows:
     """Worker-only small LRU of converted input rows, not a full-history copy."""
     def __init__(self,catalog,chosen,quantity,cancelled):
         self.catalog,self.chosen,self.quantity,self.cancelled=catalog,chosen,quantity,cancelled
-        self.blocks=OrderedDict()
+        self.blocks=OrderedDict();self.block_limit=8
+
+    def reserve(self, rows):
+        # At most 64 MiB of converted float32 rows, including block edges.
+        cap=max(8,(64*1024**2)//(128*len(self.catalog.freq)*4))
+        self.block_limit=min(cap,max(8,int(np.ceil(rows/128))+2))
 
     def __call__(self,index):
         import h5py
@@ -162,19 +166,41 @@ class H5Rows:
             with np.errstate(divide='ignore',invalid='ignore'):
                 value_db=10*np.log10(value+1e-12)
             self.blocks[key]=np.where(np.isfinite(gamma),value_db,np.nan).astype(np.float32)
-            while len(self.blocks)>8:self.blocks.popitem(last=False)
+            while len(self.blocks)>self.block_limit:self.blocks.popitem(last=False)
         self.blocks.move_to_end(key)
         return self.blocks[key][ri-first]
 
 
-def h5_residuals(catalog,fast,deep,config,cancelled=lambda:False,progress=lambda done,total:None):
+def h5_residuals(catalog,fast,deep,config,cancelled=lambda:False,progress=lambda done,total:None,context=None):
+    from h5_cache import fingerprint,read,write
+    ctx=fast if context is None else context
+    prefix=('rolling',config.to_dict(),float(ctx['times'][0]),float(ctx['times'][-1]))
+    keys=[fingerprint(catalog,(prefix,source['quantity'],source['group'],
+          float(source['times'][0]),float(source['times'][-1]))) for source in (fast,deep)]
+    cached=[read(key) for key in keys]
+    if cancelled():raise InterruptedError('Cancelled')
+    if all(item is not None for item in cached):
+        results=[]
+        for source,item in zip((fast,deep),cached):
+            result=dict(source);result['meshes']=item['meshes'];result['rolling_config']=config;results.append(result)
+        return tuple(results)
+    results=_h5_residuals(catalog,fast,deep,config,cancelled,progress,context)
+    for key,result in zip(keys,results):
+        if cancelled():raise InterruptedError('Cancelled')
+        write(key,result,cancelled)
+    return results
+
+
+def _h5_residuals(catalog,fast,deep,config,cancelled=lambda:False,progress=lambda done,total:None,context=None):
     """Median at saved input resolution, before Fast/Deep display grouping.
 
     Window context is limited to selected time range and split at catalog gaps.
     Raw spectra/traces/phase_meshes remain the original sufficient statistics.
     """
-    chosen=np.searchsorted(catalog.times,fast['times'])
-    bounds=window_bounds(fast['times'],fast['breaks'],config)
+    context=fast if context is None else context
+    chosen=np.searchsorted(catalog.times,context['times'])
+    bounds=window_bounds(context['times'],context['breaks'],config)
+    input_indices=np.searchsorted(context['times'],fast['times'])
     reader=H5Rows(catalog,chosen,fast['quantity'],cancelled)
     outputs=[]
     for source in (fast,deep):
@@ -190,12 +216,25 @@ def h5_residuals(catalog,fast,deep,config,cancelled=lambda:False,progress=lambda
             si,ti=current[which];values=acc[which].mean()
             if config.clip:values=np.maximum(values,0)
             outputs[which]['meshes'][si][1][ti]=values
-    for j,(lo,hi) in enumerate(bounds):
+    from rolling_background import background, OUTPUT_CHUNK
+    from h5_cache import fingerprint
+    background_chunk=None;medians=counts=None
+    for j,input_index in enumerate(input_indices):
+        lo,hi=bounds[input_index]
         if cancelled():raise InterruptedError('Cancelled')
         if (hi-lo)*len(catalog.freq)>MAX_WINDOW_CELLS:raise ValueError('H5 median window too large; reduce seconds')
-        progress(j,len(bounds))
-        window=np.array([reader(k) for k in range(lo,hi)],dtype=np.float32)
-        residual=residual_at(reader(j),window,config)
+        progress(j,len(input_indices))
+        chunk=(int(input_index)//OUTPUT_CHUNK)*OUTPUT_CHUNK
+        if chunk!=background_chunk:
+            stop=min(chunk+OUTPUT_CHUNK,len(context['times']))
+            key=fingerprint(catalog,('background-v2',fast['quantity'],config.window_s,
+                config.alignment,float(context['times'][0]),float(context['times'][-1]),chunk,stop))
+            medians,counts=background(reader,bounds,chunk,stop,key,cancelled)
+            background_chunk=chunk
+        value=reader(input_index);median=medians[input_index-chunk]
+        good=(counts[input_index-chunk]>=config.min_samples)&np.isfinite(value)&np.isfinite(median)
+        residual=np.full(value.shape,np.nan,np.float32)
+        np.subtract(value,median,out=residual,where=good)
         if j and fast['breaks'][j]:segment+=1
         for which in (0,1):
             edges=outputs[which]['meshes'][segment][0]
@@ -206,5 +245,5 @@ def h5_residuals(catalog,fast,deep,config,cancelled=lambda:False,progress=lambda
                 flush(which);current[which]=target;acc[which]=LogMean(len(catalog.freq))
             acc[which].add(residual,fast['weights'][j])
     for which in (0,1):flush(which)
-    progress(len(bounds),len(bounds))
+    progress(len(input_indices),len(input_indices))
     return tuple(outputs)

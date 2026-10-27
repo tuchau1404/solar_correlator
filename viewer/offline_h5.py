@@ -12,7 +12,7 @@ VECTORS = ('timestamps_us', 'start_utc_us', 'end_utc_us', 'sample_start',
            'sample_end', 'frame_ids_first', 'frame_ids_last', 'valid_fft_frames',
            'quality_flags')
 MAX_RECORDS = 1_000_000
-MAX_SELECTED = 200_000
+MAX_SELECTED = MAX_RECORDS
 # QDateTimeEdit default supported range, with room for the UTC+07 offset.
 MIN_UTC_US = -14831769600000000  # 1500-01-01 UTC
 MAX_UTC_US = 253402275600000000  # 9999-12-31 17:00 UTC
@@ -204,10 +204,30 @@ class Catalog:
         result=dict(source);result['traces']=traces;result['frequency']=self.freq[left:right];result['power_traces']=power_traces
         return result
 
-    def load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1, waterfall_only=False):
+    def load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1, waterfall_only=False, progress=lambda done,total:None):
+        from h5_cache import fingerprint, read, write
+        if cancelled():raise InterruptedError('Cancelled')
+        key=fingerprint(self,(float(start),float(end),float(low),float(high),quantity,int(display_group)))
+        if not waterfall_only:
+            cached=read(key)
+            if cached is not None:
+                if cancelled():raise InterruptedError('Cancelled')
+                self.last_cache_hit=True
+                progress(1,1)
+                return cached
+        self.last_cache_hit=False
+        result=self._load(start,end,low,high,quantity,cancelled,display_group,waterfall_only,progress)
+        if cancelled():raise InterruptedError('Cancelled')
+        if not waterfall_only:
+            if fingerprint(self,(float(start),float(end),float(low),float(high),quantity,int(display_group)))!=key:
+                raise ValueError('H5 changed while reading')
+            write(key,result,cancelled)
+        return result
+
+    def _load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1, waterfall_only=False, progress=lambda done,total:None):
         chosen = np.flatnonzero((self.times >= start) & (self.times <= end))
         if not len(chosen): raise ValueError('No records in the selected time range')
-        if len(chosen) > MAX_SELECTED: raise ValueError('Choose at most 200,000 records per view')
+        if len(chosen) > MAX_SELECTED: raise ValueError('Choose at most 1,000,000 records per view')
         if not np.isfinite(low + high) or low > high: raise ValueError('Invalid frequency selection')
         if low == high:
             if not self.freq[0] - self.bandwidth/2 <= low <= self.freq[-1] + self.bandwidth/2:
@@ -276,23 +296,31 @@ class Catalog:
                 total_mag += (np.nan_to_num(np.hypot(block[2],block[3]),nan=0)*block_weights[:,None]).sum(axis=0)
                 selected_valid=np.all(block_valid[:,mask],axis=1)
                 traces[:,pos:stop]=np.where(selected_valid[None,:],block[:,:,mask].mean(axis=2),np.nan)
-            for off in range(stop-pos):
-                if cancelled():raise InterruptedError("Cancelled")
-                j = pos+off; row = ri+off
+            v=e.vectors
+            weights[pos:stop]=block_weights
+            flags[pos:stop]=v['quality_flags'][ri:ri+stop-pos]
+            starts[pos:stop]=v['start_utc_us'][ri:ri+stop-pos].astype(float)/1e6
+            ends[pos:stop]=v['end_utc_us'][ri:ri+stop-pos].astype(float)/1e6
+            off=0
+            while off<stop-pos:
+                if cancelled():raise InterruptedError('Cancelled')
+                j=pos+off
                 if breaks[j]:
                     finish_segment()
-                    if len(meshes) >= 200: raise ValueError('Too many discontinuities; choose a shorter range')
-                vals = block[:, off]
-                valid = block_valid[off]
-                v = e.vectors; w = float(v['valid_fft_frames'][row]); weights[j] = w
-                flags[j] = v['quality_flags'][row]
-                starts[j] = int(v['start_utc_us'][row])/1e6
-                ends[j] = int(v['end_utc_us'][row])/1e6
-                if tile_n == 0: tile_first = starts[j]
-                tile_last = ends[j]; tile_n += 1
-                tile_sum += clean[:,off]*w; tile_w += valid*w
-                if tile_n >= group: finish_tile()
+                    if len(meshes)>=200:raise ValueError('Too many discontinuities; choose a shorter range')
+                take=min(stop-pos-off,group-tile_n)
+                boundaries=np.flatnonzero(breaks[j+1:j+take])
+                if len(boundaries):take=int(boundaries[0])+1
+                last=off+take
+                if tile_n==0:tile_first=starts[j]
+                tile_last=ends[pos+last-1]
+                w=block_weights[off:last]
+                tile_sum+=(clean[:,off:last]*w[None,:,None]).sum(axis=1)
+                tile_w+=(block_valid[off:last]*w[:,None]).sum(axis=0)
+                tile_n+=take;off=last
+                if tile_n>=group:finish_tile()
             pos = stop
+            progress(pos,len(chosen))
         finish_segment()
         mean = np.divide(total, count, out=np.full_like(total, np.nan), where=count > 0)
         mean_abs = np.divide(total_mag, count, out=np.full_like(total_mag, np.nan), where=count > 0)
