@@ -1,0 +1,2059 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/storage/REPORT/">
+      
+      
+        <link rel="prev" href="../ARCHITECTURE/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Báo cáo triển khai và kiểm thử — 2026-10-17 - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bao-cao-trien-khai-va-kiem-thu-2026-10-17" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Báo cáo triển khai và kiểm thử — 2026-10-17
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Next plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 3: Real-Time FX Correlator Engine &amp; Visibility Telemetry Streamer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/telemetry-v3-upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry v3: phase và coherence đồng thời
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-firmware-dsp/viewer-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Viewer modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit v2
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Audit v2
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit_v2/PI_RUNBOOK/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build và đo trên Pi — không ghi đè cây nguồn/config cũ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit_v2/REPORT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit và bản vá ứng viên — 18/10/2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Storage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage v1 — hướng dẫn vận hành
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts và lifecycle storage v1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Báo cáo triển khai và kiểm thử — 2026-10-17
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Báo cáo triển khai và kiểm thử — 2026-10-17
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pham-vi-ket-luan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phạm vi kết luận
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provenance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inh-nghia-xac-minh-tu-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Định nghĩa xác minh từ source
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dung-luong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dung lượng
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ma-tran-yeu-cau-cau-hinh-module-bang-chung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ma trận yêu cầu → cấu hình → module → bằng chứng
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gioi-han-gate-con-mo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Giới hạn / gate còn mở
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pham-vi-ket-luan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phạm vi kết luận
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provenance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inh-nghia-xac-minh-tu-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Định nghĩa xác minh từ source
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dung-luong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dung lượng
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ma-tran-yeu-cau-cau-hinh-module-bang-chung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ma trận yêu cầu → cấu hình → module → bằng chứng
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gioi-han-gate-con-mo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Giới hạn / gate còn mở
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="bao-cao-trien-khai-va-kiem-thu-2026-10-17">Báo cáo triển khai và kiểm thử — 2026-10-17<a class="headerlink" href="#bao-cao-trien-khai-va-kiem-thu-2026-10-17" title="Permanent link">&para;</a></h1>
+<h2 id="pham-vi-ket-luan">Phạm vi kết luận<a class="headerlink" href="#pham-vi-ket-luan" title="Permanent link">&para;</a></h2>
+<p>Đã triển khai source tích hợp, build storage C++ trên host Linux và kiểm thử synthetic/offline. Đây là bản để review/nghiệm thu tiếp, <strong>chưa đủ bằng chứng nghiệm thu toàn bộ prompt trên Pi 5/SDRplay/Drive thật</strong>. Không deploy, không push/merge, không upload dữ liệu quan sát thật. FAIL test còn tồn tại: không ghi nhận trong những test đã chạy; NOT RUN không được tính là PASS.</p>
+<h2 id="provenance">Provenance<a class="headerlink" href="#provenance" title="Permanent link">&para;</a></h2>
+<p>Repo https://github.com/tuchau1404/solar_correlator; remote HEAD thực là <code>refs/heads/main</code>. Baseline duy nhất <code>92d6889d46a864d403d0f519aebadf15ca4c614b</code>, commit time <code>2026-10-17T02:24:20Z</code>, fetch hoàn tất ghi nhận <code>2026-10-17T04:03:58Z</code> vào checkout riêng. Trước bàn giao đã <code>git ls-remote --symref ... HEAD</code> lần nữa: vẫn cùng SHA/main; không trộn revision mới. “Mới nhất” chỉ phạm vi HEAD main tại các lần kiểm tra, không mọi nhánh. Bản vá chưa commit; SOURCE_REVISION dành archive không có .git; runtime metadata phân biệt baseline và patch state.</p>
+<p>Attachment duy nhất là <code>prompt_main_google_drive_v1.txt</code>, là yêu cầu chứ không phải source. Không có source attachment để diff với remote, không phát hiện local source edits cần lựa chọn baseline. Không có AGENTS.md được tìm thấy trong checkout. Dependency SDK không được cung cấp; không tái tạo SDK.</p>
+<table>
+<thead>
+<tr>
+<th>File/module</th>
+<th>Baseline path</th>
+<th>Nguồn / revision</th>
+<th>Khác biệt / quyết định</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main</td>
+<td>src/main.cpp</td>
+<td>remote, SHA trên</td>
+<td>Giữ lifecycle/CLI; thêm --config/check, preflight và nhánh submit</td>
+</tr>
+<tr>
+<td>Correlator</td>
+<td>src/correlator.hpp/.cpp</td>
+<td>remote, SHA trên</td>
+<td>Thêm storage Re/Im double và getters sau cùng normalization/calibration</td>
+</tr>
+<tr>
+<td>CMake</td>
+<td>CMakeLists.txt</td>
+<td>remote, SHA trên</td>
+<td>HDF5/SQLite/json/storage targets; archive revision fallback</td>
+</tr>
+<tr>
+<td>DSP tests</td>
+<td>tests/test_dsp_math.cpp</td>
+<td>remote, SHA trên</td>
+<td>Thêm đối chiếu Re/Im với long-double DFT</td>
+</tr>
+<tr>
+<td>Hardware/SHM/alignment/telemetry</td>
+<td>5 file bảo vệ dưới đây</td>
+<td>remote, SHA trên</td>
+<td>Không thay đổi byte</td>
+</tr>
+<tr>
+<td>Viewer/parser/science</td>
+<td>viewer/</td>
+<td>remote, SHA trên</td>
+<td>Không thay đổi tracked tree</td>
+</tr>
+<tr>
+<td>Storage modules</td>
+<td>src/storage/</td>
+<td>mới, dựa baseline trên</td>
+<td>Record, queue, aggregator, config, budget, VFD, writer, pipeline</td>
+</tr>
+<tr>
+<td>Config/ledger</td>
+<td>config/</td>
+<td>mới</td>
+<td>JSON mẫu/schema và SQL version1</td>
+</tr>
+<tr>
+<td>Maintenance/quicklook</td>
+<td>scripts/</td>
+<td>mới</td>
+<td>Validator, startup, upload, retention, reader/science/panels, status, migration/timers</td>
+</tr>
+<tr>
+<td>Synthetic tests</td>
+<td>tests/storage/</td>
+<td>mới</td>
+<td>Contracts, native IO/pipeline, maintenance, day simulation</td>
+</tr>
+<tr>
+<td>Yêu cầu</td>
+<td>prompt_main_google_drive_v1.txt</td>
+<td>attachment</td>
+<td>Dùng làm đặc tả, không ghi đè source</td>
+</tr>
+</tbody>
+</table>
+<p>SHA-256 file bảo vệ (đã so trực tiếp với git object baseline):</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>SHA-256</th>
+<th>Kết quả</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>src/hardware_control.hpp</td>
+<td>77fa7349a420ef71c254c0885408d432ff0fea2aa36721c4809ab042deab4901</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>src/ring_buffer.hpp</td>
+<td>5ecc6be1efc9462dc828e4d334de4f2261efc6c8f942ce41ff796a51db458270</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>src/time_alignment.hpp</td>
+<td>23103b5cd8a3dfe6d8b5067fb1b9848ddcadf61d26127b3ec4ee031b2aae7281</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>src/time_alignment.cpp</td>
+<td>31393ca70440ffac5fcf1eeea9ba615a67500370d9dfa9f99ee490a59d52986d</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>src/telemetry_sender.hpp</td>
+<td>c269fe1a115323843eefeda9073302f1eeadd48999d63f53ab1a240dbaebda6e</td>
+<td>PASS</td>
+</tr>
+</tbody>
+</table>
+<h2 id="inh-nghia-xac-minh-tu-source">Định nghĩa xác minh từ source<a class="headerlink" href="#inh-nghia-xac-minh-tu-source" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mục</th>
+<th>Thực tế baseline / quyết định</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DSP geometry</td>
+<td>FFT 2048, hop1024, M1953, Fs10MSPS</td>
+</tr>
+<tr>
+<td>Cadence nguồn</td>
+<td>1953*1024/1e7 = 0.1999872s</td>
+</tr>
+<tr>
+<td>Support nguồn</td>
+<td>((1953-1)*1024+2048)/1e7 = 0.2000896s; overlap không cộng đôi exposure</td>
+</tr>
+<tr>
+<td>Window</td>
+<td>Symmetric Hann denominator N-1; normalization dùng sum(window²) thực</td>
+</tr>
+<tr>
+<td>Normalization</td>
+<td>mean cross/raw ADC DFT /(M<em>N</em>sum(window²)); input /32768 rồi restore 32768²; không phải dBm/PSD hiệu chuẩn</td>
+</tr>
+<tr>
+<td>Cross</td>
+<td>X1<em>conj(X2), nhân exp(-j</em>phi); lấy Re/Im sau phase correction</td>
+</tr>
+<tr>
+<td>Frequency</td>
+<td>fftshift RF tăng dần; gộp mean contiguous, không wrap</td>
+</tr>
+<tr>
+<td>Coherence</td>
+<td>Magnitude gamma, không phải gamma²; sau gộp là estimator mới</td>
+</tr>
+<tr>
+<td>dB</td>
+<td>10log10 linear ADC-count², không flux/dBm</td>
+</tr>
+<tr>
+<td>Timestamp</td>
+<td>system_clock sau xử lý; UTC sample suy từ processing anchor, uncertainty unknown</td>
+</tr>
+<tr>
+<td>Telemetry</td>
+<td>SOL2 v3, S12 magnitude9999/S11 9998/S22 9997/phase9996/coherence9995; khác dự kiến cũ gộp phase/coherence</td>
+</tr>
+<tr>
+<td>API main</td>
+<td>dispatch đủ5args, optional HardwareGuard chỉ emplace !skip_align, SingleInstanceLock, 2 child guards/forks, SHM overflow fail-closed giữ nguyên</td>
+</tr>
+<tr>
+<td>Storage mặc định</td>
+<td>ceil(1/.1999872)=6 cycles, cadence1.1999232s, 512bins spacing19531.25Hz</td>
+</tr>
+</tbody>
+</table>
+<p>Không thể tái tạo raw bins hoặc mean(|S12 nguồn|) sau gộp. Strict invalid-group mask mất toàn group nếu một thành phần invalid; chủ ý tránh weights theo bin lớn. HDF metadata lưu calibration vector unshifted, conventions, geometry, snapshot/hash/revision. Main không hỗ trợ thay calibration live trong phiên baseline.</p>
+<h2 id="dung-luong">Dung lượng<a class="headerlink" href="#dung-luong" title="Permanent link">&para;</a></h2>
+<p>Mô phỏng <strong>tương đương 24 giờ</strong>, không chạy SDR/real-time24h: 72,005 grouped rows, native HDF5 writer/ledger, 97 file và render đủ97PNG, compression none. Dữ liệu synthetic random với phase quay; các config khoa học/caps mặc định; sync/startup/NTP off, disk floor giảm cho fixture host. Không dùng hệ số nén đoán.</p>
+<table>
+<thead>
+<tr>
+<th>Hạng mục</th>
+<th style="text-align: right;">Byte logic đo / charge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HDF5 thực, gồm metadata/scalars/chunks</td>
+<td style="text-align: right;">605,780,392</td>
+</tr>
+<tr>
+<td>PNG thực</td>
+<td style="text-align: right;">90,674,623</td>
+</tr>
+<tr>
+<td>Aux live fixture tại thời điểm đo</td>
+<td style="text-align: right;">131,273</td>
+</tr>
+<tr>
+<td>Tổng thực live fixture</td>
+<td style="text-align: right;">696,586,288</td>
+</tr>
+<tr>
+<td>HDF5 charge bảo thủ 97*8,500,000</td>
+<td style="text-align: right;">824,500,000</td>
+</tr>
+<tr>
+<td>PNG charge 97*1,000,000</td>
+<td style="text-align: right;">97,000,000</td>
+</tr>
+<tr>
+<td>Aux charge</td>
+<td style="text-align: right;">32,777,216</td>
+</tr>
+<tr>
+<td>Tổng charge</td>
+<td style="text-align: right;">954,277,216</td>
+</tr>
+<tr>
+<td>Daily limit</td>
+<td style="text-align: right;">1,000,000,000</td>
+</tr>
+</tbody>
+</table>
+<p>Base arrays estimate589,864,960 không được dùng thay tổng pipeline. Aux đo là snapshot fixture, không ước lượng toàn OS; marker/log sau các sửa cuối có thể thay đổi vài byte, không chạy lại toàn24h sau bản sửa retry/PNG disk check. Full cap guard và final smoke đã chạy sau sửa. Ngày rollover97file gồm partial; nhiều restart có thể hết quota sớm. Quota dự phòng còn45,722,784 nhưng shares áp độc lập.</p>
+<p>Năm ngày charge danh định khoảng4.77GB, thực synthetic khoảng3.48GB; đây không phải upper bound disk5GB: cửa sổ trượt có thể giao6ngày, writer/reader/temp/audit và filesystem overhead. Dự toán bảo thủ ít nhất6<em>1GB logical reservations + headroom disk floor500MB, thêm filesystem/OS theo đo trên thiết bị; không chứng minh giới hạn peak physical. Queue payload khoảng9,895,936bytes (151slots</em>4<em>2048</em>8), chưa gồm metadata/allocator/DSP/HDF/renderer RAM.</p>
+<h2 id="ma-tran-yeu-cau-cau-hinh-module-bang-chung">Ma trận yêu cầu → cấu hình → module → bằng chứng<a class="headerlink" href="#ma-tran-yeu-cau-cau-hinh-module-bang-chung" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Yêu cầu</th>
+<th>Config keys</th>
+<th>Module/test</th>
+<th>Trạng thái và phạm vi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema/unknown/type/finite/crosschecks</td>
+<td>config_version, toàn nhóm</td>
+<td>config.py; test_maintenance</td>
+<td>PASS invalid cases; C++ dùng cùng validator</td>
+</tr>
+<tr>
+<td>Config thiếu/sai dừng trước SDR, legacy CLI</td>
+<td>--config/--check-config</td>
+<td>main.cpp</td>
+<td>Source review; runtime hardware CLI NOT RUN</td>
+</tr>
+<tr>
+<td>Complex averaging/weights/NaN/zero/±pi</td>
+<td>save_interval_sec,save_freq_bins,partial_window_policy</td>
+<td>test_storage_core</td>
+<td>PASS, bins2048/1024/512/256</td>
+</tr>
+<tr>
+<td>Gap/calibration/backward UTC/partial</td>
+<td>time.*, partial_window_policy</td>
+<td>test_storage_core</td>
+<td>PASS core; live calibration change không có API</td>
+</tr>
+<tr>
+<td>SPSC ownership/full/concurrent</td>
+<td>queue_capacity_records</td>
+<td>test_storage_core</td>
+<td>PASS100000 transfers; host, không Pi latency benchmark</td>
+</tr>
+<tr>
+<td>Linear getters giữ DSP</td>
+<td>không thêm DSP config</td>
+<td>test_dsp_math</td>
+<td>PASS tone, random longdoubleDFT, Parseval, edge/error</td>
+</tr>
+<tr>
+<td>UDP tương thích</td>
+<td>legacy source config</td>
+<td>telemetry_sender_contract + test_protocol_v3</td>
+<td>PASS CTest và7Python tests</td>
+</tr>
+<tr>
+<td>HDF schema/chunks/cap</td>
+<td>chunk_rows,compression,max_file_bytes</td>
+<td>test_storage_io</td>
+<td>PASS750rows,6,307,456B golden;1KBcap bị chặn</td>
+</tr>
+<tr>
+<td>Native writer→ledger→PNG</td>
+<td>append_batch_records,quicklook.*</td>
+<td>run_pipeline_smoke.py</td>
+<td>PASS60source→10rows,weights11718,Re1.8/Im2.4</td>
+</tr>
+<tr>
+<td>Quota cross-language/restart/delete không refund</td>
+<td>budget.<em>,ledger.</em></td>
+<td>native IO + maintenance</td>
+<td>PASS reservation/readback/quota/retention; oldday refused</td>
+</tr>
+<tr>
+<td>Hai process tranh PNG reservation</td>
+<td>max_png_bytes</td>
+<td>test_maintenance</td>
+<td>PASS chỉ một charge</td>
+</tr>
+<tr>
+<td>Recovery publication/tombstone/generation</td>
+<td>stale_temp_grace_sec,ledger.*</td>
+<td>test_maintenance</td>
+<td>PASS finalname-before-READY, DELETE_PENDING replay, stale job</td>
+</tr>
+<tr>
+<td>Version/migration gate</td>
+<td>config_version,ledger version</td>
+<td>test_maintenance + tools</td>
+<td>PASS unknownledger rejected; migration restore exercise NOT RUN</td>
+</tr>
+<tr>
+<td>Probe pass/fail</td>
+<td>startup_check.*</td>
+<td>Fake adapter tests</td>
+<td>PASS mock; realauth/timeout/token/SDRsequence runtime NOT RUN</td>
+</tr>
+<tr>
+<td>Identity remote</td>
+<td>sync.remote_*,rclone_config_path</td>
+<td>transfer.identity tests</td>
+<td>PASS target change/access token refresh/new refresh token</td>
+</tr>
+<tr>
+<td>Upload digest/size/retry</td>
+<td>sync.verification_policy,timeout/backoff</td>
+<td>transfer+maintenance</td>
+<td>Implemented; full adapter fault matrix/realDrive NOT RUN</td>
+</tr>
+<tr>
+<td>Retention trước/đúng tuổi/configdays</td>
+<td>retention.days,delete_unuploaded_expired</td>
+<td>test_maintenance</td>
+<td>PASS trước/đúng5ngày, thaydays, giữunverified option</td>
+</tr>
+<tr>
+<td>Busy reader/audit/no resurrection</td>
+<td>reader_timeout_sec,audit/tombstone caps</td>
+<td>test_maintenance</td>
+<td>PASS lock skip/stale generation; cancel hung kernel NOT RUN</td>
+</tr>
+<tr>
+<td>Clock jump/symlink guard</td>
+<td>time.*,data_dir</td>
+<td>test_maintenance</td>
+<td>PASS synthetic forward jump/symlink; realNTP outage NOT RUN</td>
+</tr>
+<tr>
+<td>Full day total bytes</td>
+<td>budget.*, defaultscience</td>
+<td>measure_day.cpp + measure_pngs.py</td>
+<td>PASS equivalentday,97HDF+97PNG, bytes bảng trên</td>
+</tr>
+<tr>
+<td>Status freshness</td>
+<td>status.*</td>
+<td>read_storage_status.py</td>
+<td>Implemented; dedicated freshness regression NOT RUN</td>
+</tr>
+<tr>
+<td>Diskfull/flush/close/rename/powerloss</td>
+<td>min/resume_free_bytes,io_retry_*</td>
+<td>VFD/pipeline</td>
+<td>Hardcap PASS; OS fault injection NOT RUN</td>
+</tr>
+<tr>
+<td>Pi5 CPU/RAM/IO/queue/retention lag</td>
+<td>các giới hạn config</td>
+<td>hardware benchmark</td>
+<td>NOT RUN</td>
+</tr>
+<tr>
+<td>File bảo vệ/viewer</td>
+<td>không áp dụng</td>
+<td>git byte/hash comparison</td>
+<td>PASS</td>
+</tr>
+</tbody>
+</table>
+<p>C++ storage build PASS toàn targets, CTest2/2, Python maintenance16/16, protocol7/7, DSP oracle PASS. Native final smoke PASS sau thay retry flush và PNG disk floor. Full hardware executable <strong>NOT RUN</strong> vì thiếu SDRplay SDK/device; không suy từ portable library rằng main đã build.</p>
+<p>Môi trường host: g++13.3, CMake4.4.4, HDF5 source1.14.5, nlohmann/json3.11.3, Python3.12, numpy2.5.4/h5py3.16/matplotlib3.11, FFTW float từ pyFFTW wheel. SQLite link runtime hệ thống, header local từ rusqlite; chỉ dùng API ổn định, version runtime được ghi thêm trong evidence.json. Không có apt privileges; dependency build trong scratch, không bundle binary/SDK. HDF51.10 compatibility branch, gzip filter, ARM ABI <strong>NOT RUN</strong>.</p>
+<h2 id="gioi-han-gate-con-mo">Giới hạn / gate còn mở<a class="headerlink" href="#gioi-han-gate-con-mo" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Chưa full build/link/run main với SDK, chưa kiểm CLI/probe-before-SDR bằng thiết bị, chưa benchmark deadline/CPU/RAM Pi. Phải chạy trước nghiệm thu.</li>
+<li>Chưa exhaustive crash/powerloss/ENOSPC/fsync/rename faults; crash model có targeted tests nhưng không chứng minh mọi interleaving.</li>
+<li>Chưa real rclone/Drive hoặc complete mock subprocess error classification matrix; max attempts lưu theo job (có thể cạn vĩnh viễn, không reset mỗi phiên). Recovery retry cần operator policy, không hứa tự phục hồi mọi lỗi.</li>
+<li>Cleanup đợi bounded managed reader bằng lock, nhưng không tự kill process tùy ý/direct renderer hoặc kernel IO treo. Sync child có timeout; lời gọi renderer thủ công phải supervise. Không chứng minh tuổi giữ upper bound tuyệt đối.</li>
+<li>UTC sample là estimate; producer không tự đổi anchor khi wall-clock nhảy liên tục mà giữ sample cadence. Original timestamps lưu lại; cleanup clock guard riêng. Không có hardware UTC uncertainty calibration.</li>
+<li>Status phân thành writer/worker snapshots, không đầy đủ structured error codes/session/revision mọi worker như đặc tả lý tưởng. C++ lỗi chính ở status, Python có rotating logging.</li>
+<li>Quota history chưa compaction lâu dài; DB tới cap sẽ fail/pause, không reset. Aux là conservative reservation, chưa OS physical accounting. Unknown files/symlink không tự dọn.</li>
+<li>Remote probe orphan record chưa gắn account identity như upload job; chỉ namespace/session/path, nên đổi tài khoản cần kiểm tra probe cũ thủ công trong đúng tài khoản. Không xóa remote quan sát.</li>
+<li>Calibration live ngoài phạm vi API baseline; future change cần mở file mới. Config migration hiện chỉ canonical/backup v1, không chuyển version chưa tồn tại.</li>
+</ul>
+<p>Các mục NOT RUN/giới hạn trên là blocker cho tuyên bố “đạt toàn bộ yêu cầu/production-ready”, không được che bằng số test PASS. Source được giao đầy đủ để tiếp tục kiểm thử trên môi trường đích.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

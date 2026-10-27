@@ -1,0 +1,4 @@
+Main with SOLAR_STORAGE_ENABLED: c++ -std=c++17 -O3 -Wall -Wextra -Wpedantic -fsyntax-only; exit 0.
+Main without storage: same flags; exit 0.
+Header is SYNTHETIC compile-only declarations, not SDK. No vendor ABI/link validation.
+Callback contract built with -ffunction-sections -fdata-sections -Wl,--gc-sections; unused main discarded, never calls SDR/GPIO.

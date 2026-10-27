@@ -1,0 +1,4 @@
+{"base_arrays_bytes_per_day":589864960.0,"effective_save_cadence_sec":1.1999232,"fits_nominal_daily_cap":true,"frequency_bin_spacing_hz":19531.25,"input_records_per_window":6.0,"nominal_files_per_day":97.0,"note":"Partial windows/restarts consume full conservative file caps; may stop earlier. Physical SD writes and OS logs excluded.","queue_payload_bytes":9895936,"reserved_cap_bytes_nominal_day":954277216.0,"source_cadence_sec":0.1999872,"source_support_sec":0.2000896}
+Pipeline shutdown returned; inspect ledger/status/HDF5 assertions in Python.
+{"vmin_db": 4.771212616225875, "vmax_db": 5.771212616225875, "render_rows": 10, "source_rows": 10, "coherence_violations": 0}
+PASS native queue -> aggregation -> capped HDF5 -> SQLite -> quicklook PNG; 60 sources, 10 rows
