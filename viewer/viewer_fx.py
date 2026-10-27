@@ -504,7 +504,7 @@ class FXViewer(QtWidgets.QMainWindow):
         section('VISIBLE PLOTS')
         self.plot_checks = {}
         self._plot_names = {
-            'power': 'S11 / S22 power trace', 'spectrum': 'Spectrum', 'phase': 'Phase trace', 'fringe': 'Fringes Re / Im', 'gamma': 'Coherence trace',
+            'power': 'S11 / S22 / |S12| power trace', 'spectrum': 'Spectrum', 'phase': 'Phase trace', 'fringe': 'Fringes Re / Im', 'gamma': 'Coherence trace',
             'wf_fast': 'Fast waterfall', 'wf_phase': 'Phase waterfall', 'wf_deep': 'Deep waterfall',
         }
         for key, label in self._plot_names.items():
@@ -513,7 +513,7 @@ class FXViewer(QtWidgets.QMainWindow):
             self.plot_checks[key] = cb
             side.addWidget(cb)
         self.power_checks={}
-        for key,label in ((S11,'Power trace S11'),(S22,'Power trace S22')):
+        for key,label in ((S11,'Power trace S11'),(S22,'Power trace S22'),(S12,'Power trace |S12|')):
             cb=QtWidgets.QCheckBox(label);cb.setChecked(True)
             cb.toggled.connect(lambda *_: self._update_power_plot())
             self.power_checks[key]=cb;side.addWidget(cb)
@@ -689,7 +689,7 @@ class FXViewer(QtWidgets.QMainWindow):
         self.power_plot.setLabel('bottom','Vietnam time (UTC+07:00)')
         self.power_plot.addLegend()
         self.power_curves={key:self.power_plot.plot(name=name,pen=pg.mkPen(color,width=1.5),connect='finite')
-                           for key,name,color in ((S11,'S11','#38bdf8'),(S22,'S22','#f87171'))}
+                           for key,name,color in ((S11,'S11','#38bdf8'),(S22,'S22','#f87171'),(S12,'|S12|','#ffdc32'))}
         self.power_plot.enableAutoRange(x=False,y=True)
         # Căn lề trục tung đồng nhất 110px và tắt SI prefix cho toàn bộ đồ thị
         self.all_plots = (
@@ -1656,8 +1656,8 @@ class FXViewer(QtWidgets.QMainWindow):
         if self.pause_button.isChecked():
             for key,curve in self.power_curves.items():curve.setVisible(self.power_checks[key].isChecked())
             return
-        x,a,b=self.model.power_time_series()
-        for key,values in ((S11,a),(S22,b)):
+        x,a,b,c=self.model.power_time_series()
+        for key,values in ((S11,a),(S22,b),(S12,c)):
             self.power_curves[key].setData(x,values,connect='finite')
             self.power_curves[key].setVisible(self.power_checks[key].isChecked())
         self.power_plot.setTitle(f'Power vs time — bin {self.model.bin} / {self.model.actual:.6f} MHz (no coherence mask)')
@@ -2090,11 +2090,11 @@ class FXViewer(QtWidgets.QMainWindow):
                     self.crosshair_h[k].setVisible(k == key)
 
             if key == 'power':
-                x,a,b=self.model.power_time_series()
+                x,a,b,c=self.model.power_time_series()
                 good=np.flatnonzero(np.isfinite(x))
                 if len(good):
                     i=good[np.argmin(abs(x[good]-t_x))]
-                    self.readout_hover.setText(f'Power | S11={a[i]:.3f} dB | S22={b[i]:.3f} dB | VN {format_vn_time(x[i])}')
+                    self.readout_hover.setText(f'Power | S11={a[i]:.3f} dB | S22={b[i]:.3f} dB | |S12|={c[i]:.3f} dB | VN {format_vn_time(x[i])}')
                 return
             valid_samples = [row for row in self._display_trace if row is not None]
             plot_label = {'phase': 'Phase(t)', 'gamma': 'γ(t)', 'fringe': 'Fringes Re/Im'}[key]

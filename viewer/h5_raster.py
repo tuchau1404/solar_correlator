@@ -43,7 +43,10 @@ class TimeRasterItem(pg.GraphicsObject):
         try:
             painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform,False)
             exposed = option.exposedRect
-            for row,(start,end) in enumerate(zip(self.edges[:-1],self.edges[1:])):
+            first=max(0,int(np.searchsorted(self.edges,exposed.top(),side='right'))-1)
+            stop=min(len(self.edges)-1,int(np.searchsorted(self.edges,exposed.bottom(),side='left'))+1)
+            for row in range(first,stop):
+                start,end=self.edges[row:row+2]
                 target = QtCore.QRectF(self._rect.left(),float(start),self._rect.width(),float(end-start))
                 if target.intersects(exposed):
                     painter.drawImage(target,self.image,QtCore.QRectF(0,row,self.image.width(),1))

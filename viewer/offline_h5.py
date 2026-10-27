@@ -140,6 +140,18 @@ class Catalog:
             self.breaks[j] = (a.signature != b.signature or not contiguous or gap > 1000
                               or bool(int(bv['quality_flags'][bi]) & (8 | 16)))
 
+    def read_spectrum(self, index, cancelled=lambda: False):
+        """One saved H5 record, full frequency axis; no history reload."""
+        if cancelled(): raise InterruptedError('Cancelled')
+        stamp,ei,ri=self.records[index];e=self.entries[ei];stat=Path(e.path).stat()
+        if (stat.st_size,stat.st_mtime_ns)!=e.stat:
+            raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
+        with h5py.File(e.path,'r') as f:
+            vals=np.array([f['data/'+k][ri,:] for k in ARRAYS],dtype=float)
+        if cancelled(): raise InterruptedError('Cancelled')
+        return dict(mean=vals,mean_abs=np.hypot(vals[2],vals[3]),timestamp=float(stamp),
+                    path=e.path,row=ri)
+
     def read_block(self, ei, first):
         """Worker-only 64 MiB LRU; immutable 128-row blocks shared by all views."""
         e = self.entries[ei]; stat = Path(e.path).stat()
@@ -171,7 +183,7 @@ class Catalog:
             left = int(np.searchsorted(self.freq, low)); right = int(np.searchsorted(self.freq, high, side='right'))
         if left == right: raise ValueError('ROI contains no saved bin centers')
         chosen = np.searchsorted(self.times, source['times'])
-        traces = np.full((4,len(chosen)), np.nan); power_traces=np.full((2,len(chosen)),np.nan); pos = 0
+        traces = np.full((4,len(chosen)), np.nan); power_traces=np.full((3,len(chosen)),np.nan); pos = 0
         while pos < len(chosen):
             if cancelled(): raise InterruptedError('Cancelled')
             _,ei,ri = self.records[chosen[pos]]; stop = pos+1
@@ -184,14 +196,15 @@ class Catalog:
                 raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
             with h5py.File(e.path,'r') as f:
                 vals=np.array([f['data/'+k][ri:ri+stop-pos,left:right] for k in ARRAYS],dtype=float)
-            power_traces[:,pos:stop]=vals[:2,:,0]
+            power_traces[:2,pos:stop]=vals[:2,:,0]
+            power_traces[2,pos:stop]=np.hypot(vals[2,:,0],vals[3,:,0])
             valid=np.all(np.isfinite(derived(*vals)[2]),axis=1)
             traces[:,pos:stop]=np.where(valid[None,:],vals.mean(axis=2),np.nan)
             pos=stop
         result=dict(source);result['traces']=traces;result['frequency']=self.freq[left:right];result['power_traces']=power_traces
         return result
 
-    def load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1):
+    def load(self, start, end, low, high, quantity='S12', cancelled=lambda: False, display_group=1, waterfall_only=False):
         chosen = np.flatnonzero((self.times >= start) & (self.times <= end))
         if not len(chosen): raise ValueError('No records in the selected time range')
         if len(chosen) > MAX_SELECTED: raise ValueError('Choose at most 200,000 records per view')
@@ -204,9 +217,9 @@ class Catalog:
             mask = (self.freq >= low) & (self.freq <= high)
         if not mask.any(): raise ValueError('ROI contains no saved bin centers')
         # Only bounded blocks and <=1600 frequency rows reside in memory.
-        group = max(1, int(display_group), int(np.ceil(len(chosen)/1200)))
+        group = max(1, int(display_group), (1 if waterfall_only else int(np.ceil(len(chosen)/1200))))
         traces = np.full((4, len(chosen)), np.nan)
-        power_traces=np.full((2,len(chosen)),np.nan)
+        power_traces=np.full((3,len(chosen)),np.nan)
         weights = np.zeros(len(chosen)); flags = np.zeros(len(chosen), np.uint32)
         meshes = []; phase_meshes = []; total = np.zeros((4, len(self.freq))); count = np.zeros(len(self.freq))
         total_mag = np.zeros(len(self.freq))
@@ -249,16 +262,20 @@ class Catalog:
                 raise ValueError('An H5 file changed after indexing. Reopen only closed files.')
             first=(ri//128)*128
             block=self.read_block(ei,first)[:,ri-first:ri-first+stop-pos].copy()
-            power_traces[:,pos:stop]=block[:2,:,np.flatnonzero(mask)[0]]
+            power_bin=np.flatnonzero(mask)[0]
+            if not waterfall_only:
+                power_traces[:2,pos:stop]=block[:2,:,power_bin]
+                power_traces[2,pos:stop]=np.hypot(block[2,:,power_bin],block[3,:,power_bin])
             block_valid=np.isfinite(derived(*block)[2])
             block=np.where(block_valid[None,:,:],block,np.nan)
             block_weights=e.vectors['valid_fft_frames'][ri:ri+stop-pos].astype(float)
             clean=np.nan_to_num(block,nan=0)
-            total += (clean*block_weights[None,:,None]).sum(axis=1)
-            count += (block_valid*block_weights[:,None]).sum(axis=0)
-            total_mag += (np.nan_to_num(np.hypot(block[2],block[3]),nan=0)*block_weights[:,None]).sum(axis=0)
-            selected_valid=np.all(block_valid[:,mask],axis=1)
-            traces[:,pos:stop]=np.where(selected_valid[None,:],block[:,:,mask].mean(axis=2),np.nan)
+            if not waterfall_only:
+                total += (clean*block_weights[None,:,None]).sum(axis=1)
+                count += (block_valid*block_weights[:,None]).sum(axis=0)
+                total_mag += (np.nan_to_num(np.hypot(block[2],block[3]),nan=0)*block_weights[:,None]).sum(axis=0)
+                selected_valid=np.all(block_valid[:,mask],axis=1)
+                traces[:,pos:stop]=np.where(selected_valid[None,:],block[:,:,mask].mean(axis=2),np.nan)
             for off in range(stop-pos):
                 if cancelled():raise InterruptedError("Cancelled")
                 j = pos+off; row = ri+off

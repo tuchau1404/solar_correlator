@@ -56,7 +56,8 @@ class ObservationHistory:
         self.trace.append((session, fid, stamp, count, raw_phase, gamma))
         self.power_trace.append((session,fid,stamp,
             float(streams[S11][self.bin]) if S11 in streams else np.nan,
-            float(streams[S22][self.bin]) if S22 in streams else np.nan))
+            float(streams[S22][self.bin]) if S22 in streams else np.nan,
+            float(streams[S12][self.bin]) if S12 in streams else np.nan))
         self.last_id = fid
 
     def image(self, kind, threshold=.5):
@@ -88,14 +89,14 @@ class ObservationHistory:
         return np.asarray(x), np.asarray(y), np.asarray(coherence)
 
     def power_time_series(self):
-        x,a,b=[],[],[];previous=None
+        x,a,b,c=[],[],[],[];previous=None
         for row in self.power_trace:
             if row is None:
-                x.append(np.nan);a.append(np.nan);b.append(np.nan);previous=None;continue
-            session,fid,stamp,p1,p2=row
+                x.append(np.nan);a.append(np.nan);b.append(np.nan);c.append(np.nan);previous=None;continue
+            session,fid,stamp,p1,p2,p12=row
             if previous is not None:
                 ps,pf,pt=previous
                 if session!=ps or fid!=pf+1 or stamp<=pt or stamp-pt>PERIOD*1.5e6:
-                    x.append(np.nan);a.append(np.nan);b.append(np.nan)
-            x.append(stamp/1e6);a.append(p1);b.append(p2);previous=(session,fid,stamp)
-        return np.asarray(x),np.asarray(a),np.asarray(b)
+                    x.append(np.nan);a.append(np.nan);b.append(np.nan);c.append(np.nan)
+            x.append(stamp/1e6);a.append(p1);b.append(p2);c.append(p12);previous=(session,fid,stamp)
+        return np.asarray(x),np.asarray(a),np.asarray(b),np.asarray(c)

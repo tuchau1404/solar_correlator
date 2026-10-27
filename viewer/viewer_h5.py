@@ -3,6 +3,7 @@
 This module never creates a second viewer, GraphicsLayout or plotting canvas.
 Live receivers/history remain independent while H5 owns the display.
 """
+from collections import OrderedDict
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from dataclasses import replace
@@ -64,7 +65,8 @@ class ReaderWorker(QtCore.QThread):
             result = self.function(self.isInterruptionRequested,self.report_progress)
             if not self.isInterruptionRequested(): self.ready.emit(result)
         except InterruptedError: pass
-        except Exception as e: self.failed.emit(f'{type(e).__name__}: {e}')
+        except Exception as e:
+            if not self.isInterruptionRequested():self.failed.emit(f'{type(e).__name__}: {e}')
 
 
 class H5Source(QtCore.QObject):
@@ -75,6 +77,11 @@ class H5Source(QtCore.QObject):
         self.generation = 0; self.pending_load = False; self.error_text = ''
         self.mesh_items = []; self.mesh_key = None; self.syncing = False
         self.drift = []; self.saved = None; self.fit_next=False
+        self.record_cache=None;self.pending_spectrum=False
+        self.view_data=None;self.view_cache=OrderedDict();self.view_cache_bytes=0
+        self.view_revision=0;self.pending_view=False
+        self.view_timer=QtCore.QTimer(self);self.view_timer.setSingleShot(True)
+        self.view_timer.setInterval(180);self.view_timer.timeout.connect(self.refine_view)
         self.rolling_cache=None;self.cache_hits=0;self.median_runs=0
         self.source = QtWidgets.QComboBox()
         self.source.addItem('Live UDP', 'live'); self.source.addItem('H5 files', 'h5')
@@ -94,6 +101,14 @@ class H5Source(QtCore.QObject):
         self.roi = QtWidgets.QCheckBox('Use frequency ROI')
         self.quantity = QtWidgets.QComboBox();self.quantity.addItems(['S12','S11','S22'])
         ui.sidebar_field(box,'Power waterfall',self.quantity)
+        self.spectrum_mode=QtWidgets.QComboBox()
+        self.spectrum_mode.addItems(['Mean spectrum','Single H5 record'])
+        ui.sidebar_field(box,'Spectrum view',self.spectrum_mode)
+        self.record_number=QtWidgets.QSpinBox();self.record_number.setRange(1,1)
+        self.record_number.setKeyboardTracking(False)
+        ui.sidebar_field(box,'Saved record (use arrows for previous/next)',self.record_number)
+        self.spectrum_mode.currentIndexChanged.connect(self.request_spectrum)
+        self.record_number.valueChanged.connect(self.request_spectrum)
         self.high = QtWidgets.QDoubleSpinBox(); self.high.setDecimals(6)
         self.high.setRange(0,100000); self.high.setValue(35.6); self.high.setSuffix(' MHz')
         box.addWidget(self.roi); ui.sidebar_field(box,'ROI high (low = Requested frequency)',self.high)
@@ -102,7 +117,7 @@ class H5Source(QtCore.QObject):
         self.cancel_button = QtWidgets.QPushButton('Cancel read')
         self.meta_button = QtWidgets.QPushButton('Files / measurement metadata')
         for w in (self.load_button,self.full_button,self.cancel_button,self.meta_button):box.addWidget(w)
-        note=QtWidgets.QLabel('Closed H5 files only. Time gaps / session boundaries are not joined. Select a narrower range for more waterfall detail.')
+        note=QtWidgets.QLabel('Closed H5 files only. Time gaps / session boundaries are not joined. Zoom time axis for individual saved records; overview is averaged.')
         note.setWordWrap(True); note.setObjectName('mutedLabel'); box.addWidget(note)
         side.insertWidget(0,self.panel); self.panel.hide(); self.cancel_button.setEnabled(False)
         self.source.currentIndexChanged.connect(self.change_source)
@@ -135,10 +150,10 @@ class H5Source(QtCore.QObject):
             return Catalog(paths,cancel)
         self.launch(task,self.indexed)
 
-    def launch(self, function, callback):
+    def launch(self, function, callback, kind=None):
         if self.worker is not None:return
         self.error_text=''; token=self.generation
-        self.task_kind="index" if callback.__name__=="indexed" else "data"
+        self.task_kind=kind or ("index" if callback.__name__=="indexed" else "data")
         self.worker=worker=ReaderWorker(function,self)
         worker.ready.connect(lambda value: callback(value) if self.active and token==self.generation else None)
         worker.failed.connect(lambda error:self.failed(error) if self.active and token==self.generation else None)
@@ -148,7 +163,7 @@ class H5Source(QtCore.QObject):
 
     def busy(self, yes):
         for w in (self.open_button,self.folder_button,self.start,self.end,self.high,self.roi,
-                  self.quantity,self.load_button,self.full_button,self.v.frequency,self.v.bin_minus_button,
+                  self.quantity,self.spectrum_mode,self.record_number,self.load_button,self.full_button,self.v.frequency,self.v.bin_minus_button,
                   self.v.bin_plus_button,self.v.snap_peak_button):w.setEnabled(not yes)
         self.cancel_button.setEnabled(yes)
         if self.active:self.v.marker.setMovable(not yes)
@@ -162,6 +177,10 @@ class H5Source(QtCore.QObject):
             self.busy(False);self.rolling_status()
             if self.pending_load:
                 self.pending_load=False; QtCore.QTimer.singleShot(0,self.load)
+            elif self.pending_spectrum:
+                self.pending_spectrum=False;QtCore.QTimer.singleShot(0,self.request_spectrum)
+            elif self.pending_view:
+                self.pending_view=False;self.view_timer.start()
         else:
             # Do not alter live frequency/pause controls after a cancelled H5 read.
             for w in (self.open_button,self.folder_button,self.start,self.end,self.high,
@@ -169,14 +188,16 @@ class H5Source(QtCore.QObject):
             self.cancel_button.setEnabled(False)
 
     def cancel(self):
-        self.pending_load=False
+        self.pending_load=False;self.pending_spectrum=False
+        self.reset_view()
         self.v.rolling.panel.cancel.setEnabled(False)
         self.generation += 1
         if self.worker:self.worker.requestInterruption()
 
     def failed(self, error):
         self.error_text=error
-        QtWidgets.QMessageBox.warning(self.v,'H5 source',error)
+        if self.task_kind=='view':self.status()
+        else:QtWidgets.QMessageBox.warning(self.v,'H5 source',error)
 
     def enter(self):
         if self.active:return
@@ -291,7 +312,8 @@ class H5Source(QtCore.QObject):
         v._update_wf_view();v._render_wf_window();v.update_time_view()
 
     def indexed(self, catalog):
-        self.rolling_cache=None
+        self.rolling_cache=None;self.record_cache=None
+        self.reset_view()
         self.catalog=catalog;self.data=None;self.deep=None;self.clear_plots()
         self.configure_frequency();self.set_dates();self.pending_load=True;self.fit_next=True
 
@@ -395,7 +417,11 @@ class H5Source(QtCore.QObject):
         self.fit_next=False
         reuse_display=(old is not None and old['meshes'] is pair[0]['meshes']
                        and old['phase_meshes'] is pair[0]['phase_meshes'])
+        if not reuse_display:self.reset_view()
         self.data,self.deep=pair
+        self.record_number.blockSignals(True)
+        self.record_number.setRange(1,len(self.data['times']))
+        self.record_number.blockSignals(False)
         if reuse_display:
             self.v.marker.setValue(float(self.data['frequency'][0]/1e6))
             self.render_traces();self.rolling_status()
@@ -403,6 +429,7 @@ class H5Source(QtCore.QObject):
             self.mesh_key=None;self.render()
         if fit:self.fit_time()
         self.v.update_layout_geometry();self.status()
+        if not reuse_display:self.view_timer.start()
 
     def select(self, frequency):
         if self.catalog is None:return
@@ -433,6 +460,9 @@ class H5Source(QtCore.QObject):
                 p.setXRange(float((self.catalog.freq[0]-self.catalog.bandwidth/2)/1e6),float((self.catalog.freq[-1]+self.catalog.bandwidth/2)/1e6),padding=0)
         finally:self.syncing=False
         v.phase_plot.setYRange(-180,180,padding=0);v.gamma_plot.setYRange(0,1.05,padding=0)
+        self.view_revision+=1
+        if self.worker is not None and self.task_kind=='view':self.worker.requestInterruption()
+        self.view_timer.start()
 
     def sync_y(self, source, ranges):
         if self.syncing:return
@@ -442,6 +472,73 @@ class H5Source(QtCore.QObject):
             for name,plot in plots.items():
                 if name!=source:plot.setYRange(*ranges,padding=0)
         finally:self.syncing=False
+        self.view_revision+=1
+        if self.worker is not None and self.task_kind=='view':
+            self.worker.requestInterruption()
+        self.view_timer.start()
+
+    def reset_view(self):
+        self.view_timer.stop();self.view_revision+=1;self.pending_view=False
+        self.view_data=None;self.view_cache.clear();self.view_cache_bytes=0
+
+    def refine_view(self):
+        """Read only visible time supports; never replace full-range science data."""
+        if not self.active or self.data is None:return
+        if self.worker is not None:
+            self.pending_view=True;return
+        d=self.data;c=self.catalog
+        lo,hi=self.v.wf_fast_plot.viewRange()[1]
+        # Include supports crossing the view edge, not only timestamp centers.
+        first=int(np.searchsorted(d['ends'],lo,side='right'))
+        stop=int(np.searchsorted(d['starts'],hi,side='left'))
+        if stop<=first:
+            self.view_data=None;self.mesh_key=None;self.render_waterfalls();return
+        group=max(1,int(np.ceil((stop-first)/1200)))
+        if first==0 and stop==len(d['times']):
+            self.view_data=None;self.mesh_key=None;self.render_waterfalls();return
+        # Prefetch nearby records in fixed blocks, so small pans reuse the mesh.
+        first=max(0,(first//64)*64)
+        stop=min(len(d['times']),int(np.ceil(stop/64))*64)
+        cfg=d['rolling_config']
+        key=(first,stop,group,d['quantity'],cfg)
+        if self.view_data is not None and self.view_data[0]==key:return
+        # Validate cached meshes just as raw block cache entries are validated.
+        try:
+            for entry in c.entries:
+                stat=Path(entry.path).stat()
+                if (stat.st_size,stat.st_mtime_ns)!=entry.stat:
+                    raise ValueError('An H5 file changed. Reopen only closed files.')
+        except (OSError,ValueError) as error:
+            self.error_text=str(error);self.status();return
+        if key in self.view_cache:
+            self.view_cache.move_to_end(key);self.view_data=(key,self.view_cache[key])
+            self.mesh_key=None;self.render_waterfalls();return
+        revision=self.view_revision
+        def task(cancel,progress):
+            result=c.load(float(d['times'][first]),float(d['times'][stop-1]),
+                float(d['frequency'][0]),float(d['frequency'][0]),quantity=d['quantity'],
+                cancelled=cancel,display_group=group,waterfall_only=True)
+            # Padding must not coarsen the resolution chosen for the visible area.
+            result['rolling_config']=cfg
+            if cfg.enabled:
+                from rolling_median import h5_residuals
+                result=h5_residuals(c,result,result,cfg,cancel,progress,context=d)[0]
+            return result
+        def ready(result):
+            if revision!=self.view_revision:return
+            arrays={id(a):a for name in ('meshes','phase_meshes')
+                    for mesh in result[name] for a in mesh}
+            size=sum(a.nbytes for a in arrays.values())
+            # Cache only meshes; spectra and full-range traces stay in self.data.
+            result={k:result[k] for k in ('meshes','phase_meshes','group','quantity')}
+            if size<=96*1024**2:
+                self.view_cache[key]=result;self.view_cache_bytes+=size
+                while len(self.view_cache)>4 or self.view_cache_bytes>96*1024**2:
+                    _,old=self.view_cache.popitem(last=False)
+                    unique={id(a):a for name in ('meshes','phase_meshes') for mesh in old[name] for a in mesh}
+                    self.view_cache_bytes-=sum(a.nbytes for a in unique.values())
+            self.view_data=(key,result);self.mesh_key=None;self.render_waterfalls()
+        self.launch(task,ready,kind='view')
 
     def clear_meshes(self):
         for plot,item in self.mesh_items:plot.removeItem(item)
@@ -468,12 +565,43 @@ class H5Source(QtCore.QObject):
         v.wf_phase_plot.setTitle('H5 saved phase ° — coherence display mask')
         v.wf_deep_plot.setTitle('H5 coherent time-averaged S12')
 
+    def spectrum_data(self):
+        if self.spectrum_mode.currentIndex()==0:return self.data
+        i=int(np.searchsorted(self.catalog.times,self.data['times'][self.record_number.value()-1]))
+        key=(id(self.catalog),i)
+        if self.record_cache is not None and self.record_cache[0]==key:return self.record_cache[1]
+        return None
+
+    def request_spectrum(self, *_):
+        if not self.active or self.data is None:return
+        if self.worker is not None:
+            self.pending_spectrum=True;return
+        if self.spectrum_mode.currentIndex()==0:
+            self.render();return
+        index=int(np.searchsorted(self.catalog.times,self.data['times'][self.record_number.value()-1]))
+        key=(id(self.catalog),index)
+        if self.spectrum_data() is not None:
+            self.render();return
+        catalog=self.catalog
+        def task(cancel,progress):return key,catalog.read_spectrum(index,cancel)
+        def ready(value):
+            self.record_cache=value;self.render()
+        self.launch(task,ready)
+
     def render(self):
         if not self.active:return
         self.set_titles()
         if self.data is None:return
         from offline_h5 import db
-        v=self.v;d=self.data;freq=self.catalog.freq/1e6
+        v=self.v;d=self.spectrum_data();freq=self.catalog.freq/1e6
+        if d is None:
+            self.pending_spectrum=True
+            if self.worker is None:QtCore.QTimer.singleShot(0,self.request_spectrum)
+            d={'mean':np.full((4,len(freq)),np.nan),'mean_abs':np.full(len(freq),np.nan)}
+            v.spectrum_plot.setTitle('H5 spectrum — reading selected record…')
+        elif self.spectrum_mode.currentIndex()==1:
+            v.spectrum_plot.setTitle(f'H5 record {self.record_number.value()}/{len(self.data["times"])} — '
+                f'{saved_time(d["timestamp"],"%Y-%m-%d %H:%M:%S.%f")} UTC+07 — row {d["row"]} — raw saved spectrum')
         # Existing live curve objects, not a second graphics canvas.
         # Stream identifiers belong to the live protocol module.
         from telemetry_protocol import S12,S11,S22
@@ -482,10 +610,10 @@ class H5Source(QtCore.QObject):
         v.deep_curve.setData([],[])  # Only one time-mean spectrum; no duplicate 'Deep' spectrum.
         v.deep_curve.setVisible(False)
         if v.autoscale_y_check.isChecked():self.fit_spectrum()
-        v.marker.setValue(float(d['frequency'][0]/1e6))
+        v.marker.setValue(float(self.data['frequency'][0]/1e6))
         if np.any(np.isfinite(d['mean_abs'])):
             i=int(np.nanargmax(d['mean_abs']))
-            v.peak_summary_text=f'H5 mean |S12| peak: {freq[i]:.6f} MHz, {db(d["mean_abs"][i]):.2f} dB'
+            v.peak_summary_text=f'H5 spectrum |S12| peak: {freq[i]:.6f} MHz, {db(d["mean_abs"][i]):.2f} dB'
             v.update_metrics_readout()
         self.v.rolling.style(self.data["rolling_config"])
         self.render_traces();self.render_waterfalls();self.status();self.rolling_status()
@@ -494,16 +622,18 @@ class H5Source(QtCore.QObject):
         if self.data is None:return
         from offline_h5 import db
         from telemetry_protocol import S12,S11,S22
-        values=[db(a) for key,a in ((S12,self.data['mean_abs']),(S11,self.data['mean'][0]),(S22,self.data['mean'][1])) if self.v.curve_checks[key].isChecked()]
+        d=self.spectrum_data()
+        if d is None:return
+        values=[db(a) for key,a in ((S12,d['mean_abs']),(S11,d['mean'][0]),(S22,d['mean'][1])) if self.v.curve_checks[key].isChecked()]
         vals=np.concatenate([a[np.isfinite(a)] for a in values]) if values else np.array([])
         if len(vals):self.v.spectrum_plot.setYRange(float(vals.min())-3,float(vals.max())+3,padding=0)
 
     def render_power(self):
         if self.data is None:return
         from offline_h5 import broken_series,db
-        from telemetry_protocol import S11,S22
+        from telemetry_protocol import S11,S22,S12
         d=self.data
-        for key,values in zip((S11,S22),d['power_traces']):
+        for key,values in zip((S11,S22,S12),d['power_traces']):
             x,y=broken_series(d['times'],db(values),d['breaks'])
             self.v.power_curves[key].setData(x,y,connect='finite')
             self.v.power_curves[key].setVisible(self.v.power_checks[key].isChecked())
@@ -556,13 +686,15 @@ class H5Source(QtCore.QObject):
     def render_waterfalls(self, *_):
         if not self.active or self.data is None:return
         v=self.v
-        key=(id(self.data),id(self.deep),v.threshold.value(),tuple(v.cbar_fast.values),tuple(v.cbar_phase.values),tuple(v.cbar_deep.values))
+        fast=self.view_data[1] if self.view_data is not None else self.data
+        deep=fast if self.view_data is not None else self.deep
+        key=(id(fast),id(deep),v.threshold.value(),tuple(v.cbar_fast.values),tuple(v.cbar_phase.values),tuple(v.cbar_deep.values))
         if key==self.mesh_key:return
         self.clear_meshes()
         fe=np.r_[self.catalog.freq-self.catalog.bandwidth/2,self.catalog.freq[-1]+self.catalog.bandwidth/2]/1e6
-        for plot,bar,meshes,phase in ((v.wf_fast_plot,v.cbar_fast,self.data['meshes'],False),
-                                     (v.wf_phase_plot,v.cbar_phase,self.data['phase_meshes'],True),
-                                     (v.wf_deep_plot,v.cbar_deep,self.deep['meshes'],False)):
+        for plot,bar,meshes,phase in ((v.wf_fast_plot,v.cbar_fast,fast['meshes'],False),
+                                     (v.wf_phase_plot,v.cbar_phase,fast['phase_meshes'],True),
+                                     (v.wf_deep_plot,v.cbar_deep,deep['meshes'],False)):
             for edges,values,gamma in meshes:
                 values=values.copy()
                 if phase:values=np.where(np.isfinite(gamma)&(gamma>0)&(gamma>=v.threshold.value()),np.rad2deg(values),np.nan)
@@ -571,8 +703,12 @@ class H5Source(QtCore.QObject):
                 plot.addItem(item);self.mesh_items.append((plot,item))
         self.mesh_key=key
         quantity=self.data['quantity']
-        v.wf_fast_plot.setTitle(f'H5 {quantity} — FFT-weighted display mean ≤{self.data["group"]} saved records/row')
-        v.wf_deep_plot.setTitle(f'H5 deep {quantity} — FFT-weighted display mean ≤{self.deep["group"]} saved records/row')
+        def detail(source):
+            return ('1 saved record/row' if source['group']==1 else
+                    f'FFT-weighted display mean ≤{source["group"]} saved records/row')
+        v.wf_fast_plot.setTitle(f'H5 {quantity} — {detail(fast)}')
+        v.wf_deep_plot.setTitle(f'H5 deep {quantity} — {detail(deep)}')
+        v.wf_phase_plot.setTitle(f'H5 phase ° — {detail(fast)} — coherence display mask')
         for bar in (v.cbar_fast,v.cbar_deep):bar.getAxis('left').setLabel(quantity+' [dB]' )
         v.rolling.style(self.data['rolling_config'])
         v.wf_history_label.setText(f'H5: {len(self.data["times"])} rows · {len(self.catalog.freq)} saved bins · actual UTC axis')
@@ -604,7 +740,7 @@ class H5Source(QtCore.QObject):
         if self.data is None:return None
         b=int(np.argmin(abs(self.catalog.freq-x*1e6)))
         if not self.catalog.freq[0]-self.catalog.bandwidth/2<=x*1e6<=self.catalog.freq[-1]+self.catalog.bandwidth/2:return None
-        source=self.deep if key=='wf_deep' else self.data
+        source=self.view_data[1] if self.view_data is not None else (self.deep if key=='wf_deep' else self.data)
         meshes=source['phase_meshes'] if key=='wf_phase' else source['meshes']
         for si,(edges,values,gamma) in enumerate(meshes):
             ri=int(np.searchsorted(edges,y,side='right')-1)
@@ -632,7 +768,10 @@ class H5Source(QtCore.QObject):
             elif key=='spectrum':
                 i=int(np.argmin(abs(self.catalog.freq-x*1e6)))
                 from offline_h5 import db
-                message=f'H5 time mean | {self.catalog.freq[i]/1e6:.6f} MHz | S11 {db(self.data["mean"][0,i]):.2f} dB | S22 {db(self.data["mean"][1,i]):.2f} dB | mean |S12| {db(self.data["mean_abs"][i]):.2f} dB'
+                d=self.spectrum_data()
+                if d is None:return
+                label='single record' if self.spectrum_mode.currentIndex() else 'time mean'
+                message=f'H5 {label} | {self.catalog.freq[i]/1e6:.6f} MHz | S11 {db(d["mean"][0,i]):.2f} dB | S22 {db(d["mean"][1,i]):.2f} dB | |S12| {db(d["mean_abs"][i]):.2f} dB'
             else:
                 i=int(np.argmin(abs(self.data['times']-x)))
                 if not self.data['starts'][i]<=x<=self.data['ends'][i]:message='H5: no record at this time'
@@ -652,6 +791,14 @@ class H5Source(QtCore.QObject):
     def mouse_click(self, event):
         if event.button()!=QtCore.Qt.LeftButton or self.data is None or self.worker is not None:return
         pos=event.scenePos();v=self.v
+        if self.spectrum_mode.currentIndex()==1 and not event.modifiers()&QtCore.Qt.ShiftModifier:
+            for p,axis in ((v.power_plot,'x'),(v.phase_plot,'x'),(v.fringe_plot,'x'),(v.gamma_plot,'x'),
+                           (v.wf_fast_plot,'y'),(v.wf_phase_plot,'y'),(v.wf_deep_plot,'y')):
+                if not p.isVisible() or not p.vb.sceneBoundingRect().contains(pos):continue
+                point=p.vb.mapSceneToView(pos);t=point.x() if axis=='x' else point.y()
+                i=int(np.argmin(abs(self.data['times']-t)))
+                if not self.data['starts'][i]<=t<=self.data['ends'][i]:return
+                self.record_number.setValue(i+1);return
         for key,p in (('spectrum',v.spectrum_plot),('wf_fast',v.wf_fast_plot),('wf_phase',v.wf_phase_plot),('wf_deep',v.wf_deep_plot)):
             if not p.isVisible() or not p.vb.sceneBoundingRect().contains(pos):continue
             pt=p.vb.mapSceneToView(pos)
