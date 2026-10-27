@@ -3,7 +3,7 @@
   "storage": {
     "enabled": true,
     "data_dir": "../data",
-    "save_interval_sec": 1.0,
+    "save_interval_sec": 0.1999872,
     "save_freq_bins": 2048,
     "roll_minutes": 15.0,
     "partial_window_policy": "emit",
@@ -17,11 +17,11 @@
     "io_retry_limit": 3,
     "io_backoff_initial_sec": 1.0,
     "io_backoff_max_sec": 30.0,
-    "max_file_bytes": 34000000,
+    "max_file_bytes": 200000000,
     "resume_poll_sec": 5.0
   },
   "budget": {
-    "daily_limit_bytes": 4000000000,
+    "daily_limit_bytes": 24000000000,
     "policy": "stop",
     "hdf5_share": 0.85,
     "png_share": 0.1,
@@ -76,7 +76,7 @@
     "dpi": 120,
     "min_dpi": 60,
     "max_png_bytes": 1000000,
-    "max_pixels": 3000000,
+    "max_pixels": 10000000,
     "max_attempts": 3,
     "backoff_initial_sec": 10.0,
     "backoff_max_sec": 300.0
@@ -89,7 +89,7 @@
     "rclone_config_path": "/home/radi02/.config/rclone/rclone.conf",
     "date_subdir_format": "%Y-%m-%d",
     "min_age_sec": 30.0,
-    "timeout_sec": 120.0,
+    "timeout_sec": 300.0,
     "max_attempts": 3,
     "backoff_initial_sec": 10.0,
     "backoff_max_sec": 300.0,
@@ -103,13 +103,13 @@
   },
   "retention": {
     "enabled": true,
-    "days": 3.0,
+    "days": 0.25,
     "delete_unuploaded_expired": true,
     "cleanup_interval_sec": 60.0,
     "stale_temp_grace_sec": 3600.0,
     "audit_max_bytes": 200000,
     "lock_path": "../state/cleanup.lock",
-    "reader_timeout_sec": 300.0
+    "reader_timeout_sec": 600.0
   },
   "startup_check": {
     "enabled": true,
