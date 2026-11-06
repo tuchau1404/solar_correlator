@@ -18,9 +18,7 @@ This module provides the precision frequency synthesis bridge:
 
 1. Ingests a 10.0 MHz sinusoidal reference from an external GPS Disciplined Oscillator (GPSDO).
    
-2. Converts and multiplies the frequency by a rational factor:
-   
-$$\frac{f_{\text{out}}}{f_{\text{in}}} = \frac{24.0\text{ MHz}}{10.0\text{ MHz}} = \frac{12}{5} = 2.4$$
+2. Converts and multiplies the frequency by a rational factor: $\frac{f_{\text{out}}}{f_{\text{in}}} = \frac{24.0\text{ MHz}}{10.0\text{ MHz}} = \frac{12}{5} = 2.4$
 
 3. Splits and conditions the synthesized 24.0 MHz signal into two isolated, low-distortion, $50\ \Omega$ matched channels feeding SDR Channel A and SDR Channel B.
    
@@ -62,12 +60,11 @@ The design decision is justified across six primary engineering criteria tailore
    2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
       Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
-      $\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$
-
-      $R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$
-
-      $f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$
-      
+      $$\begin{gathered}
+      \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz} \\
+      R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12 \\
+      f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}
+      \end{gathered}$$
 
    3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
       The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
