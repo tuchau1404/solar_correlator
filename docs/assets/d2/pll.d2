@@ -1,0 +1,183 @@
+direction: right
+
+classes: {
+  # Khung container cụm chức năng (giống khối Switch A, Switch B trong hình)
+  container_box: {
+    style: {
+      fill: "#eef4fe"
+      stroke: "#2654c6"
+      stroke-width: 2
+      font-color: "#0f172a"
+      font-size: 16
+      bold: true
+      border-radius: 0
+    }
+  }
+
+  # Khung linh kiện / tầng xử lý chính (nền trắng, viền xanh nét đậm, góc vuông)
+  node_box: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#2654c6"
+      stroke-width: 2
+      font-color: "#0f172a"
+      font-size: 13
+      border-radius: 0
+    }
+  }
+
+  # Khung điều khiển logic / MCU (viền nét đứt giống khối GPIO Control)
+  control_box: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#2654c6"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#0f172a"
+      font-size: 13
+      border-radius: 0
+    }
+  }
+
+  # Khối cổng ra SDR / Tải (nền trắng viền xanh góc vuông)
+  output_box: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#2654c6"
+      stroke-width: 2
+      font-color: "#0f172a"
+      font-size: 14
+      border-radius: 0
+    }
+  }
+}
+
+# -------------------------------------------------------------
+# 1. ĐẦU VÀO VÀ TẦNG NẮN SƯỜN
+# -------------------------------------------------------------
+gpsdo_in: "10 MHz GPSDO In\n(Sine, 50 Ω)" {
+  class: node_box
+}
+
+s2sq: "Sine-to-Square\n(Schmitt trigger)" {
+  class: node_box
+}
+
+# -------------------------------------------------------------
+# 2. KHỐI TỔNG HỢP PLL & VCXO
+# -------------------------------------------------------------
+pll_block: "PLL Frequency Synthesizer" {
+  class: container_box
+
+  pfd: "Phase Detector\n+ Loop Filter" {
+    class: node_box
+  }
+
+  vcxo: "24 MHz VCXO\n(Oscillator Core)" {
+    class: node_box
+  }
+
+  pfd -> vcxo: "V_tune" {
+    style: {
+      stroke: "#2654c6"
+      stroke-width: 2
+    }
+  }
+
+  vcxo -> pfd: "Feedback" {
+    style: {
+      stroke: "#2654c6"
+      stroke-width: 2
+      stroke-dash: 4
+    }
+  }
+}
+
+# -------------------------------------------------------------
+# 3. HAI TẦNG XỬ LÝ ĐẦU RA (SQUARE-TO-SINE)
+# -------------------------------------------------------------
+stage_a: "Output Stage A" {
+  class: container_box
+
+  sq2s_1: "Square-to-Sine\n(LC Low-Pass 50Ω)" {
+    class: node_box
+  }
+}
+
+stage_b: "Output Stage B" {
+  class: container_box
+
+  sq2s_2: "Square-to-Sine\n(LC Low-Pass 50Ω)" {
+    class: node_box
+  }
+}
+
+# -------------------------------------------------------------
+# 4. KHỐI ĐIỀU KHIỂN & CỔNG THIẾT BỊ SDR
+# -------------------------------------------------------------
+mcu_control: "MCU Control\n(Lock Detect / SPI)" {
+  class: control_box
+}
+
+rspdx_ch1: "RSPdx Ch 1\n(Ref Clock)" {
+  class: output_box
+}
+
+rspdx_ch2: "RSPdx Ch 2\n(Ref Clock)" {
+  class: output_box
+}
+
+# -------------------------------------------------------------
+# 5. LIÊN KẾT LUỒNG TÍN HIỆU (SIGNAL ROUTING)
+# -------------------------------------------------------------
+# Tuyến RF / Clock chính (Đường nét liền xanh)
+gpsdo_in -> s2sq: {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+s2sq -> pll_block.pfd: "10 MHz Ref" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+pll_block.vcxo -> stage_a.sq2s_1: "24 MHz Square" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+pll_block.vcxo -> stage_b.sq2s_2: "24 MHz Square" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+stage_a.sq2s_1 -> rspdx_ch1: "24 MHz Sine" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+stage_b.sq2s_2 -> rspdx_ch2: "24 MHz Sine" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+  }
+}
+
+# Tuyến điều khiển giám sát (Đường nét đứt xanh giống tuyến Control trong hình)
+mcu_control -> pll_block.pfd: "Lock / Tune" {
+  style: {
+    stroke: "#2654c6"
+    stroke-width: 2
+    stroke-dash: 4
+  }
+}

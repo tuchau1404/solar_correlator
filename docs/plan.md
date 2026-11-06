@@ -1,5 +1,5 @@
 # Next plan
-> Hệ thống giao thoa kế vô tuyến đồng pha 2 kênh thời gian thực dải Decametric trên nền tảng Raspberry Pi 5 và SDRplay RSPdx phục vụ quan sát bùng nổ bức xạ Mặt Trời (Type II, Type III)[cite: 1, 4].
+<!-- > Hệ thống giao thoa kế vô tuyến đồng pha 2 kênh thời gian thực dải Decametric trên nền tảng Raspberry Pi 5 và SDRplay RSPdx phục vụ quan sát bùng nổ bức xạ Mặt Trời (Type II, Type III)[cite: 1, 4].
 
 ---
 
@@ -192,4 +192,4 @@ pip install pyqtgraph PyQt5 numpy
 # Khởi chạy giao diện hiển thị 3 phổ và Waterfall
 python viewer/viewer.py
 ```
-[cite: 1, 4]
+[cite: 1, 4] -->
