@@ -53,39 +53,39 @@ To synthesize a coherent, low-jitter $24.0\text{ MHz}$ reference clock for the d
 
 The design decision is justified across six primary engineering criteria tailored to radio interferometric requirements:
 
-1. **Native External VCXO Architecture & Hardware Customizability:**
-   Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
-   * Custom Pulling Range & Damping: Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
-  
-   * Superior Loaded Q-Factor: High-$Q$ bulk acoustic wave quartz resonators exhibit loaded quality factors orders of magnitude higher ($Q > 10^4$) than integrated semiconductor inductors ($Q \approx 10 \dots 20$), drastically suppressing broadband thermal noise floor.
+   1. **Native External VCXO Architecture & Hardware Customizability:**
+      Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
+      * Custom Pulling Range & Damping: Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
+     
+      * Superior Loaded Q-Factor: High-$Q$ bulk acoustic wave quartz resonators exhibit loaded quality factors orders of magnitude higher ($Q > 10^4$) than integrated semiconductor inductors ($Q \approx 10 \dots 20$), drastically suppressing broadband thermal noise floor.
 
-2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
-   Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
+   2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
+      Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
-$$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
+   $$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
 
-$$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
+   $$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
 
-$$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
+   $$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
 
-   Operating the ADF4002 in pure Integer-N mode ($N=12, R=5$) completely eliminates fractional-N boundary spurs, sub-harmonic spurs, and delta-sigma dithering noise. In high-sensitivity solar interferometry across 30.0–40.0 MHz, any spurious tones leaking through or mixing across receiver front-ends would generate false correlation fringes, corrupting scientific visibility measurements. Furthermore, a high PFD frequency ($2.0\text{ MHz}$) pushes reference spurs far beyond the loop filter cutoff, enabling clean passive attenuation ($> 85\text{ dBc}$).
+      Operating the ADF4002 in pure Integer-N mode ($N=12, R=5$) completely eliminates fractional-N boundary spurs, sub-harmonic spurs, and delta-sigma dithering noise. In high-sensitivity solar interferometry across 30.0–40.0 MHz, any spurious tones leaking through or mixing across receiver front-ends would generate false correlation fringes, corrupting scientific visibility measurements. Furthermore, a high PFD frequency ($2.0\text{ MHz}$) pushes reference spurs far beyond the loop filter cutoff, enabling clean passive attenuation ($> 85\text{ dBc}$).
 
-3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
-   The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
+   3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
+      The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
 
-   * Deterministic Digital Threshold: When the phase error between the reference and feedback clocks remains below $15\text{ ns}$ for 5 consecutive PFD cycles ($2.5\ \mu\text{s}$ window at $f_{\text{PFD}} = 2.0\text{ MHz}$), `MUXOUT` asserts logic HIGH ($+3.3\text{V}$).
-  
-   * Fail-Closed Hardware Gating: The pin directly drives a status LED for physical visual inspection and connects to a hardware external interrupt (EXTI) pin on the supervisory MCU. Any loss of phase lock instantly alerts the edge processor ($< 1\ \mu\text{s}$ latency) to trip a Fail-Closed safety shutdown, halting digital correlation to prevent corrupted data ingestion.
+      * Deterministic Digital Threshold: When the phase error between the reference and feedback clocks remains below $15\text{ ns}$ for 5 consecutive PFD cycles ($2.5\ \mu\text{s}$ window at $f_{\text{PFD}} = 2.0\text{ MHz}$), `MUXOUT` asserts logic HIGH ($+3.3\text{V}$).
+     
+      * Fail-Closed Hardware Gating: The pin directly drives a status LED for physical visual inspection and connects to a hardware external interrupt (EXTI) pin on the supervisory MCU. Any loss of phase lock instantly alerts the edge processor ($< 1\ \mu\text{s}$ latency) to trip a Fail-Closed safety shutdown, halting digital correlation to prevent corrupted data ingestion.
 
-4. **Zero-Cost, Industry-Standard Modeling via ADIsimPLL™:**
-   Development risk and prototyping turnaround are minimized by native integration with Analog Devices' proprietary, free simulation suite ADIsimPLL™:
+   4. **Zero-Cost, Industry-Standard Modeling via ADIsimPLL™:**
+      Development risk and prototyping turnaround are minimized by native integration with Analog Devices' proprietary, free simulation suite ADIsimPLL™:
 
-   * **Full Closed-Loop Synthesis:** Cycle-accurate modeling calculates exact passive loop filter component values ($R_1, C_1, C_2, R_2, C_3$), predicting phase margin, loop bandwidth, frequency acquisition time, and transient damping without empirical guesswork.
-  
-   * **Realistic Phase Noise Summation:** The software accurately models the composite phase noise curve by summing the thermal/flicker noise of the $10\text{ MHz}$ GPSDO, the ADF4002 charge pump FOM, the passive filter Johnson noise, and the $24\text{ MHz}$ VCXO open-loop phase noise.
+      * **Full Closed-Loop Synthesis:** Cycle-accurate modeling calculates exact passive loop filter component values ($R_1, C_1, C_2, R_2, C_3$), predicting phase margin, loop bandwidth, frequency acquisition time, and transient damping without empirical guesswork.
+     
+      * **Realistic Phase Noise Summation:** The software accurately models the composite phase noise curve by summing the thermal/flicker noise of the $10\text{ MHz}$ GPSDO, the ADF4002 charge pump FOM, the passive filter Johnson noise, and the $24\text{ MHz}$ VCXO open-loop phase noise.
 
-5. **Extensive Community Adoption and Proven Reliability:**
-   The ADF4001/ADF4002 family represents the standard benchmark across amateur radio (HAM), laboratory frequency standards, GPSDO clean-up loops, and radio astronomy instrumentation worldwide. Its register map, SPI timing characteristics, and layout precautions are extensively documented in peer-reviewed application notes and open-source hardware repositories, ensuring verified design patterns and immediate software library availability.
+   5. **Extensive Community Adoption and Proven Reliability:**
+      The ADF4001/ADF4002 family represents the standard benchmark across amateur radio (HAM), laboratory frequency standards, GPSDO clean-up loops, and radio astronomy instrumentation worldwide. Its register map, SPI timing characteristics, and layout precautions are extensively documented in peer-reviewed application notes and open-source hardware repositories, ensuring verified design patterns and immediate software library availability.
 
 
 
