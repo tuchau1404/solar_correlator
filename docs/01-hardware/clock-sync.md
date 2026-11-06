@@ -62,11 +62,11 @@ The design decision is justified across six primary engineering criteria tailore
    2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
       Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
-   $$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
+$$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
 
-   $$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
+$$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
 
-   $$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
+$$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
 
       Operating the ADF4002 in pure Integer-N mode ($N=12, R=5$) completely eliminates fractional-N boundary spurs, sub-harmonic spurs, and delta-sigma dithering noise. In high-sensitivity solar interferometry across 30.0–40.0 MHz, any spurious tones leaking through or mixing across receiver front-ends would generate false correlation fringes, corrupting scientific visibility measurements. Furthermore, a high PFD frequency ($2.0\text{ MHz}$) pushes reference spurs far beyond the loop filter cutoff, enabling clean passive attenuation ($> 85\text{ dBc}$).
 
