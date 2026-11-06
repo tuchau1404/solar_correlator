@@ -15,10 +15,15 @@ To maintain $\Delta\phi_{\text{drift}}(t) \approx 0$ over long integration cycle
 ![Functional Interconnect and Signal Flow Block Diagram of the 10 MHz to Dual 24 MHz PLL Clock Subsystem](../assets/photos/pll_diagram.svg)
 
 This module provides the precision frequency synthesis bridge:
+
 1. Ingests a 10.0 MHz sinusoidal reference from an external GPS Disciplined Oscillator (GPSDO).
+   
 2. Converts and multiplies the frequency by a rational factor:
+   
    $$\frac{f_{\text{out}}}{f_{\text{in}}} = \frac{24.0\text{ MHz}}{10.0\text{ MHz}} = \frac{12}{5} = 2.4$$
+
 3. Splits and conditions the synthesized 24.0 MHz signal into two isolated, low-distortion, $50\ \Omega$ matched channels feeding SDR Channel A and SDR Channel B.
+   
 4. Integrates an onboard Microcontroller Unit (MCU) for autonomous PLL programming, lock status supervision, and telemetry reporting to the host processor.
 
 ---
@@ -50,24 +55,34 @@ The design decision is justified across six primary engineering criteria tailore
 
 1. **Native External VCXO Architecture & Hardware Customizability:**
    Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
+
    * Custom Pulling Range & Damping: Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
+  
    * Superior Loaded Q-Factor: High-$Q$ bulk acoustic wave quartz resonators exhibit loaded quality factors orders of magnitude higher ($Q > 10^4$) than integrated semiconductor inductors ($Q \approx 10 \dots 20$), drastically suppressing broadband thermal noise floor.
 
 2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
    Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
+
    $$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
+
    $$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
+
    $$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
+
    Operating the ADF4002 in pure Integer-N mode ($N=12, R=5$) completely eliminates fractional-N boundary spurs, sub-harmonic spurs, and delta-sigma dithering noise. In high-sensitivity solar interferometry across 30.0–40.0 MHz, any spurious tones leaking through or mixing across receiver front-ends would generate false correlation fringes, corrupting scientific visibility measurements. Furthermore, a high PFD frequency ($2.0\text{ MHz}$) pushes reference spurs far beyond the loop filter cutoff, enabling clean passive attenuation ($> 85\text{ dBc}$).
 
 3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
    The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
+
    * Deterministic Digital Threshold: When the phase error between the reference and feedback clocks remains below $15\text{ ns}$ for 5 consecutive PFD cycles ($2.5\ \mu\text{s}$ window at $f_{\text{PFD}} = 2.0\text{ MHz}$), `MUXOUT` asserts logic HIGH ($+3.3\text{V}$).
+  
    * Fail-Closed Hardware Gating: The pin directly drives a status LED for physical visual inspection and connects to a hardware external interrupt (EXTI) pin on the supervisory MCU. Any loss of phase lock instantly alerts the edge processor ($< 1\ \mu\text{s}$ latency) to trip a Fail-Closed safety shutdown, halting digital correlation to prevent corrupted data ingestion.
 
 4. **Zero-Cost, Industry-Standard Modeling via ADIsimPLL™:**
    Development risk and prototyping turnaround are minimized by native integration with Analog Devices' proprietary, free simulation suite ADIsimPLL™:
+
    * **Full Closed-Loop Synthesis:** Cycle-accurate modeling calculates exact passive loop filter component values ($R_1, C_1, C_2, R_2, C_3$), predicting phase margin, loop bandwidth, frequency acquisition time, and transient damping without empirical guesswork.
+  
    * **Realistic Phase Noise Summation:** The software accurately models the composite phase noise curve by summing the thermal/flicker noise of the $10\text{ MHz}$ GPSDO, the ADF4002 charge pump FOM, the passive filter Johnson noise, and the $24\text{ MHz}$ VCXO open-loop phase noise.
 
 5. **Extensive Community Adoption and Proven Reliability:**
@@ -77,8 +92,11 @@ The design decision is justified across six primary engineering criteria tailore
 
 #### 2.1.2. ADIsimPLL™ Modeling and Loop Filter Synthesis
 The loop filter design for the ADF4002 was synthesized in ADIsimPLL™ to achieve an optimal balance between GPSDO long-term tracking and VCXO short-term phase noise cleanup:
+
 * **Loop Bandwidth Optimization:** A narrow loop bandwidth ($f_{\text{BW}} \approx 50\text{ Hz} \dots 100\text{ Hz}$) was selected. Below $50\text{ Hz}$, the output clock phase strictly tracks the atomic stability of the GPSDO; above $100\text{ Hz}$, reference phase noise and PFD switching noise are heavily attenuated, leaving the pristine phase noise of the VCXO crystal to dominate the spectrum.
+  
 * **Target Phase Margin:** Designed between $48^\circ$ and $55^\circ$ to guarantee an unconditionally stable second/third-order passive loop with zero transient ringing and rapid phase settling ($< 15\text{ ms}$).
+  
 * **Charge Pump Current Configuration:** The ADF4002 features an 8-level programmable charge pump ($0.31\text{ mA} \dots 5.0\text{ mA}$). Operating nominally at $I_{\text{CP}} = 2.5\text{ mA}$ provides strong loop gain while allowing dynamic software retuning via SPI if pulling characteristics shift over temperature.
 
 
@@ -123,6 +141,7 @@ The design selects the SX3V24.000B20085F30TNNS (24.000 MHz, 3.3V, CMOS output) b
 While the manufacturer datasheet guarantees standard digital and quartz metrics (frequency stability, supply current, operating temperature, and minimum pull range), it omits the incremental tuning sensitivity slope ($K_{\text{VCO}} = \frac{df}{dV_{\text{tune}}}$ in $\text{kHz/V}$ or $\text{MHz/V}$) and its linearity profile across the control voltage span ($0.0\text{V} \dots 3.3\text{V}$).
 
 In a charge-pump PLL, the loop bandwidth ($\omega_n$) and phase margin ($\phi_m$) are directly governed by $K_{\text{VCO}}$:
+
 $$\omega_n \approx \sqrt{\frac{I_{\text{CP}} \cdot K_{\text{VCO}}}{2\pi \cdot N \cdot (C_1 + C_2)}}$$
 
 An uncharacterized or non-linear $K_{\text{VCO}}$ presents two primary risks:
@@ -137,14 +156,20 @@ To bridge this parameter gap without compromising loop integrity, a two-phase de
 
 * **Phase 1: Pre-Layout First-Order Linear Estimation (ADIsimPLL Synthesis):**  
   For initial passive loop filter synthesis ($R_1, C_1, C_2$), $K_{\text{VCO}}$ is approximated assuming a linear frequency deviation across an active tuning window of $\Delta V_{\text{tune}} \approx 2.5\text{V}$ (centered around $V_{\text{tune}} \approx 1.65\text{V}$):
+
   $$K_{\text{VCO, est}} \approx \frac{\Delta f_{\text{pull}}}{\Delta V_{\text{tune}}} = \frac{\pm 50\text{ ppm} \times 24.0\text{ MHz}}{2.5\text{V}} = \frac{\pm 1.20\text{ kHz}}{2.5\text{V}} \approx 0.96\text{ kHz/V} \dots 1.50\text{ kHz/V}$$
+
   This conservative estimate establishes the baseline capacitor and resistor values in the loop filter.
 
 * **Phase 2: Empirical Bench Extraction in Laboratory Testing (Section 4):**  
   During prototype board validation (Section 4), the physical VCXO will undergo open-loop tuning characterization prior to closing the PLL loop:
+  
   1. An external low-noise DC source sweeps the $V_{\text{tune}}$ terminal from $0.3\text{V}$ to $3.0\text{V}$ in $100\text{ mV}$ increments.
+   
   2. The output frequency is logged with a high-resolution frequency counter referenced to a 10.0 MHz GPSDO.
+   
   3. The incremental sensitivity curve $K_{\text{VCO}}(V) = \frac{\Delta f}{\Delta V}$ is mapped around the operating midpoint ($1.65\text{V}$).
+   
   4. The measured $K_{\text{VCO}}$ value is back-annotated into ADIsimPLL to trim passive filter values ($R_1, C_2$) if the actual phase margin deviates from the target $48^\circ \dots 55^\circ$.
 
 ---
@@ -165,14 +190,18 @@ In the pre-layout stage, the VCXO tuning slope was theoretically estimated acros
 *Figure 2.1.3: Initial ADIsimPLL Open/Closed-Loop Frequency & Phase Noise Response*
 
 * **Initial Synthesized Components:** $C_1 = 5.60\text{ nF}$, $R_1 = 8.87\text{ k}\Omega$, $C_2 = 160\text{ nF}$, $R_2 = 56.2\text{ k}\Omega$, $C_3 = 820\text{ pF}$, with charge pump current $I_{\text{CP}} = 5.0\text{ mA}$ ($R_{\text{set}} = 5.10\text{ k}\Omega$).
+  
 * **Physical Hardware Lock Failure:** During initial bench bring-up, the PLL failed to achieve phase lock (`MUXOUT` Digital Lock Detect remained low). Investigation identified two root causes:
+  
   * VCXO Frequency Drift & Initial Tolerance: The nominal crystal manufacturing offset ($\pm 20\text{ ppm}$) combined with thermal drift displaced the free-running frequency outside the capture window of the synthesized filter.
+  
   * Sub-Optimal Pull-in Dynamics: The combination of an under-estimated $K_{\text{VCO}}$ and an excessively narrow loop bandwidth ($\approx 501\text{ Hz}$) restricted the pull-in range, preventing the phase frequency detector (PFD) from steering $V_{\text{tune}}$ fast enough to acquire lock before phase slips occurred.
 
 
 
 ##### 2. Empirical $K_{\text{VCO}}$ Extraction and Loop Bandwidth Optimization ($f_{\text{BW}} = 2.14\text{ kHz}$)
 To establish accurate loop parameters, the physical SX3V24.000B20085F30TNNS VCXO was characterized open-loop on the bench: sweeping $V_{\text{tune}}$ from $0.3\text{V}$ to $3.0\text{V}$ via a low-noise DC source and logging the output with a GPSDO-referenced frequency counter. The actual incremental sensitivity was extracted as:
+
 $$K_{\text{VCO, measured}} = 1.94 \text{ kHz/V} \quad (\approx 2.18\times \text{ higher than the initial } 889\text{ Hz/V} \text{ estimate})$$
 
 With the measured $K_{\text{VCO}}$, the loop was resynthesized in ADIsimPLL for a target loop bandwidth of **$f_{\text{BW}} = 2.14 \text{ kHz}$** and an optimal phase margin of $\phi_m \approx 51.4^\circ$.
@@ -182,21 +211,23 @@ With the measured $K_{\text{VCO}}$, the loop was resynthesized in ADIsimPLL for 
 > 2. **Phase Noise Crossover Optimization:** The PFD comparison frequency is $f_{\text{PFD}} = \frac{10.0\text{ MHz}}{R=5} = 2.0\text{ MHz}$. The $2.14\text{ kHz}$ boundary marks the optimal crossover point where close-in reference phase noise (tracked inside the loop) intersects the low phase noise floor of the AT-cut quartz crystal (dominant outside the loop).
 > 3. **Spur Attenuation Margin:** Stability criteria require $f_{\text{BW}} \le \frac{f_{\text{PFD}}}{10} = 200\text{ kHz}$. Placing $f_{\text{BW}}$ at $2.14\text{ kHz}$ provides nearly two decades of frequency separation from $f_{\text{PFD}}$, allowing the secondary $R_2 - C_3$ low-pass pole to attenuate charge pump reference spurs below $-85\text{ dBc}$.
 
---------------------------------------------------------------------------------
 
 ##### 3. Component Standardization (E96 / E24) and $C_2$ Parallel Synthesis
 The theoretical values calculated by ADIsimPLL were mapped to standard commercial SMD 0603 passive components with stable dielectric characteristics:
 
 * Resistors (EIA E96, $\pm 1\%$ Metal Film):
   * $R_1 = 18.0\text{ k}\Omega$
+  
   * $R_2 = 33.0\text{ k}\Omega$
   
 * Capacitors (EIA E24, C0G/NP0 Dielectric, $\pm 5\%$):
   * $C_1 = 1.00\text{ nF}$ ($1000\text{ pF}$, low-dielectric absorption)
+  
   * $C_3 = 220\text{ pF}$
   
 * Parallel Capacitor Synthesis for $C_2$:  
   The exact required integration capacitance is $C_2 = 11.2\text{ nF}$, a non-standard value in the E24 series. To avoid unstable X7R dielectrics, $C_2$ is synthesized using two parallel E24 C0G ceramic capacitors:
+  
   $$C_2 = C_{2A} \parallel C_{2B} = 10.0\text{ nF} + 1.20\text{ nF} = 11.20\text{ nF}$$
 
 ![Figure 2.1.4: Optimized Loop Filter Schematic with Measured $K_{\text{VCO}} = 1.94\text{ kHz/V}$](../assets/schematics/pll_loop_filter_optimized.jpg)
@@ -227,7 +258,9 @@ To configure the ADF4002 frequency synthesizer without driving up manufacturing 
 
 The selection is governed by three primary criteria:
 * **Ultra-Compact 8-Pin SO8N Footprint (PCB Cost Reduction):** Measuring just $4.9\text{ mm} \times 3.9\text{ mm}$, the 8-pin package requires minimal board space. This compact profile allows the entire subsystem to fit onto a smaller PCB outline, directly lowering board fabrication and prototyping costs.
+  
 * **Dedicated 3-Wire Hardware SPI Interface:** The MCU allocates 3 pins for high-speed serial communication (SCLK, MOSI, and LE/CS) to clock the 24-bit configuration latches into the ADF4002 deterministically, avoiding software bit-banging overhead while keeping digital line routing to an absolute minimum.
+  
 * **Mature STM32 Ecosystem & Streamlined Debugging:** Backed natively by standard tools (STM32CubeIDE, STM32CubeMX, and HAL/LL drivers). Firmware flashing and in-circuit debugging are performed simply over a standard 2-wire Serial Wire Debug (SWD) link with an entry-level ST-Link programmer, ensuring rapid development and straightforward testing.
 
 ---
