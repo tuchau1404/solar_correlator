@@ -20,7 +20,7 @@ This module provides the precision frequency synthesis bridge:
    
 2. Converts and multiplies the frequency by a rational factor:
    
-   $$\frac{f_{\text{out}}}{f_{\text{in}}} = \frac{24.0\text{ MHz}}{10.0\text{ MHz}} = \frac{12}{5} = 2.4$$
+$$\frac{f_{\text{out}}}{f_{\text{in}}} = \frac{24.0\text{ MHz}}{10.0\text{ MHz}} = \frac{12}{5} = 2.4$$
 
 3. Splits and conditions the synthesized 24.0 MHz signal into two isolated, low-distortion, $50\ \Omega$ matched channels feeding SDR Channel A and SDR Channel B.
    
@@ -278,26 +278,35 @@ The high-frequency input stage of the ADF4002 phase detector (`REFIN`, Pin 8) co
 
 * **Datasheet Boundary Constraint:**  
   While the `REFIN` port supports input frequencies from $20.0\text{ MHz}$ to $300.0\text{ MHz}$, operation below $20.0\text{ MHz}$ is officially permitted only if the signal transition speed satisfies:
+  
   $$\text{SR}_{\text{req}} > 50.0\text{ V/}\mu\text{s} \quad (0.050\text{ V/ns})$$
+
 * **Input Sensitivity Window:** $0.8\text{ V}_{\text{pp}} \dots V_{\text{DD}}$ ($V_{\text{DD}} = 3.3\text{V}$), with an input capacitance of $C_{\text{in}} \approx 10\text{ pF}$.
 
 ##### Mathematical Incompatibility of Raw GPSDO Sinusoids:
 For a general sinusoidal voltage $v(t) = V_{\text{peak}} \sin(2\pi f t)$, the maximum slew rate occurs strictly at the zero-crossing points ($t = 0, \pi, 2\pi$):
+
 $$\left.\frac{dv}{dt}\right|_{\max} = 2\pi f V_{\text{peak}} = \pi f V_{\text{pp}}$$
 
 Evaluating this physical limit at $f = 10.0\text{ MHz}$ across the specified GPSDO output power range:
 **1. Lower Bound ($P_{\text{in}} = 0.0\text{ dBm}$ into $50\ \Omega$):**
    $$V_{\text{RMS}} = \sqrt{1.0\times 10^{-3}\text{ W} \times 50\ \Omega} \approx 0.2236\text{ V}_{\text{RMS}} \quad \longrightarrow \quad V_{\text{pp}} = 2\sqrt{2} \cdot V_{\text{RMS}} \approx 0.6325\text{ V}_{\text{pp}}$$
+
    $$\left.\frac{dv}{dt}\right|_{0\text{ dBm}} = \pi \cdot (10.0\times 10^6\text{ Hz}) \cdot (0.6325\text{ V}) \approx 19.87\times 10^6\text{ V/s} = 19.87\text{ V/}\mu\text{s}$$
+
    *Evaluation:* The raw slew rate is $< 40\%$ of the required $50\text{ V/}\mu\text{s}$ threshold, severely violating the datasheet boundary.
 **2. Nominal Field Condition ($P_{\text{in}} = +7.0\text{ dBm}$ into $50\ \Omega$):**
    $$V_{\text{RMS}} \approx 0.5006\text{ V}_{\text{RMS}} \quad \longrightarrow \quad V_{\text{pp}} \approx 1.416\text{ V}_{\text{pp}} \quad (V_{\text{peak}} \approx 0.708\text{ V})$$
+
    $$\left.\frac{dv}{dt}\right|_{+7\text{ dBm}} = 2\pi \cdot (10.0\times 10^6\text{ Hz}) \cdot (0.708\text{ V}) \approx 44.48\text{ V/}\mu\text{s} < 50.0\text{ V/}\mu\text{s}$$
+
    *Evaluation:* Even under standard $+7.0\text{ dBm}$ drive, the transition slope remains below the manufacturer threshold.
 
 ##### Physical Consequence of Insufficient Slew Rate:
 When an input reference signal traverses the comparator threshold with a slow slew rate ($< 50\text{ V/}\mu\text{s}$), internal thermal and semiconductor flicker noise ($\sigma_v$) is directly converted into timing uncertainty (aperture phase jitter $\sigma_t$) via:
+
 $$\sigma_t = \frac{\sigma_v}{\left.\frac{dv}{dt}\right|_{t=0}}$$
+
 Furthermore, supply ripple or ground bounce can cause multiple false-trigger transitions during a single zero crossing. This creates phase detector cycle slips, erratic phase error voltages, and loss of lock on the ADF4002 digital lock detect circuit (`MUXOUT`). Therefore, an active Sine-to-Square Slicing Stage is mandatory.
 
 
@@ -309,19 +318,26 @@ To convert the slow $10.0\text{ MHz}$ sinusoid into a fast-edge CMOS digital clo
 
 ##### BOM Optimization Rationale:
 Rather than introducing a dedicated RF comparator or specialized clock-squaring IC, the design adopts the SN74LVC1G04DBVR (SOT-23-5). Because 74LVC single-gate logic devices are already present in the system BOM (for complementary RF switch control and clock distribution buffering), utilizing this component achieves two key objectives:
+
 * **Procurement and BOM Consolidation:** Minimizes unique component line items, streamlines the supply chain, reduces placement reel setup overhead, and lowers overall assembly cost.
+  
 * **Technical Rigor and Jitter Preservation:** Standard single-stage CMOS inverters feature an ultra-short propagation delay and an exceptionally low additive jitter floor. When biased as a linear transimpedance stage, the inverter provides high small-signal gain and symmetrical switching without the phase noise degradation common to complex active comparator topologies.
 
 ##### Circuit Working Principle:
 The conditioning block consists of five coordinated functional elements:
 1. **$50\ \Omega$ Broadband Input Termination ($R_7$):**  
    A high-precision $49.9\ \Omega$ (0603, $\pm 1\%$) thin-film resistor terminates the incoming coaxial transmission line directly at the $J_3$ launch, absorbing incident RF power and maintaining a return loss $S_{11} < -25\text{ dB}$ across DC to $100\text{ MHz}$.
+
 2. **Self-Biased Inverting Slicer Core ($U_4$ & $R_4$):**  
    The SN74LVC1G04DBVR inverter is powered from $+3.3\text{V}$ ($V_{\text{CC}}$) and decoupled by $C_{19} = 1.0\ \mu\text{F}$.  
    * **DC Self-Biasing Mechanism:** A high-value feedback resistor $R_4 = 100\text{ k}\Omega$ connects the inverting output ($Y$, Pin 4) directly to the logic input ($A$, Pin 2). Because the CMOS gate input resistance exceeds $10^{12}\ \Omega$, the DC gate current is zero ($I_{\text{bias}} \approx 0$). The DC negative feedback forces the quiescent operating point to settle at the exact switching midpoint:
+   
      $$V_{\text{in, DC}} = V_{\text{out, DC}} = V_{\text{mid}} \approx \frac{V_{\text{CC}}}{2} = \mathbf{1.65\text{V}}$$
+
    * **Linear-Region Transconductance Operation:** At $V_{\text{mid}} = 1.65\text{V}$, both the internal PMOS and NMOS channel transistors operate simultaneously in their active saturation regimes. The digital inverter operates as an analog inverting amplifier with an open-loop voltage gain of:
+     
      $$A_v = -g_m (r_{ds,n} \parallel r_{ds,p}) \approx -20 \dots -35\text{ V/V}$$
+
    * **Squaring Action & 50% Symmetry:** Even under the minimum specified input drive ($0.0\text{ dBm} \approx 0.63\text{ V}_{\text{pp}}$), the small-signal open-loop amplification exceeds $15\text{ V}_{\text{pp}}$, driving the output stage into rail-to-rail saturation ($0.0\text{V} \dots 3.3\text{V}$). Dynamic self-centering at $V_{\text{CC}}/2$ guarantees an output duty cycle of $50.0\% \pm 1.0\%$, suppressing even-order harmonic spurs.
   
 #### 2.3.3. Pre-Layout LTspice Verification & Slew Rate Validation
@@ -332,13 +348,18 @@ To rigorously confirm that the self-biased inverter circuit satisfies the ADF400
 
 ##### 1. Testbench Configuration 
 * **Signal Source ($V_3$):** Sourced by `SINE(0 0.63 10MEG) AC 1`, generating a $10.0\text{ MHz}$ sine wave with peak amplitude $V_{\text{peak}} = 0.63\text{V}$ ($V_{\text{pp}} = 1.26 \text{ V}_{\text{pp}}$, equivalent to $+0\text{ dBm}$ available drive into $50\ \Omega$, evaluating upper-margin behavior).
+
 * **Transmission Line & Mismatch Modeling:** Sourced through a $50\ \Omega$ series impedance, traversing an ideal $50\ \Omega$ coaxial delay line with a propagation delay of $T_d = 10.0\text{ ns}$ terminated into $50\ \Omega$.
+  
 * **Slicer Model:** Evaluated with level-1 behavioral CMOS models (`PMOS_LVC` and `NMOS_LVC`) configured for $3.3\text{V}$ operation, with input DC-blocking capacitor $1.0\text{ nF}$ and negative feedback resistor $100\text{ k}\Omega$.
+  
 * **Coupling & Load:** Output DC blocking is modeled via $1.0\text{ nF}$ driving a high-impedance load of $1.0\text{ M}\Omega$ (representing the ADF4002 `REFIN` input stage).
 
 ##### 2. Steady-State Waveform Analysis
 As illustrated in Figure 2.3.4 (`.tran 0 120n 0 0.1n`):
+
 - **Input Waveform (`V(n005)` — Green Trace):** Represents the raw $10.0\text{ MHz}$ sinusoid arriving across the $50\ \Omega$ input boundary behind the $T_d = 10.0\text{ ns}$ transmission line. The signal oscillates symmetrically around $0.0\text{V}$ with a peak amplitude of $V_{\text{peak}} \approx \pm 0.33\text{V}$ ($V_{\text{pp}} \approx 0.66\text{ V}_{\text{pp}}$), accurately modeling the lower-bound power output of the external GPSDO ($0.0\text{ dBm} \dots +0.5\text{ dBm}$ into $50\ \Omega$).
+  
 - **Output Waveform (`V(n007)` — Blue Trace):** Measured at the output of the AC-coupling capacitor ($C_{22}$), the conditioned clock settles into a sharp, symmetrical bipolar square wave swinging from $-1.20\text{V}$ to $+1.45\text{V}$ ($V_{\text{pp}} \approx 2.65\text{ V}_{\text{pp}}$). The positive half-cycle spans exactly from $t = 60.0\text{ ns}$ to $t = 110.0\text{ ns}$ ($\Delta t = 50.0\text{ ns}$), maintaining a perfectly balanced $50.0\%$ duty cycle and eliminating even-order harmonic distortion.
 
 ![Figure 2.3.4: High-Resolution Zoom of the Slicing Transition Demonstrating Slew Rate Multiplication](../assets/plots/pll/ltpsice_sine2square_zoom.png)
@@ -349,12 +370,16 @@ A high-resolution inspection of the zero-crossing transitions in Figure 2.3.4 hi
 
 - **Raw Input Sine Slew Rate (`V(n005)` — Green Trace):**  
   At the zero-crossing falling edge ($t = 60.0\text{ ns}$), the input sinusoid traverses between $+0.19\text{V}$ (at $t = 50.0\text{ ns}$) and $-0.19\text{V}$ (at $t = 70.0\text{ ns}$) over a $\Delta t = 20.0\text{ ns}$ window:
+  
   $$\left.\frac{dv}{dt}\right|_{\text{input, measured}} = \frac{0.19\text{V} - (-0.19\text{V})}{20.0\text{ ns}} = \frac{0.38\text{V}}{20.0\text{ ns}} = 0.019\text{ V/ns} \equiv 19.0\text{ V/}\mu\text{s}$$
+
   This measured slope falls far short of the manufacturer's operational threshold, achieving only $38\%$ of the required $50.0\text{ V/}\mu\text{s}$ slew rate limit.
 
 - **Conditioned Output Slew Rate (`V(n007)` — Blue Trace):**  
   Triggered synchronously at the input zero crossing ($t = 60.0\text{ ns}$), the inverter core vigorously switches states. The output voltage surges from $-0.60\text{V}$ to $+0.60\text{V}$ ($\Delta V = 1.20\text{V}$) between $t_1 = 58.5\text{ ns}$ and $t_2 = 61.5\text{ ns}$ ($\Delta t = 3.0\text{ ns}$):
+  
   $$\left.\frac{dv}{dt}\right|_{\text{output, measured}} = \frac{0.60\text{V} - (-0.60\text{V})}{3.0\text{ ns}} = \frac{1.20\text{V}}{3.0\text{ ns}} = 0.400\text{ V/ns} \equiv 400.0\text{ V/}\mu\text{s}$$
+
   Across the broader linear switching range from $-0.90\text{V}$ to $+0.90\text{V}$ ($\Delta V = 1.80\text{V}$, $\Delta t \approx 5.0\text{ ns}$), the average transition speed remains above $0.360\text{ V/ns}$ ($360.0\text{ V/}\mu\text{s}$), with an instantaneous peak derivative at the midpoint reaching $\approx 0.450\text{ V/ns}$ ($450.0\text{ V/}\mu\text{s}$).
 
 This performance provides an $8\times$ safety margin above the ADF4002 specification ($\text{SR} > 50\text{ V/}\mu\text{s}$), ensuring deterministic, jitter-free comparator triggering even under minimal GPSDO input power.
@@ -378,10 +403,12 @@ The engineering trade-offs and design justifications are:
 
 1. **BOM Cost & Board Area Optimization:**
    * Dedicated RF clock distribution ICs cost $\$2.00 \dots \$5.00$ per unit, require bulky multi-pin packages (QFN-16/24), and often introduce I2C/SPI programming dependencies.
+  
    * The 74LVC logic buffer solution incurs a BOM cost of under $\$0.20$, occupies a subminiature surface footprint ($\approx 2.0\text{ mm} \times 2.1\text{ mm}$ for SC-70-6), and operates purely in hardware without supervisory software overhead.
 
 2. **Software-Centric Static Skew Absorption:**
    * Traditional hardware clock trees enforce sub-picosecond trace length matching through differential PECL/LVDS distribution to minimize channel skew.
+  
    * In this solar interferometer, any static propagation delay mismatch ($\Delta t_{pd} \approx 50 \dots 150\text{ ps}$, corresponding to $\Delta\theta < 1.3^\circ$ at $24.0\text{ MHz}$) between the buffer gates is absorbed by the backend software pipeline.
 
 
@@ -389,7 +416,9 @@ The engineering trade-offs and design justifications are:
 #### 2.4.2. Source Termination ($R_{12} = 22\ \Omega$) 
 Because the 74LVC gate transitions exhibit sub-nanosecond switching edges ($t_r, t_f < 1.5\text{ ns}$), driving high-frequency lines directly into reactive filter networks can induce parasitic edge ringing, ground bounce, and excessive harmonic radiation.
 At $V_{\text{CC}} = 3.3\text{V}$, the internal output impedance of a 74LVC driver gate is $R_{\text{on}} \approx 20\ \Omega \dots 25\ \Omega$. Placing a series damping resistor $R_{12} = 22\ \Omega$ (0603, 1%) directly adjacent to the buffer output yields:
+
 $$Z_{\text{source}} = R_{\text{on}} + R_{12} \approx 25\ \Omega + 22\ \Omega \approx 47\ \Omega \dots 50\ \Omega$$
+
 This establishes an accurate $50\ \Omega$ source impedance looking into the subsequent filter, preventing transmission line reflections ($S_{11} < -20\text{ dB}$), overshoot, and ringing [00:03:07] (Texas Instruments: [PCB Trace Impedance Matching](https://www.youtube.com/watch?v=DKxDCO1kLEs)).
 
 
@@ -401,20 +430,32 @@ The external reference clock input of the SDRplay RSPdx requires a clean sinusoi
 
 1. **Filter Synthesis & Topology:**
    * Approximation Type: 5-pole Butterworth low-pass filter (maximally flat passband response, zero passband ripple).
+
    * Cutoff Frequency: Designed for $f_c = 30.0\text{ MHz}$ with reference terminations $R_{\text{Source}} = 50.0\ \Omega$ and $R_{\text{Load}} = 50.0\ \Omega$.
+
    * $\pi$-Network Structure:
+
      * $C_{29} = 68\text{ pF}$ (Shunt capacitor to ground)
+
      * $L_3 = 390\text{ nH}$ (Series inductor)
+
      * $C_{30} = 220\text{ pF}$ (Shunt capacitor to ground)
+
      * $L_4 = 390\text{ nH}$ (Series inductor)
+
      * $C_{31} = 68\text{ pF}$ (Shunt capacitor to ground)
 
 2. **Harmonic Rejection Derivation:**
    * A symmetrical $24.0\text{ MHz}$ square wave with $50\%$ duty cycle exhibits intrinsic Fourier harmonic roll-off:
+
      * Fundamental ($24.0\text{ MHz}$): $0\text{ dBc}$
+
      * 3rd Harmonic ($72.0\text{ MHz}$): $20\log_{10}(1/3) \approx -9.54\text{ dBc}$
+
      * 5th Harmonic ($120.0\text{ MHz}$): $20\log_{10}(1/5) \approx -13.98\text{ dBc}$
+
    * In Iowa Hills, the 5-pole Butterworth response provides $-36.9\text{ dB}$ of attenuation at $72.1\text{ MHz}$ while introducing only $\approx -0.45\text{ dB}$ of insertion loss at the $24.0\text{ MHz}$ fundamental.
+
    * Net 3rd harmonic suppression delivered to the output:
   
      $$
@@ -425,20 +466,25 @@ The external reference clock input of the SDRplay RSPdx requires a clean sinusoi
 
 3. **High-Frequency Parasitic Mitigation:**
    * Capacitors ($C_{29}, C_{30}, C_{31}$): Specified with precision C0G/NP0 dielectric ($\pm 2\%$, temperature coefficient $0 \pm 30\text{ ppm/}^\circ\text{C}$) to prevent thermal phase drift and piezoelectric noise.
+
    * Inductors ($L_3, L_4$): Implemented with high-$Q$ ceramic wirewound RF chip inductors (e.g., Coilcraft 0603CS / Murata LQW18AN series, $Q > 50$ at $24\text{ MHz}$). Their high Self-Resonant Frequency ($\text{SRF} > 600\text{ MHz}$) ensures inductive behavior persists through the 5th harmonic ($120\text{ MHz}$) and beyond.
 #### 2.4.4. 6 dB π-Pad Attenuator: Impedance Stabilization, Damping Analysis, and Parameter Synthesis
 A symmetric 6 dB π-type resistive attenuator pad ($R_{14} - R_{13} - R_{15}$) is placed between the 5th-order Butterworth filter and the SMA output port ($J_5$). It performs three coupled functions: absorbing out-of-band energy reflected by reactive loads, terminating the Butterworth filter in a constant resistive $50\ \Omega$ impedance, and conditioning the clock amplitude to match the input window of the SDRplay RSPdx `Ref In` comparator.
 
 ##### 1. Analytical Synthesis of the Symmetric π-Pad Network
 For a characteristic system impedance $Z_0 = 50.0\ \Omega$ and a target attenuation $A = 6.00\text{ dB}$, the linear voltage attenuation ratio $k$ is defined as:
+
 $$k = 10^{\frac{A}{20}} = 10^{\frac{6.00}{20}} \approx 1.99526$$
 
 The theoretical values for the shunt resistors ($R_{\text{shunt}} = R_{14} = R_{15}$) and series resistor ($R_{\text{series}} = R_{13}$) are derived from two-port network transmission parameters:
+
 $$R_{\text{shunt}} = Z_0 \left( \frac{k + 1}{k - 1} \right) = 50.0 \left( \frac{1.99526 + 1}{1.99526 - 1} \right) = 50.0 \left( \frac{2.99526}{0.99526} \right) \approx 150.47\ \Omega$$
+
 $$R_{\text{series}} = Z_0 \left( \frac{k^2 - 1}{2k} \right) = 50.0 \left( \frac{1.99526^2 - 1}{2 \cdot 1.99526} \right) = 50.0 \left( \frac{3.98108 - 1}{3.99052} \right) \approx 37.35\ \Omega$$
 
 To guarantee manufacturability and low BOM variance, these parameters are mapped to the closest standard EIA E24 1% tolerance values:
 * $R_{14} = R_{15} = 150\ \Omega$ (deviation $< 0.31\%$)
+
 * $R_{13} = 36\ \Omega$ (deviation $< 3.61\%$)
 
 Evaluating the two-port parameters with standard values yields an actual insertion loss of $A_{\text{actual}} \approx 6.04\text{ dB}$ and an input return loss of $S_{11} < -35\text{ dB}$, maintaining an accurate wideband $50\ \Omega$ port match.
@@ -448,8 +494,10 @@ The selection of a $6.0\text{ dB}$ attenuation factor represents an optimal engi
 
 * **Round-Trip Reflection Absorption (12 dB Damping):**  
   Because the 5-pole LC Butterworth filter is purely reflective, out-of-band energy reflected by reactive cable interfaces or the receiver's high-impedance clock slicer travels back into the filter network. A $6\text{ dB}$ pad attenuates these reflections on both the forward and reverse passes ($2 \times 6\text{ dB} = 12.0\text{ dB}$ round-trip return loss enhancement), absorbing $> 93.7\%$ of reflected power and eliminating pulse ringing. By contrast, a $3\text{ dB}$ pad provides only $6\text{ dB}$ of round-trip damping, allowing $25\%$ of reflected energy to re-enter the filter and cause group delay peaking.
+
 * **Filter Load Termination Isolation:**  
   The pad acts as an impedance buffer, presenting a near-pure $50.0\ \Omega$ resistive load to the Butterworth filter across all frequencies. This isolates the filter from varying coaxial cable lengths and digitizer input reactance, preventing detuning of the $30.0\text{ MHz}$ cutoff frequency.
+
 * **Drive Level and Zero-Crossing Slew Rate Optimization:**  
   Delivering a clean clock to the SDRplay RSPdx `Ref In` port requires maximizing the zero-crossing slope ($dv/dt$) to minimize aperture jitter without overdriving the input stage. A $3\text{ dB}$ pad delivers $\approx 1.5\text{ V}_{\text{pp}}$ ($+7.5\text{ dBm}$), which risks overdriving the internal reference slicer and leaking clock harmonics into the RF tuner. Conversely, a $9\text{ dB}$ pad reduces the delivered amplitude to $\approx 0.5\text{ V}_{\text{pp}}$ ($+1.4\text{ dBm}$); this halves the zero-crossing slew rate ($dv/dt < 0.04\text{ V/ns}$), allowing input thermal noise to translate into phase jitter and eroding the $< 300\text{ fs RMS}$ budget. The $6\text{ dB}$ pad hits the ideal sweet spot: delivering $\approx 1.05\text{ V}_{\text{pp}}$ ($+4.0 \dots +4.5\text{ dBm}$) with an optimal slew rate of $\approx 0.08\text{ V/ns}$.
 
@@ -457,11 +505,15 @@ The selection of a $6.0\text{ dB}$ attenuation factor represents an optimal engi
 To confirm that 0603-size SMD resistors are thermally reliable, power dissipation across each resistor is evaluated under full drive conditions.  
 The signal entering the attenuator pad has an RMS power of $P_{\text{in}} \approx +10.0\text{ dBm}$ ($10.0\text{ mW}$), corresponding to an RMS voltage of $V_{\text{in, RMS}} \approx 0.707\text{ V}_{\text{RMS}}$ across the pad's $50\ \Omega$ input impedance:
 * **Shunt Input Resistor ($R_{14} = 150\ \Omega$):**
+
   $$P_{R14} = \frac{V_{\text{in, RMS}}^2}{R_{14}} = \frac{(0.707\text{ V})^2}{150\ \Omega} \approx \frac{0.500\text{ V}^2}{150\ \Omega} \approx 3.33\text{ mW}$$
+
 * **Series Resistor ($R_{13} = 36\ \Omega$):**
   The RMS voltage drop across $R_{13}$ is $V_{R13} = V_{\text{in, RMS}} - V_{\text{out, RMS}} \approx 0.707\text{ V} - 0.354\text{ V} = 0.353\text{ V}_{\text{RMS}}$:
   $$P_{R13} = \frac{V_{R13}^2}{R_{13}} = \frac{(0.353\text{ V})^2}{36\ \Omega} \approx \frac{0.125\text{ V}^2}{36\ \Omega} \approx 3.47\text{ mW}$$
+
 * **Shunt Output Resistor ($R_{15} = 150\ \Omega$):**
+
   $$P_{R15} = \frac{V_{\text{out, RMS}}^2}{R_{15}} = \frac{(0.354\text{ V})^2}{150\ \Omega} \approx \frac{0.125\text{ V}^2}{150\ \Omega} \approx 0.83\text{ mW}$$
 
 Standard 0603 SMD chip resistors are rated for $100\text{ mW}$ ($0.1\text{ W}$) continuous dissipation. With peak dissipation remaining below $3.5\text{ mW}$, the resistors operate with a safety factor exceeding $28\times$, ensuring negligible thermal drift and preventing micro-temperature fluctuations from modulating transmission phase.
@@ -473,22 +525,33 @@ The cascaded signal path from the 74LVC buffer output through the reconstruction
 ##### 1. Stage-by-Stage Power and Voltage Budget
 1. **CMOS Driver Output Stage:**  
    Operating from $V_{\text{CC}} = 3.3\text{V}$, the 74LVC buffer outputs a rail-to-rail square wave. By Fourier decomposition, the amplitude of the fundamental frequency component is:
+
    $$V_{\text{fund, peak}} = \frac{4}{\pi} \cdot \frac{V_{\text{pp}}}{2} = \frac{2}{\pi} \cdot 3.30\text{V} \approx 2.101\text{ V}_{\text{peak}} \quad \longrightarrow \quad V_{\text{fund, RMS}} = \frac{2.101}{\sqrt{2}} \approx 1.485\text{ V}_{\text{RMS}}$$
+
 2. **Source Impedance Voltage Division ($R_{\text{on}} + R_{12} = 50\ \Omega$ into $50\ \Omega$ Filter):**  
    The internal driver resistance ($R_{\text{on}} \approx 25\ \Omega$) combined with damping resistor $R_{12} = 22\ \Omega$ forms an effective $Z_{\text{source}} \approx 47\ \Omega \dots 50\ \Omega$. Looking into the $50\ \Omega$ passband of the Butterworth filter, voltage division halves the fundamental amplitude:
+
    $$V_{\text{in, filter}} = \frac{1}{2} \cdot V_{\text{fund, peak}} \approx 1.050\text{ V}_{\text{peak}} \quad (0.743\text{ V}_{\text{RMS}})$$
+
    $$P_{\text{in, filter}} = 10 \log_{10}\left( \frac{(0.743\text{ V})^2 / 50\ \Omega}{1.0\times 10^{-3}\text{ W}} \right) \approx 10 \log_{10}(11.04\text{ mW}) \approx +10.43\text{ dBm}$$
+
 3. **5th-Order LC Butterworth Filter Loss:**  
    At $f = 24.0\text{ MHz}$, passband insertion loss (accounting for inductor ESR and finite capacitor $Q$) is:
+
    $$\Delta S_{21,\text{LPF}} \approx -0.45\text{ dB} \quad \longrightarrow \quad P_{\text{out, LPF}} \approx +10.43 - 0.45 = +9.98\text{ dBm} \quad (\approx 1.99\text{ V}_{\text{pp}})$$
+
 4. **6 dB π-Pad Attenuator Loss:**  
+
    $$\Delta S_{21,\text{pad}} \approx -6.04\text{ dB} \quad \longrightarrow \quad P_{\text{delivered}} = +9.98 - 6.04 = +3.94\text{ dBm} \approx +4.0 \dots +4.5\text{ dBm}$$
    The resulting RMS and peak-to-peak voltages delivered across the calibrated $50\ \Omega$ load of the SDRplay RSPdx `Ref In` port are:
+
    $$V_{\text{out, RMS}} = \sqrt{10^{\frac{+3.94}{10}} \times 10^{-3}\text{ W} \times 50\ \Omega} \approx \sqrt{0.00248\text{ W} \times 50\ \Omega} \approx 0.352\text{ V}_{\text{RMS}}$$
+
    $$V_{\text{out, pp}} = 2\sqrt{2} \cdot V_{\text{out, RMS}} \approx 2.8284 \cdot 0.352\text{ V}_{\text{RMS}} \approx \text{ V}_{\text{pp}} \dots 1.10\text{ V}_{\text{pp}}$$
 
 ##### 2. Zero-Crossing Slew Rate Analysis
 The zero-crossing slew rate of the delivered $24.0\text{ MHz}$ sine wave ($v(t) = V_{\text{peak}} \sin(2\pi f t)$ with $V_{\text{peak}} \approx 0.525\text{ V}$) is calculated as:
+
 $$\left.\frac{dv}{dt}\right|_{t=0} = 2\pi f V_{\text{peak}} = 2\pi \cdot (24.0\times 10^6\text{ Hz}) \cdot 0.525\text{ V} \approx 79.17\times 10^6\text{ V/s} \approx \mathbf{0.0792\text{ V/ns}}$$
 
 This slope ensures that external clock comparators switch crisply across their threshold hysteresis band ($V_{\text{hyst}} \approx 20\text{ mV}$ is traversed in $\Delta t < 250\text{ ps}$), minimizing aperture jitter.
@@ -505,11 +568,15 @@ Both channels evaluate identical 5-pole LC low-pass networks ($C_1=C_3=C_5=C_7=6
 
 * **Source Impedance Mismatch ($R_2 = R_6 = 38\ \Omega$):**  
   To evaluate filter sensitivity to driver process-voltage-temperature (PVT) variations, the series source resistance is deliberately set to $38\ \Omega$ ahead of the $1\text{ nF}$ DC blocking capacitors ($C_8, C_9$). This models an under-damped driver state where output impedance deviates from nominal matching.
+
 * **Transmission Line & Open-Circuit Load ($T_1, T_2$ and $R_5, R_{10}$):**  
   Each channel drives an ideal $50\ \Omega$ coaxial transmission line with a one-way delay of $T_d = 12.0\text{ ns}$ (equivalent to $\approx 2.4\text{ m}$ of standard RG-58 coaxial cable at $VF = 0.66$). The far-end terminations are set to an extreme mismatch of $R_5 = R_{10} = 1\text{ M}\Omega$, establishing a worst-case reflection coefficient:
+
   $$\Gamma_L = \frac{10^6 - 50}{10^6 + 50} \approx +1.00$$
+
 * **Topology Differentiation:**  
   * Channel 1 (`OUT` — Green Trace): The LC filter drives the $12\text{ ns}$ transmission line directly without resistive attenuation.
+
   * Channel 2 (`OUT_TR` — Blue Trace): The LC filter drives the line through the $6\text{ dB}$ $\pi$-pad network ($R_7 = R_9 = 150\ \Omega$, $R_8 = 36\ \Omega$).
 
 
@@ -518,10 +585,14 @@ The transient simulation results (`.tran 0 1.2u 1u 10p`) highlight the contrast 
 
 * **Unmitigated Path (`V(out)` — Green Trace):**  
   * *Standing Wave Resonance:* Total round-trip transit time along the transmission line is $2 \cdot T_d = 24.0\text{ ns}$, representing $57.6\%$ of the clock period. The undamped reactive LC filter reflects incoming reverse wavefronts back into the line, creating standing waves.
+
   * *Envelope Distortion and Ringing:* `V(out)` exhibits visible harmonic distortion, pronounced shoulder bumps, and significant baseline asymmetry. The peak-to-peak voltage swings uncontrolled from $-1.55\text{V}$ to $+3.65\text{V}$ ($V_{\text{pp}} \approx 5.20\text{ V}_{\text{pp}}$). Applying this overdriven, ring-distorted waveform to an RSPdx clock slicer would induce comparator threshold hunting, phase jitter, and spurious harmonic mixing.
+
 * **6 dB Attenuated Path (`V(out_tr)` — Blue Trace):**  
   * *Reflection Damping:* Sourced reflections returning from the $1\text{ M}\Omega$ boundary are absorbed across $R_7, R_8,$ and $R_9$. Any residual wave bouncing off the LC filter is attenuated a second time on the forward pass, attenuating round-trip standing waves.
+
   * *Sinusoidal Purity:* The output `V(out_tr)` emerges as a pure, symmetrical sine wave completely free of ringing, overshoot, or secondary inflection points. Under open-circuit conditions, the swing is bounded to $-1.20\text{V} \dots +1.25\text{V}$ ($V_{\text{pp}} \approx 2.45\text{ V}_{\text{pp}}$), which naturally settles into the target $\approx 1.05\text{ V}_{\text{pp}}$ ($+4.4\text{ dBm}$) when loaded by a nominal $50\ \Omega$ receiver port.
+
   * *Monotonic Zero-Crossing:* The smooth, uninterrupted zero-crossing transition guarantees deterministic triggering for subsequent clock digitizers.
 
 ##### 3. Verification Conclusion
