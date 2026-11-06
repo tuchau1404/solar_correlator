@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 460" width="100%" height="100%" style="background:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Mũi tên trục tọa độ -->
+    <marker id="axis-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 z" fill="#334155" />
+    </marker>
+    <!-- Mũi tên đo kích thước cửa sổ -->
+    <marker id="dim-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 z" fill="#EA580C" />
+    </marker>
+    <!-- Mũi tên chỉ đỉnh -->
+    <marker id="peak-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 z" fill="#2563EB" />
+    </marker>
+    <!-- Gradient nền cho cửa sổ cách ly -->
+    <linearGradient id="excl-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF2F2" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#FEE2E2" stop-opacity="0.2" />
+    </linearGradient>
+    <!-- Gradient nền cho vùng tính sàn nhiễu -->
+    <linearGradient id="noise-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F0FDF4" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#DCFCE7" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+
+  <!-- ================= VÙNG TÍCH PHÂN SÀN NHIỄU (BACKGROUND NOISE REGIONS) ================= -->
+  <!-- Vùng bên trái: từ đầu khung đến mép trái cửa sổ cách ly -->
+  <rect x="80" y="270" width="290" height="110" fill="url(#noise-grad)" />
+  <!-- Vùng bên phải: từ mép phải cửa sổ cách ly đến cuối khung -->
+  <rect x="530" y="270" width="330" height="110" fill="url(#noise-grad)" />
+
+  <!-- ================= VÙNG CỬA SỔ CÁCH LY (EXCLUSION WINDOW: ±16 BINS) ================= -->
+  <rect x="370" y="70" width="160" height="310" rx="4" fill="url(#excl-grad)" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4 4" />
+
+  <!-- ================= CÁC TRỤC TỌA ĐỘ CHÍNH ================= -->
+  <!-- Trục tung: Magnitude |R12| (Đã sửa vị trí nhãn sang x=90, text-anchor="start") -->
+  <line x1="80" y1="390" x2="80" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#axis-arr)" />
+  <text x="90" y="32" font-size="13" font-weight="700" fill="#0F172A" text-anchor="start">Magnitude |R₁₂|</text>
+
+  <!-- Trục hoành: Lag Index (k) -->
+  <line x1="70" y1="380" x2="880" y2="380" stroke="#334155" stroke-width="2" marker-end="url(#axis-arr)" />
+  <text x="880" y="405" font-size="13" font-weight="700" fill="#0F172A" text-anchor="end">Lag Index (k)</text>
+
+  <!-- ================= ĐƯỜNG MỨC SÀN NHIỄU TRUNG BÌNH (NOISE FLOOR) ================= -->
+  <line x1="80" y1="330" x2="865" y2="330" stroke="#059669" stroke-width="1.8" stroke-dasharray="6 4" />
+  
+  <!-- Badge nhãn Noise Floor -->
+  <rect x="705" y="318" width="145" height="24" rx="4" fill="#ECFDF5" stroke="#10B981" stroke-width="1.2" />
+  <text x="777.5" y="334" font-size="11" font-weight="700" fill="#047857" text-anchor="middle">Average Noise Floor</text>
+
+  <!-- ================= ĐƯỜNG CONG TƯƠNG QUAN CHÉO (CORRELATION CURVE) ================= -->
+  <path d="M 80,332 
+           Q 100,325 120,334 T 160,328 T 200,335 T 240,327 T 280,334 T 320,328 T 350,333
+           C 370,331 385,315 395,338 
+           C 405,355 415,315 425,230 
+           C 435,140 445,75 450,75 
+           C 455,75 465,140 475,230 
+           C 485,315 495,355 505,338 
+           C 515,315 530,331 550,333
+           T 580,328 T 620,334 T 660,327 T 700,335 T 740,328 T 780,334 T 820,329 T 860,332"
+        fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round" />
+
+  <!-- Điểm cực đại (Peak Point) -->
+  <circle cx="450" cy="75" r="4.5" fill="#EF4444" stroke="#ffffff" stroke-width="1.5" />
+
+  <!-- ================= ĐO ĐẠC VÀ CHÚ THÍCH ĐỈNH (PEAK ANNOTATION) ================= -->
+  <line x1="450" y1="28" x2="450" y2="65" stroke="#2563EB" stroke-width="1.8" marker-end="url(#peak-arr)" />
+  <rect x="375" y="6" width="150" height="26" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2" />
+  <text x="450" y="23" font-size="12" font-weight="700" fill="#1D4ED8" text-anchor="middle">Peak: max |R₁₂[m]|</text>
+
+  <!-- Tọa độ đỉnh m* trên trục hoành -->
+  <line x1="450" y1="75" x2="450" y2="385" stroke="#94A3B8" stroke-width="1" stroke-dasharray="2 2" />
+  <text x="450" y="398" font-size="11.5" font-weight="700" fill="#1E293B" text-anchor="middle">m* (Peak Index)</text>
+
+  <!-- ================= KÍCH THƯỚC CỬA SỔ LOẠI TRỪ (EXCLUSION WINDOW) ================= -->
+  <line x1="375" y1="165" x2="525" y2="165" stroke="#EA580C" stroke-width="1.8" marker-start="url(#dim-arr)" marker-end="url(#dim-arr)" />
+  <rect x="382" y="145" width="136" height="20" rx="3" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1" />
+  <text x="450" y="159" font-size="10.5" font-weight="700" fill="#C2410C" text-anchor="middle">Exclusion: ±16 bins (32 bins)</text>
+
+  <!-- Ghi chú thời gian trễ của cửa sổ -->
+  <text x="450" y="195" font-size="10" font-weight="600" fill="#9A3412" text-anchor="middle">Δτ = ±1.6 µs (IF Sinc Suppression)</text>
+
+  <!-- Giới hạn biên cửa sổ trên trục hoành -->
+  <line x1="370" y1="380" x2="370" y2="388" stroke="#EF4444" stroke-width="1.5" />
+  <text x="370" y="400" font-size="10.5" font-weight="600" fill="#DC2626" text-anchor="middle">m* - 16</text>
+
+  <line x1="530" y1="380" x2="530" y2="388" stroke="#EF4444" stroke-width="1.5" />
+  <text x="530" y="400" font-size="10.5" font-weight="600" fill="#DC2626" text-anchor="middle">m* + 16</text>
+
+  <!-- ================= CHÚ THÍCH VÙNG TÍCH PHÂN SÀN NHIỄU (BASELINES) ================= -->
+  <!-- Dải chú thích bên trái -->
+  <path d="M 85,420 L 85,427 L 225,427 L 225,434 L 225,427 L 365,427 L 365,420" fill="none" stroke="#059669" stroke-width="1.2" />
+  <text x="225" y="446" font-size="10" font-weight="600" fill="#065F46" text-anchor="middle">Noise Baseline Area (Left)</text>
+
+  <!-- Dải chú thích bên phải -->
+  <path d="M 535,420 L 535,427 L 700,427 L 700,434 L 700,427 L 860,420" fill="none" stroke="#059669" stroke-width="1.2" />
+  <text x="700" y="446" font-size="10" font-weight="600" fill="#065F46" text-anchor="middle">Noise Baseline Area (Right)</text>
+
+  <!-- ================= HUY HIỆU TÍNH TOÁN PNR (PNR FORMULA BADGE) ================= -->
+  <rect x="95" y="65" width="225" height="52" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5" />
+  <text x="110" y="86" font-size="11" font-weight="700" fill="#0F172A">PNR = 20·log₁₀( Peak / NoiseFloor )</text>
+  <text x="110" y="104" font-size="10" font-weight="600" fill="#16A34A">Threshold: PNR ≥ 10.0 dB  [VALID]</text>
+</svg>

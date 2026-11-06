@@ -1,0 +1,3414 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="30-40 MHz Real-Time Solar Correlator Engineering Log">
+      
+      
+      
+        <link rel="canonical" href="https://yourusername.github.io/solar_correlator/02-firmware-dsp/architecture1/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../module1-driver/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Solar Radio Interferometer: Firmware & DSP Architecture Specification - Solar Interferometer Dev-Blog</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#solar-radio-interferometer-firmware-dsp-architecture-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-header__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solar Interferometer Dev-Blog
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Solar Radio Interferometer: Firmware &amp; DSP Architecture Specification
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Solar Interferometer Dev-Blog" class="md-nav__button md-logo" aria-label="Solar Interferometer Dev-Blog" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Solar Interferometer Dev-Blog
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer (30.0 – 40.0 MHz)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Next plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Version Control &amp; Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 hardware
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    01 hardware
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/clock-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dual-Channel 24 MHz PLL Clock Distribution Subsystem (10 MHz GPSDO Reference)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/host-interconnect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host interconnect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/noise-source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avalanche Noise Source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rf frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-hardware/rf-switching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RF Switching &amp; Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 firmware dsp
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    02 firmware dsp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Architecture and Master Orchestrator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer: Firmware &amp; DSP Architecture Specification
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Radio Interferometer: Firmware &amp; DSP Architecture Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#section-1-overview-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 1 — Overview &amp; Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 1 — Overview &amp; Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verified-system-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verified System Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-rate-reduction-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Rate Reduction Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-2-process-ipc-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 2 — Process &amp; IPC Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 2 — Process &amp; IPC Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#process-hierarchy-shared-memory-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Hierarchy &amp; Shared Memory Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-enumeration-multi-process-decoupling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device Enumeration &amp; Multi-Process Decoupling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-callback-verification-sample-discontinuity-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Callback Verification &amp; Sample Discontinuity Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lock-free-spsc-ring-buffer-over-posix-shared-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lock-Free SPSC Ring Buffer over POSIX Shared Memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-instance-process-mutex-singleinstancelock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-Instance Process Mutex (SingleInstanceLock)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-3-system-state-machine-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 3 — System State Machine &amp; Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 3 — System State Machine &amp; Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state-machine-transition-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Machine Transition Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enumerations-display-strings-and-operational-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enumerations, Display Strings, and Operational Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardware-control-protective-guards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardware Control &amp; Protective Guards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#startup-pipeline-dsp-preallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup Pipeline &amp; DSP Preallocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-alignment-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time Alignment Procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#static-phase-calibration-cal-phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static Phase Calibration (--cal-phase)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observation-source-transition-skip_pair-watermark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observation Source Transition &amp; skip_pair() Watermark
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-4-fx-correlator-dataflow-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 4 — FX Correlator &amp; Dataflow Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 4 — FX Correlator &amp; Dataflow Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-dataflow-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Dataflow Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsp-implementation-specifics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSP Implementation Specifics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frequency-bin-mapping-spectral-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequency Bin Mapping &amp; Spectral Resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#welch-temporal-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Welch Temporal Geometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-5-udp-telemetry-storage-subsystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 5 — UDP Telemetry &amp; Storage Subsystem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 5 — UDP Telemetry &amp; Storage Subsystem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#network-port-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Port Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sol2-v3-udp-protocol-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SOL2 v3 UDP Protocol Characteristics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#archival-storage-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archival Storage Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-6-health-monitoring-fail-closed-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 6 — Health Monitoring &amp; Fail-Closed Logic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 6 — Health Monitoring &amp; Fail-Closed Logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#health-invariants-continuity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health Invariants &amp; Continuity Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fault-classification-fail-closed-recovery-flowchart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fault Classification &amp; Fail-Closed Recovery Flowchart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-shutdown-resource-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Shutdown &amp; Resource Teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-7-command-line-interface-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 7 — Command-Line Interface Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 7 — Command-Line Interface Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-8-limitations-verification-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 8 — Limitations &amp; Verification Matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 8 — Limitations &amp; Verification Matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#evidence-traceability-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence Traceability Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features-not-present-in-surveyed-source-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features Not Present in Surveyed Source Code
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module1-driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 1: Dual USB Stream Validation &amp; Ingestion Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module2-time-align/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 2: POSIX Shared Memory &amp; Real-Time Time Alignment Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module3-fx-correlator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module 3: Real-Time FX Correlator Engine &amp; Visibility Telemetry Streamer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module4-telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module4 telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../telemetry-v3-upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry v3: phase và coherence đồng thời
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../viewer-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Viewer modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 calibration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    03 calibration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/debug-chronicles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug chronicles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/field-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-calibration-tests/lab-bench-test/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lab bench test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 deployment guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    04 deployment guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/pi5-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pi5 setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-deployment-guide/systemd-daemon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd daemon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Appendix
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../appendix/rf-switch-spec-derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: RF Switch Specification Derivations &amp; Design Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit v2
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Audit v2
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit_v2/PI_RUNBOOK/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build và đo trên Pi — không ghi đè cây nguồn/config cũ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit_v2/REPORT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit và bản vá ứng viên — 18/10/2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Storage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage v1 — hướng dẫn vận hành
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../storage/ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts và lifecycle storage v1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../storage/REPORT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Báo cáo triển khai và kiểm thử — 2026-10-17
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#section-1-overview-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 1 — Overview &amp; Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 1 — Overview &amp; Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verified-system-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verified System Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-rate-reduction-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Rate Reduction Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-2-process-ipc-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 2 — Process &amp; IPC Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 2 — Process &amp; IPC Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#process-hierarchy-shared-memory-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Hierarchy &amp; Shared Memory Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-enumeration-multi-process-decoupling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device Enumeration &amp; Multi-Process Decoupling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-callback-verification-sample-discontinuity-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Callback Verification &amp; Sample Discontinuity Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lock-free-spsc-ring-buffer-over-posix-shared-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lock-Free SPSC Ring Buffer over POSIX Shared Memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-instance-process-mutex-singleinstancelock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-Instance Process Mutex (SingleInstanceLock)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-3-system-state-machine-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 3 — System State Machine &amp; Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 3 — System State Machine &amp; Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state-machine-transition-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Machine Transition Topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enumerations-display-strings-and-operational-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enumerations, Display Strings, and Operational Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardware-control-protective-guards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardware Control &amp; Protective Guards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#startup-pipeline-dsp-preallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup Pipeline &amp; DSP Preallocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-alignment-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time Alignment Procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#static-phase-calibration-cal-phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static Phase Calibration (--cal-phase)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observation-source-transition-skip_pair-watermark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observation Source Transition &amp; skip_pair() Watermark
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-4-fx-correlator-dataflow-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 4 — FX Correlator &amp; Dataflow Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 4 — FX Correlator &amp; Dataflow Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-dataflow-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Dataflow Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsp-implementation-specifics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSP Implementation Specifics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frequency-bin-mapping-spectral-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequency Bin Mapping &amp; Spectral Resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#welch-temporal-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Welch Temporal Geometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-5-udp-telemetry-storage-subsystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 5 — UDP Telemetry &amp; Storage Subsystem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 5 — UDP Telemetry &amp; Storage Subsystem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#network-port-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Port Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sol2-v3-udp-protocol-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SOL2 v3 UDP Protocol Characteristics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#archival-storage-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archival Storage Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-6-health-monitoring-fail-closed-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 6 — Health Monitoring &amp; Fail-Closed Logic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 6 — Health Monitoring &amp; Fail-Closed Logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#health-invariants-continuity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health Invariants &amp; Continuity Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fault-classification-fail-closed-recovery-flowchart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fault Classification &amp; Fail-Closed Recovery Flowchart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-shutdown-resource-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Shutdown &amp; Resource Teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-7-command-line-interface-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 7 — Command-Line Interface Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 7 — Command-Line Interface Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-8-limitations-verification-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section 8 — Limitations &amp; Verification Matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 8 — Limitations &amp; Verification Matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#evidence-traceability-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence Traceability Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features-not-present-in-surveyed-source-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features Not Present in Surveyed Source Code
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="solar-radio-interferometer-firmware-dsp-architecture-specification">Solar Radio Interferometer: Firmware &amp; DSP Architecture Specification<a class="headerlink" href="#solar-radio-interferometer-firmware-dsp-architecture-specification" title="Permanent link">&para;</a></h1>
+<p><strong>Document Path:</strong> <code>docs/02-firmware-dsp/architecture.md</code><br />
+<strong>Reference Repository:</strong> <code>https://github.com/tuchau1404/solar_correlator</code><br />
+<strong>Surveyed Source Code:</strong> <code>src/main.cpp</code> (Snapshot inspection; build metadata macros <code>SOLAR_BASELINE_REVISION</code> and <code>SOLAR_PATCH_STATE</code> referenced)<br />
+<strong>Verification Scope &amp; Limitations:</strong> Evaluated directly against <code>src/main.cpp</code>. The exact Git commit SHA is marked as <em>Unverified from provided source</em> due to the absence of the <code>.git</code> metadata directory in the examined workspace. All behaviors documented herein reflect direct code analysis, configuration bindings, and explicitly stated mathematical and engineering inferences.</p>
+<hr />
+<h2 id="section-1-overview-scope">Section 1 — Overview &amp; Scope<a class="headerlink" href="#section-1-overview-scope" title="Permanent link">&para;</a></h2>
+<p>The <code>src/main.cpp</code> module serves as the <strong>Master Supervisor &amp; Consumer Pipeline</strong> for the dual-element Solar Radio Correlator operating in the <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span> frequency band. The program orchestrates the multi-process lifecycle of two SDRplay RSPdx software-defined radio receivers, coordinates hardware RF switching and noise calibration via Raspberry Pi 5 GPIO pins, enforces integer-sample time alignment, executes a pipelined Welch FX cross-correlator, and streams multi-product SOL2 v3 UDP telemetry alongside optional downsampled storage aggregation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                      +---------------------------------------+
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                      |          src/main.cpp (Parent)        |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                      |   Master Supervisor &amp; Data Consumer   |
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                      +---------------------------------------+
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                        |                 |                 |
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>       Fork &amp; Supervise |                 | Read I/Q        | Control GPIO
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                        v                 v                 v
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            +--------------------+   +----------+   +-------------------+
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            | 2x Child Producers |--&gt;| POSIX    |   | HardwareGuard /   |
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            | (SDRplay RSPdx)    |   | SHM Ring |   | RF Switch &amp; Noise |
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            +--------------------+   +----------+   +-------------------+
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                                          |
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                                          v
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                             +--------------------------+
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                             | Welch FX Correlator      |
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                             | (FFT, Auto/Cross, Phase) |
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                             +--------------------------+
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                                          |
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                        +-----------------+-----------------+
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                        | UDP Dispatch                      | Archival Storage
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>                        v                                   v
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>             +--------------------+               +--------------------+
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>             | Multi-port SOL2 v3 |               | Storage Pipeline   |
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>             | UDP Telemetry      |               | (JSON Configured)  |
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>             +--------------------+               +--------------------+
+</code></pre></div>
+<h3 id="verified-system-parameters">Verified System Parameters<a class="headerlink" href="#verified-system-parameters" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Nominal / Verified Value</th>
+<th style="text-align: left;">Source / Verification Level</th>
+<th style="text-align: left;">Technical Meaning &amp; Physical Bounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Sample Rate (<span class="arithmatex">\(f_s\)</span>)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(10.0\text{ MSPS}\)</span> (<span class="arithmatex">\(10^7\text{ samples/s}\)</span>)</td>
+<td style="text-align: left;">Config: <code>SolarConfig::SDR::SAMPLE_RATE_HZ</code></td>
+<td style="text-align: left;">Complex sampling rate per channel. Upper bounded by USB 3.0 controller bandwidth and host IPC throughput.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sample Format</strong></td>
+<td style="text-align: left;">Interleaved <code>int16_t</code> (I) + <code>int16_t</code> (Q)</td>
+<td style="text-align: left;">Code: <code>sdr_stream_callback(short* xi, short* xq, ...)</code></td>
+<td style="text-align: left;">Raw 14-bit ADC samples sign-extended to 16 bits (<span class="arithmatex">\(4\text{ bytes/complex sample}\)</span>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Dual-Channel Raw Payload</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(80.0\text{ MB/s}\)</span> (<span class="arithmatex">\(\approx 76.29\text{ MiB/s}\)</span>)</td>
+<td style="text-align: left;">Calculated: <span class="arithmatex">\(2 \times f_s \times 4\text{ B/sample}\)</span></td>
+<td style="text-align: left;">Aggregate raw I/Q payload delivered into POSIX shared memory, excluding USB transport overhead.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>FFT Size (<span class="arithmatex">\(N\)</span>)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(2048\)</span> bins</td>
+<td style="text-align: left;">Config: <code>SolarConfig::Correlator::FFT_SIZE</code></td>
+<td style="text-align: left;">Discrete Fourier Transform frame length for F-Engine spectral decomposition.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hop Size (<span class="arithmatex">\(H\)</span>)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(1024\)</span> samples</td>
+<td style="text-align: left;">Config: <code>SolarConfig::Correlator::HOP_SIZE</code></td>
+<td style="text-align: left;">Window slide stride, establishing an exact <span class="arithmatex">\(50\%\)</span> Welch window overlap (<span class="arithmatex">\(N - H = 1024\)</span>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Integration Frames (<span class="arithmatex">\(M\)</span>)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(1953\)</span> frames</td>
+<td style="text-align: left;">Config: <code>SolarConfig::Correlator::INTEGRATION_FRAMES</code></td>
+<td style="text-align: left;">Number of Welch periodograms accumulated per integration cycle (<span class="arithmatex">\(T_{\text{advance}} \approx 200\text{ ms}\)</span>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Snapshot Size</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(65,536\)</span> samples (<span class="arithmatex">\(2^{16}\)</span>)</td>
+<td style="text-align: left;">Config: <code>SolarConfig::Alignment::SNAPSHOT_SIZE</code></td>
+<td style="text-align: left;">Sample block length captured for cross-correlation coarse delay offset estimation.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ring Buffer Capacity</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(4,194,304\)</span> samples (<span class="arithmatex">\(2^{22}\)</span>)</td>
+<td style="text-align: left;">Config: <code>SolarConfig::SHM::BUFFER_CAPACITY</code></td>
+<td style="text-align: left;">Circular buffer capacity per channel, equivalent to <span class="arithmatex">\(16\text{ MiB}\)</span> of shared memory (<span class="arithmatex">\(4\text{ B} \times 2^{22}\)</span>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>RF Center Frequency (<span class="arithmatex">\(f_c\)</span>)</strong></td>
+<td style="text-align: left;"><span class="arithmatex">\(35.0\text{ MHz}\)</span></td>
+<td style="text-align: left;">Config: <code>SolarConfig::SDR::RF_CENTER_FREQ_HZ</code></td>
+<td style="text-align: left;">Tuner local oscillator (LO) frequency, centering the <span class="arithmatex">\(30.0 - 40.0\text{ MHz}\)</span> observation band.</td>
+</tr>
+</tbody>
+</table>
+<p><em>Unit Definitions:</em>
+- <span class="arithmatex">\(1\text{ MB} = 10^6\text{ bytes} = 1,000,000\text{ bytes}\)</span>.
+- <span class="arithmatex">\(1\text{ MiB} = 2^{20}\text{ bytes} = 1,048,576\text{ bytes}\)</span>.
+- Dual-channel raw I/Q data rate: <span class="arithmatex">\(2 \times 10,000,000\text{ samples/s} \times 4\text{ bytes/sample} = 80,000,000\text{ bytes/s} = 80.0\text{ MB/s} \approx 76.2939\text{ MiB/s}\)</span>.</p>
+<h3 id="data-rate-reduction-analysis">Data Rate Reduction Analysis<a class="headerlink" href="#data-rate-reduction-analysis" title="Permanent link">&para;</a></h3>
+<p>The Welch cross-correlator performs <strong>lossy dimensionality reduction and temporal spectral integration</strong>. It reduces time-domain complex voltage series into integrated power and phase spectra; it is explicitly <strong>not</strong> lossless compression.</p>
+<p><em>Derivation Assumptions:</em>
+- Sampling rate: <span class="arithmatex">\(f_s = 10.0\text{ MSPS}\)</span>.
+- One full integration advances the stream by <span class="arithmatex">\(M \times H\)</span> samples:
+  $<span class="arithmatex">\(M \times H = 1953 \times 1024 = 1,999,872\text{ samples}\)</span>$
+- Frame period (cadence):
+  $<span class="arithmatex">\(T_{\text{advance}} = \frac{1,999,872}{10,000,000\text{ samples/s}} = 0.1999872\text{ s} \approx 0.2\text{ s}\)</span>$
+- Output frame generation rate:
+  $<span class="arithmatex">\(R_{\text{frame}} = \frac{1}{0.1999872\text{ s}} \approx 5.00032\text{ frames/s}\)</span>$
+- Each spectrum consists of <span class="arithmatex">\(N = 2048\)</span> bins in 32-bit single-precision floating point format (<span class="arithmatex">\(4\text{ bytes/bin}\)</span>), yielding <span class="arithmatex">\(2048 \times 4 = 8192\text{ bytes/vector}\)</span>.</p>
+<ol>
+<li><strong>Single UDP Product (e.g., <span class="arithmatex">\(S_{12}\)</span> Cross-Power only):</strong></li>
+<li>Payload bandwidth:
+     $<span class="arithmatex">\(\text{Rate}_{S12} = 8192\text{ bytes} \times 5.00032\text{ frames/s} \approx 40,962.6\text{ B/s} \approx 40.96\text{ kB/s} \approx 0.041\text{ MB/s}\)</span>$</li>
+<li>
+<p>Data reduction ratio relative to <span class="arithmatex">\(80.0\text{ MB/s}\)</span> raw stream:
+     $<span class="arithmatex">\(\text{Reduction Ratio} = \frac{80,000,000\text{ B/s}}{40,962.6\text{ B/s}} \approx 1953.0\times \quad (99.9488\%\text{ reduction})\)</span>$</p>
+</li>
+<li>
+<p><strong>All Five UDP Telemetry Products Enabled (<span class="arithmatex">\(S_{12}, S_{11}, S_{22}, \text{Phase}, \text{Coherence}\)</span>):</strong></p>
+</li>
+<li>Combined payload per frame: <span class="arithmatex">\(5 \times 8192\text{ bytes} = 40,960\text{ bytes/frame}\)</span>.</li>
+<li>Aggregate telemetry egress rate:
+     $<span class="arithmatex">\(\text{Rate}_{\text{all}} = 40,960\text{ bytes} \times 5.00032\text{ frames/s} \approx 204,813\text{ B/s} \approx 204.81\text{ kB/s} \approx 0.205\text{ MB/s}\)</span>$</li>
+<li>
+<p>Data reduction ratio:
+     $<span class="arithmatex">\(\text{Reduction Ratio} = \frac{80,000,000\text{ B/s}}{204,813\text{ B/s}} \approx 390.6\times \quad (99.744\%\text{ reduction})\)</span>$</p>
+</li>
+<li>
+<p><strong>Storage Pipeline Egress:</strong></p>
+</li>
+<li>Governed dynamically by the JSON configuration schema via <code>--config</code> (<code>save_freq_bins</code>, <code>save_interval_sec</code>).</li>
+<li><em>Confirmed Behavior:</em> Bins are downsampled to <code>save_freq_bins</code> and averaged across <code>save_interval_sec</code>. Egress bandwidth is dependent entirely on user-defined aggregation parameters.</li>
+</ol>
+<hr />
+<h2 id="section-2-process-ipc-architecture">Section 2 — Process &amp; IPC Architecture<a class="headerlink" href="#section-2-process-ipc-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="process-hierarchy-shared-memory-topology">Process Hierarchy &amp; Shared Memory Topology<a class="headerlink" href="#process-hierarchy-shared-memory-topology" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>+-----------------------------------------------------------------------------------------+
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>|                                  PARENT PROCESS (MAIN)                                  |
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>| - Probe hardware -&gt; Map Serial Numbers -&gt; sdrplay_api_Close()                           |
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>| - Acquire SingleInstanceLock("/tmp/solar_correlator.lock")                              |
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>| - fork() -&gt; Child 1 &amp; Child 2                                                           |
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>| - Attach SHM RingBuffers 1 &amp; 2 -&gt; Await is_ready() -&gt; Dispatch set_start_stream(true)   |
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>| - Welch FX Correlator (F-Engine/X-Engine) -&gt; UDP Dispatcher -&gt; Archival Storage         |
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>+-----------------------------------------------------------------------------------------+
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>       |                                                            |
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>       | fork()                                                     | fork()
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>       v                                                            v
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>+----------------------------------+         +----------------------------------+
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>|     CHILD 1 PRODUCER PROCESS     |         |     CHILD 2 PRODUCER PROCESS     |
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>| - close_in_child(lock)           |         | - close_in_child(lock)           |
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>| - Open SHM CH1 (Producer)        |         | - Open SHM CH2 (Producer)        |
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>| - sdrplay_api_Open()             |         | - sdrplay_api_Open()             |
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>| - SelectDevice(Serial 1)         |         | - SelectDevice(Serial 2)         |
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>| - sdrplay_api_Init()             |         | - sdrplay_api_Init()             |
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>| - set_ready(true)                |         | - set_ready(true)                |
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>+----------------------------------+         +----------------------------------+
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>       |                                                            |
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>       | Write samples via Stream Callback                          | Write samples via Stream Callback
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>       v                                                            v
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>+----------------------------------+         +----------------------------------+
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>|      POSIX SHM: CH1_NAME         |         |      POSIX SHM: CH2_NAME         |
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>|  Lock-Free SPSC Ring Buffer      |         |  Lock-Free SPSC Ring Buffer      |
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>|  Capacity: 2^22 complex samples  |         |  Capacity: 2^22 complex samples  |
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>|  Head (Producer) / Tail (Parent) |         |  Head (Producer) / Tail (Parent) |
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>+----------------------------------+         +----------------------------------+
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>       ^                                                            ^
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>       |                                                            |
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>       +-------------------- Read samples by Parent ----------------+
+</code></pre></div>
+<h3 id="device-enumeration-multi-process-decoupling">Device Enumeration &amp; Multi-Process Decoupling<a class="headerlink" href="#device-enumeration-multi-process-decoupling" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Pre-fork Hardware Probing:</strong>
+   The parent process opens the SDRplay API service, locks the device table via <code>sdrplay_api_LockDeviceApi()</code>, queries available RSPdx units using <code>sdrplay_api_GetDevices()</code>, verifies or maps serial numbers, and <strong>explicitly closes the API</strong> with <code>sdrplay_api_Close()</code> prior to executing <code>fork()</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Excerpt: src/main.cpp (main)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">sdrplay_api_UnlockDeviceApi</span><span class="p">();</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">// ... serial matching logic ...</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">sdrplay_api_Close</span><span class="p">();</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ser_ch1</span><span class="p">;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ser_ch2</span><span class="p">;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1">// ... channel serial assignment ...</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">ChildProcessGuard</span><span class="w"> </span><span class="n">children</span><span class="p">;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">children</span><span class="p">.</span><span class="n">pid1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="n">fork</span><span class="p">();</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">children</span><span class="p">.</span><span class="n">pid1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="n">instance_lock</span><span class="p">.</span><span class="n">close_in_child</span><span class="p">();</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="n">run_sdr_producer_process</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ser_ch1</span><span class="p">,</span><span class="w"> </span><span class="n">SolarConfig</span><span class="o">::</span><span class="n">SHM</span><span class="o">::</span><span class="n">CH1_NAME</span><span class="p">);</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">}</span>
+</code></pre></div>
+   <em>Design Rationale:</em> The proprietary SDRplay API runtime daemon communicates with client applications via internal IPC domains/sockets. Closing the API handle before <code>fork()</code> ensures child processes do not inherit active file descriptors or corrupted socket state [Inference based on multi-process POSIX socket behavior].</p>
+</li>
+<li>
+<p><strong>Independent Child Acquisition:</strong>
+   Each child independently invokes <code>sdrplay_api_Open()</code>, locks the service, matches its designated serial string, calls <code>sdrplay_api_SelectDevice()</code>, configures RF parameters, and initializes the device stream via <code>sdrplay_api_Init()</code>.</p>
+</li>
+<li>
+<p><strong>State Flag Differentiation:</strong></p>
+</li>
+<li><strong>Device <code>Init</code> Completed:</strong> <code>sdrplay_api_Init()</code> returns <code>sdrplay_api_Success</code>. The driver threads commence packet ingestion.</li>
+<li><strong>Hardware Ready Flag (<code>is_ready()</code>):</strong> Set to <code>true</code> by the child producer process only after <code>sdrplay_api_Init()</code> succeeds. Signifies to the parent that hardware registers are initialized.</li>
+<li><strong>Stream Write Gate (<code>is_stream_started()</code>):</strong> Initialized to <code>false</code>. The stream callback discards incoming USB samples until the parent process issues <code>rb.set_start_stream(true)</code>.</li>
+<li><strong>Sample Aligned Flag (<code>is_sample_aligned</code>):</strong> Internal parent supervisor boolean, set to <code>true</code> exclusively when coarse cross-correlation achieves zero residual sample offset (<span class="arithmatex">\(k_{\text{residual}} = 0\)</span>).</li>
+</ol>
+<h3 id="stream-callback-verification-sample-discontinuity-detection">Stream Callback Verification &amp; Sample Discontinuity Detection<a class="headerlink" href="#stream-callback-verification-sample-discontinuity-detection" title="Permanent link">&para;</a></h3>
+<p>The high-throughput callback <code>sdr_stream_callback</code> executes within the SDRplay driver thread context. It rigorously validates sample packet continuity:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// Excerpt: src/main.cpp (sdr_stream_callback)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">sdr_stream_callback</span><span class="p">(</span><span class="kt">short</span><span class="o">*</span><span class="w"> </span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="kt">short</span><span class="o">*</span><span class="w"> </span><span class="n">xq</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">                         </span><span class="n">sdrplay_api_StreamCbParamsT</span><span class="o">*</span><span class="w"> </span><span class="n">params</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">                         </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">numSamples</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">reset</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">cbContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">StreamContext</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">cbContext</span><span class="p">);</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ctx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">ring</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">g_child_running</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_relaxed</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">rb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">ring</span><span class="p">;</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">rb</span><span class="p">.</span><span class="n">is_stream_started</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">fail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">rb</span><span class="p">.</span><span class="n">set_ready</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="n">g_child_running</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_relaxed</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">reset</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fail</span><span class="p">();</span><span class="w"> </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">numSamples</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">have_expected</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">params</span><span class="o">-&gt;</span><span class="n">firstSampleNum</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">expected_sample</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fail</span><span class="p">();</span><span class="w"> </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">expected_sample</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="o">-&gt;</span><span class="n">firstSampleNum</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">numSamples</span><span class="p">);</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="n">ctx</span><span class="o">-&gt;</span><span class="n">have_expected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rb</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">xq</span><span class="p">,</span><span class="w"> </span><span class="n">numSamples</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">numSamples</span><span class="p">)</span><span class="w"> </span><span class="n">fail</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="k">catch</span><span class="w"> </span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fail</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>Hardware Reset Detection:</strong> If <code>reset != 0</code> (indicating USB packet loss, clock re-lock, or driver resynchronization), the callback invokes <code>fail()</code>, invalidates <code>ready</code>, and terminates the child.</li>
+<li><strong>Sample Continuity Verification (<code>firstSampleNum</code>):</strong> The driver-supplied <code>params-&gt;firstSampleNum</code> is validated against <code>ctx-&gt;expected_sample</code>. A mismatch of even a single sample triggers an immediate fail-closed abort.</li>
+<li><strong>Short Write / Buffer Overflow:</strong> If <code>rb.write()</code> fails to write all <code>numSamples</code> into the ring buffer, <code>fail()</code> is triggered immediately.</li>
+<li><strong>Event Callback (<code>sdr_event_callback</code>):</strong>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// Excerpt: src/main.cpp (sdr_event_callback)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">sdr_event_callback</span><span class="p">([[</span><span class="na">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="n">sdrplay_api_EventT</span><span class="w"> </span><span class="n">eventId</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">                        </span><span class="p">[[</span><span class="na">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="n">sdrplay_api_TunerSelectT</span><span class="w"> </span><span class="n">tuner</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">                        </span><span class="p">[[</span><span class="na">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="n">sdrplay_api_EventParamsT</span><span class="o">*</span><span class="w"> </span><span class="n">params</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">                        </span><span class="p">[[</span><span class="na">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">cbContext</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+</code></pre></div>
+  <em>Confirmed Behavior:</em> Hardware events (such as ADC overload, gain changes, or PLL unlock notifications) are currently unhandled and discarded.</li>
+</ul>
+<h3 id="lock-free-spsc-ring-buffer-over-posix-shared-memory">Lock-Free SPSC Ring Buffer over POSIX Shared Memory<a class="headerlink" href="#lock-free-spsc-ring-buffer-over-posix-shared-memory" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Ownership &amp; Mutex-Free Synchronization:</strong> Implements a single-producer single-consumer circular buffer. The child producer exclusively mutates the <code>head</code> index; the parent consumer exclusively mutates the <code>tail</code> index.</li>
+<li><strong>Memory Ordering on ARM64:</strong> On Raspberry Pi 5 (quad-core ARM Cortex-A76, ARMv8.2-A), atomic operations on 32-bit and 64-bit primitives are natively lock-free. Memory consistency is maintained via Acquire-Release semantics (<code>LDAR</code>/<code>STLR</code> instructions) [Inference based on standard C++17 SPSC semantics].</li>
+<li><strong>Buffer Layout &amp; Lifecycle:</strong> Mapped into virtual memory under POSIX shared memory identifiers <code>/solar_correlator_ch1</code> and <code>/solar_correlator_ch2</code>. The parent guarantees isolation by unlinking both SHM names via <code>SharedMemoryRingBuffer::unlink_shm()</code> during initialization and upon shutdown.</li>
+</ul>
+<h3 id="single-instance-process-mutex-singleinstancelock">Single-Instance Process Mutex (<code>SingleInstanceLock</code>)<a class="headerlink" href="#single-instance-process-mutex-singleinstancelock" title="Permanent link">&para;</a></h3>
+<p>To prevent multiple instances from concurrently accessing SDRplay hardware or corrupting SHM nodes, <code>SingleInstanceLock</code> encapsulates an advisory file lock over <code>/tmp/solar_correlator.lock</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Excerpt: src/main.cpp (SingleInstanceLock::acquire)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kt">bool</span><span class="w"> </span><span class="nf">acquire</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span><span class="w"> </span><span class="n">err_msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="n">fd_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="n">open</span><span class="p">(</span><span class="n">lock_path_</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="n">O_CREAT</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_RDWR</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">O_CLOEXEC</span><span class="p">,</span><span class="w"> </span><span class="mo">0666</span><span class="p">);</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd_</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* handle error */</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">::</span><span class="n">flock</span><span class="p">(</span><span class="n">fd_</span><span class="p">,</span><span class="w"> </span><span class="n">LOCK_EX</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">LOCK_NB</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">errno</span><span class="p">;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">fd_</span><span class="p">);</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">        </span><span class="n">fd_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">        </span><span class="n">err_msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Another solar_correlator session is holding the lock ("</span><span class="w"> </span><span class="o">+</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">                  </span><span class="n">lock_path_</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">": "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">strerror</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"). Aborting to protect SHM!"</span><span class="p">;</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">    </span><span class="n">acquired_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">pid_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">to_string</span><span class="p">(</span><span class="o">::</span><span class="n">getpid</span><span class="p">())</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">::</span><span class="n">ftruncate</span><span class="p">(</span><span class="n">fd_</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">        </span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">fd_</span><span class="p">,</span><span class="w"> </span><span class="n">pid_str</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">pid_str</span><span class="p">.</span><span class="n">size</span><span class="p">())</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">ssize_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pid_str</span><span class="p">.</span><span class="n">size</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">        </span><span class="n">err_msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Unable to record lock owner PID"</span><span class="p">;</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">        </span><span class="n">release</span><span class="p">();</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>Mechanism:</strong> Employs non-blocking exclusive locking (<code>flock(fd, LOCK_EX | LOCK_NB)</code>). Records the owner PID into the file upon acquisition.</li>
+<li><strong>Child Descriptor Cleanup:</strong> Child processes execute <code>instance_lock.close_in_child()</code> immediately after <code>fork()</code>, closing inherited file descriptors without releasing the parent's lock.</li>
+<li><strong>Preservation of Inode:</strong> The file lock is unlocked via <code>flock(fd_, LOCK_UN)</code> upon destructor invocation. <em>The lock file is intentionally not unlinked</em>. Unlinking the inode while open would permit a competing process to create a distinct inode at the same pathname, breaking mutual exclusion.</li>
+</ul>
+<hr />
+<h2 id="section-3-system-state-machine-lifecycle">Section 3 — System State Machine &amp; Lifecycle<a class="headerlink" href="#section-3-system-state-machine-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="state-machine-transition-topology">State Machine Transition Topology<a class="headerlink" href="#state-machine-transition-topology" title="Permanent link">&para;</a></h3>
+<p>The system transitions across seven discrete states defined by <code>enum class SystemState</code>:</p>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; STARTUP : System Boot &amp; Parameter Validation
+    STARTUP --&gt; STOPPING : Hardware Error / SHM Timeout / SIGINT
+    STARTUP --&gt; UNALIGNED : Flag --skip-align / --no-align enabled
+    STARTUP --&gt; ALIGNING : Default startup path
+
+    ALIGNING --&gt; STOPPING : Continuity Loss / Retries Exhausted / Producer Fault
+    ALIGNING --&gt; CALIBRATING : Alignment Locked (k=0) &amp; --cal-phase enabled
+    ALIGNING --&gt; RUNNING : Alignment Locked (k=0) &amp; --cal-phase disabled
+
+    UNALIGNED --&gt; RUNNING : Observation Source Set &amp; Prime Buffers
+
+    CALIBRATING --&gt; STOPPING : Coherence Floor Failed / Buffer Overflow
+    CALIBRATING --&gt; RUNNING : Phase Vector phi_rad Locked
+
+    RUNNING --&gt; STOPPING : Producer Crash / Signal Received (SIGINT/SIGTERM)
+    RUNNING --&gt; RECOVERING : Cycle Interrupted / Buffer Overflow Detected
+
+    RECOVERING --&gt; STOPPING : is_phase_calibrated == true (Fail-Closed)
+    RECOVERING --&gt; STOPPING : is_sample_aligned == true (Fail-Closed)
+    RECOVERING --&gt; STOPPING : Diagnostic UNALIGNED retries &gt; 5
+    RECOVERING --&gt; RUNNING : Diagnostic Recovery OK (retries &lt;= 5)
+
+    STOPPING --&gt; [*] : Safe GPIO Release, Child Reaping &amp; SHM Unlink</code></pre>
+<h3 id="enumerations-display-strings-and-operational-flags">Enumerations, Display Strings, and Operational Flags<a class="headerlink" href="#enumerations-display-strings-and-operational-flags" title="Permanent link">&para;</a></h3>
+<p>The control logic differentiates internal state enumerations, UI reporting strings, and verification flags:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Internal Enum (<code>SystemState</code>)</th>
+<th style="text-align: left;">Flag <code>is_sample_aligned</code></th>
+<th style="text-align: left;">Flag <code>is_phase_calibrated</code></th>
+<th style="text-align: left;">Display String (<code>state_to_string</code>)</th>
+<th style="text-align: left;">Operational Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>STARTUP</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"STARTUP"</code></td>
+<td style="text-align: left;">Initializing memory, probing SDRs, preallocating DSP pipelines.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>ALIGNING</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"ALIGNING"</code></td>
+<td style="text-align: left;">Cross-correlating reference noise snapshots to eliminate delay <span class="arithmatex">\(k\)</span>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>UNALIGNED</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"UNALIGNED"</code></td>
+<td style="text-align: left;">Delay alignment bypassed via <code>--skip-align</code> (diagnostic mode).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CALIBRATING</code></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"CALIBRATING"</code></td>
+<td style="text-align: left;">Integrating noise periodograms to compute instrumental phase vector <span class="arithmatex">\(\phi_{\text{cal}}[k]\)</span>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RUNNING</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"UNALIGNED"</code></td>
+<td style="text-align: left;">Correlating live data without sample alignment verification.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RUNNING</code></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>"ALIGNED"</code></td>
+<td style="text-align: left;">Production correlation with integer alignment locked (<span class="arithmatex">\(k = 0\)</span>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RUNNING</code></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>"ALIGNED+CAL"</code></td>
+<td style="text-align: left;">Production correlation with integer delay locked and phase vector applied.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>RECOVERING</code></td>
+<td style="text-align: left;">(preserved)</td>
+<td style="text-align: left;">(preserved)</td>
+<td style="text-align: left;"><code>"RECOVERING"</code></td>
+<td style="text-align: left;">Interrupted integration or ring buffer overflow detected.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>STOPPING</code></td>
+<td style="text-align: left;">(any)</td>
+<td style="text-align: left;">(any)</td>
+<td style="text-align: left;"><code>"STOPPING"</code></td>
+<td style="text-align: left;">Graceful termination, child teardown, and resource unlinking.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hardware-control-protective-guards">Hardware Control &amp; Protective Guards<a class="headerlink" href="#hardware-control-protective-guards" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>GPIO Allocations:</strong></li>
+<li><code>SolarConfig::Hardware::PIN_RF_SWITCH</code> (GPIO 6): High-frequency RF switch directing receiver inputs between noise calibration and antenna feeds.</li>
+<li><code>SolarConfig::Hardware::PIN_NOISE_SOURCE</code> (GPIO 26): Power gate for the broadband reference noise diode.</li>
+<li><strong>Control Interface:</strong> Invokes the Raspberry Pi utility <code>pinctrl set &lt;pin&gt; op &lt;dh|dl&gt;</code> via <code>std::system()</code>.</li>
+<li><strong>Logic Polarity:</strong> Logic <code>HIGH</code> (<code>dh</code>) engages the noise source and connects the RF switch to the splitter; Logic <code>LOW</code> (<code>dl</code>) turns off the noise source and connects to the antenna feeds.</li>
+<li><strong>Fail-Safe Scoping (<code>HardwareGuard</code> &amp; <code>SafeGpioOnExit</code>):</strong>
+  <code>force_antenna_off()</code> commands both pins to <code>LOW</code>. The RAII struct <code>SafeGpioOnExit</code> guarantees that regardless of exceptions or stack unwinding, <code>force_antenna_off()</code> is executed.</li>
+<li><em>Physical Limitation:</em> Issuing shell commands to <code>pinctrl</code> confirms only that the Linux kernel processed the pin state request; it does not provide closed-loop telemetry confirming actual relay contact closure or noise diode bias current.</li>
+</ul>
+<h3 id="startup-pipeline-dsp-preallocation">Startup Pipeline &amp; DSP Preallocation<a class="headerlink" href="#startup-pipeline-dsp-preallocation" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Pre-Stream DSP Allocation:</strong>
+   The parent initializes <code>FXCorrelator</code> (triggering FFTW plan generation via <code>FFTW_MEASURE</code>), constructs <code>TimeAligner</code>, instantiates <code>TelemetrySender</code>, and allocates storage buffers <strong>prior to opening the SHM stream gate</strong>.
+   <em>Design Rationale:</em> Prevents 80 MB/s incoming sample streams from overflowing the ring buffers while the CPU is executing intensive FFTW planning benchmarks.</li>
+<li><strong>Warm-up &amp; Flush Procedure:</strong>
+   Once both child producers report <code>rb1.is_ready()</code> and <code>rb2.is_ready()</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// Excerpt: src/main.cpp (main)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">rb1</span><span class="p">.</span><span class="n">set_start_stream</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">rb2</span><span class="p">.</span><span class="n">set_start_stream</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1">// 200 ms settling delay for DMA stabilization</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="p">(</span><span class="mi">200</span><span class="p">));</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">rb1</span><span class="p">.</span><span class="n">flush</span><span class="p">();</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">rb2</span><span class="p">.</span><span class="n">flush</span><span class="p">();</span>
+</code></pre></div>
+   Flushing purges unaligned sample transients accumulated during driver startup.</li>
+</ol>
+<h3 id="time-alignment-procedure">Time Alignment Procedure<a class="headerlink" href="#time-alignment-procedure" title="Permanent link">&para;</a></h3>
+<p>Executed within <code>ALIGNING</code> via <code>StartupAlignment::acquire()</code>:
+- Captures snapshots of <span class="arithmatex">\(65,536\)</span> samples simultaneously from both channel buffers.
+- <code>TimeAligner::measure_offset_from_buffers()</code> computes time-domain cross-correlation to estimate sample lag <span class="arithmatex">\(k\)</span>.
+- <strong>Acceptance Criterion:</strong> <code>options.max_residual_samples = 0</code>. The system strictly requires exact integer-sample convergence:
+  $<span class="arithmatex">\(k_{\text{residual}} = 0\)</span>$
+- <strong>Retry Bounds:</strong> Up to <code>cli.max_align_retries</code> attempts (default 8). Failure to lock within this limit triggers an immediate runtime exception.
+- <em>Physical Meaning:</em> Achieving <span class="arithmatex">\(k_{\text{residual}} = 0\)</span> confirms that sample frame boundaries between channels are matched to within one sample period (<span class="arithmatex">\(\Delta t = 1/f_s = 100\text{ ns}\)</span>). This <strong>does not imply</strong> zero fractional delay, nor does it guarantee absence of long-term local oscillator phase drift.</p>
+<h3 id="static-phase-calibration-cal-phase">Static Phase Calibration (<code>--cal-phase</code>)<a class="headerlink" href="#static-phase-calibration-cal-phase" title="Permanent link">&para;</a></h3>
+<p>When <code>--cal-phase</code> is supplied, the system enters <code>CALIBRATING</code>:
+1. Maintains noise source and RF calibration switch in the active state.
+2. Executes <code>prime_buffers()</code> to load the initial 50% overlap.
+3. Runs exactly <strong>one full Welch integration cycle</strong> (<span class="arithmatex">\(1953\)</span> frames) via <code>invoke_integration_cycle()</code> to produce phase spectrum <span class="arithmatex">\(\theta_{\text{meas}}[k]\)</span> and coherence amplitude <span class="arithmatex">\(\gamma[k]\)</span>.
+4. Confirms zero buffer overflows occurred during calibration (<span class="arithmatex">\(ov_{\text{after}} == ov_{\text{before}}\)</span>).
+5. <strong>Bin Masking &amp; Coherence Validation:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">// Excerpt: src/main.cpp (main)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">kMinCalCoherence</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.10f</span><span class="p">;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kt">size_t</span><span class="w"> </span><span class="n">locked_phase_bins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1">// ...</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_bins</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">isfinite</span><span class="p">(</span><span class="n">phase_rad</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coherence</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"[FAIL-CLOSED] Non-finite phase/coherence during calibration!"</span><span class="p">);</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="n">mean_coherence</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">coherence</span><span class="p">[</span><span class="n">k</span><span class="p">]);</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">coherence</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">kMinCalCoherence</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">        </span><span class="n">phi_rad</span><span class="p">[(</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n_bins</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">n_bins</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">phase_rad</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">        </span><span class="n">locked_phase_bins</span><span class="o">++</span><span class="p">;</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">        </span><span class="n">phi_rad</span><span class="p">[(</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n_bins</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">n_bins</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="p">}</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">locked_phase_bins</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"[FAIL-CLOSED] Zero frequency bins met Coherence &gt;= 0.10 threshold!"</span><span class="p">);</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="p">}</span>
+</code></pre></div>
+   - Threshold: <span class="arithmatex">\(\gamma[k] \ge 0.10\)</span>.
+   - Failing bins are clamped to correction phase <span class="arithmatex">\(\phi_{\text{cal}} = 0.0\text{ rad}\)</span>.
+   - FFT Shift Mapping: The output array <code>phase_rad[k]</code> is DC-centered; the correction vector <code>phi_rad</code> is indexed in natural FFT order. Index transformation <code>(k + n_bins / 2) % n_bins</code> correctly maps the frequencies.
+   - Fail-Closed Abort: Any non-finite value (<code>NaN</code>/<code>Inf</code>) or total failure to obtain at least one bin meeting coherence terminates execution.</p>
+<h3 id="observation-source-transition-skip_pair-watermark">Observation Source Transition &amp; <code>skip_pair()</code> Watermark<a class="headerlink" href="#observation-source-transition-skip_pair-watermark" title="Permanent link">&para;</a></h3>
+<p>Following alignment or calibration, the supervisor commands the hardware to switch to <code>--input-source</code> (default <code>antenna</code>):
+1. Disables <code>HardwareGuard</code> and drives GPIOs to target states.
+2. Sleeps for <code>SWITCH_SETTLE_MS</code> (or <code>WARMUP_DELAY_MS</code>) to allow RF transients to decay.
+3. <strong>Paired Watermark Sample Discard (<code>skip_pair()</code>):</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// Excerpt: src/main.cpp (main)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">boundary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">rb1</span><span class="p">.</span><span class="n">available_read</span><span class="p">(),</span><span class="w"> </span><span class="n">rb2</span><span class="p">.</span><span class="n">available_read</span><span class="p">());</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">skip_pair</span><span class="p">(</span><span class="n">boundary</span><span class="p">);</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">check_alignment_health</span><span class="p">();</span>
+</code></pre></div>
+   Reads the maximum available sample backlog across both channels and advances both ring buffer read pointers by that exact count.
+   <em>Physical Boundary Limitation:</em> This establishes an identical watermark across the shared memory ring buffers. It <strong>cannot flush</strong> in-flight samples already buffered in the SDRplay kernel/USB hardware pipelines at the moment of GPIO switching.
+4. Re-executes <code>prime_buffers()</code> to seed the 50% overlap state prior to entering <code>RUNNING</code>.</p>
+<hr />
+<h2 id="section-4-fx-correlator-dataflow-pipeline">Section 4 — FX Correlator &amp; Dataflow Pipeline<a class="headerlink" href="#section-4-fx-correlator-dataflow-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="end-to-end-dataflow-diagram">End-to-End Dataflow Diagram<a class="headerlink" href="#end-to-end-dataflow-diagram" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>[ Dual Antennas ] or [ Noise Calibration Standard ]
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>             |
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>             v
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>|  SDRplay RSPdx Channel 1 |     |  SDRplay RSPdx Channel 2 |
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>|  LO = 35 MHz, fs = 10 MHz|     |  LO = 35 MHz, fs = 10 MHz|
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>             |                                |
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>             | USB 3.0 Packets                | USB 3.0 Packets
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>             v                                v
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>| Stream Callback Ch 1     |     | Stream Callback Ch 2     |
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>             |                                |
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>             v                                v
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>| POSIX SHM Ring CH1       |     | POSIX SHM Ring CH2       |
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>+--------------------------+     +--------------------------+
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>             \                                /
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>              \                              /
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>               v                            v
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>       +--------------------------------------------+
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>       | prime_buffers(): Read N - H = 1024 samples |
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>       +--------------------------------------------+
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>                             |
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                             v
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>       +--------------------------------------------+
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>       | WELCH LOOP (M = 1953 FRAMES)               |
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>       | Read H = 1024 new samples + 1024 overlap   |
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>       | Symmetric Hann Window w[n]                 |
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>       | FFTW Plan 1D (2048 points) -&gt; X1[k], X2[k] |
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>       +--------------------------------------------+
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>                             |
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>              +--------------+--------------+
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>              |                             |
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>              v (Auto-power)                v (Cross-power &amp; Cal)
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>       +--------------+             +----------------------------------+
+<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>       | |X1|^2, |X2|^2|             | C12 = X1 * conj(X2) * exp(-j*phi)|
+<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a>       +--------------+             +----------------------------------+
+<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a>              |                             |
+<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a>              +--------------+--------------+
+<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a>                             |
+<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a>                             v
+<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a>       +--------------------------------------------+
+<a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a>       | INTEGRATION &amp; NORMALIZATION                |
+<a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a>       | Scaling: M * N * sum(w^2)                  |
+<a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a>       | FFT Shift: DC to bin N/2 (k = 1024)        |
+<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a>       | Coherence: gamma = |S12| / sqrt(S11 * S22) |
+<a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a>       | Decibel scale: 10 * log10(max(P, 1e-12))   |
+<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a>       +--------------------------------------------+
+<a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a>                             |
+<a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a>              +--------------+--------------+
+<a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a>              |                             |
+<a id="__codelineno-9-54" name="__codelineno-9-54" href="#__codelineno-9-54"></a>              v                             v
+<a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a>       +---------------------+       +---------------------+
+<a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a>       | Multi-port SOL2 v3  |       | Archival Storage    |
+<a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a>       | UDP Telemetry       |       | (Optional Pipeline) |
+<a id="__codelineno-9-58" name="__codelineno-9-58" href="#__codelineno-9-58"></a>       +---------------------+       +---------------------+
+</code></pre></div>
+<p><em>Build Platform Note:</em> On Raspberry Pi 5 (ARM Cortex-A76), SIMD vectorization utilizes ARM NEON when linked with an FFTW3 library compiled with <code>--enable-neon</code>.</p>
+<h3 id="dsp-implementation-specifics">DSP Implementation Specifics<a class="headerlink" href="#dsp-implementation-specifics" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Overlap Seeding (<code>prime_buffers()</code>):</strong>
+   To sustain continuous 50% Welch overlap (<span class="arithmatex">\(N = 2048, H = 1024\)</span>), <code>prime_buffers()</code> ingests the initial <span class="arithmatex">\(N - H = 1024\)</span> samples from each ring buffer into internal history buffers. Each subsequent frame reads <span class="arithmatex">\(H = 1024\)</span> fresh samples, concatenating them with the historical segment.</li>
+<li><strong>Window Function:</strong>
+   Applies a symmetric Hann window of length <span class="arithmatex">\(N = 2048\)</span>:
+   $<span class="arithmatex">\(w[n] = 0.5 - 0.5 \cos\left(\frac{2\pi n}{N - 1}\right), \quad n = 0, 1, \dots, N-1\)</span>$
+   The exact accumulated window energy <span class="arithmatex">\(W_{\text{ss}} = \sum_{n=0}^{N-1} w[n]^2\)</span> is computed directly from floating-point coefficients and included in the normalization factor.</li>
+<li><strong>Cross-Correlation &amp; Phase Correction:</strong>
+   For frame <span class="arithmatex">\(m\)</span> (<span class="arithmatex">\(m = 0 \dots M-1\)</span>) at bin <span class="arithmatex">\(k\)</span>, the cross-spectral product incorporates complex conjugation of Channel 2 and the calibration phase rotation vector:
+   $<span class="arithmatex">\(C_{12,m}[k] = X_{1,m}[k] \cdot X_{2,m}^*[k] \cdot e^{-j \phi_{\text{cal}}[k]}\)</span>$</li>
+<li><strong>Integration &amp; Energy Normalization:</strong>
+   The accumulated cross-power spectrum is normalized by integration frame count <span class="arithmatex">\(M\)</span>, transform size <span class="arithmatex">\(N\)</span>, and window energy:
+   $<span class="arithmatex">\(S_{12}[k] = \frac{1}{M \cdot N \cdot \sum_{n=0}^{N-1} w[n]^2} \sum_{m=0}^{M-1} C_{12,m}[k]\)</span>$
+   Auto-power spectra <span class="arithmatex">\(S_{11}[k]\)</span> and <span class="arithmatex">\(S_{22}[k]\)</span> are computed analogously from <span class="arithmatex">\(|X_{1,m}[k]|^2\)</span> and <span class="arithmatex">\(|X_{2,m}[k]|^2\)</span>.</li>
+<li><strong>Coherence Formulation:</strong>
+   Coherence is evaluated as <strong>amplitude coherence (gamma)</strong> <span class="arithmatex">\(\gamma[k]\)</span>, not magnitude-squared coherence (<span class="arithmatex">\(\gamma^2\)</span>):
+   $<span class="arithmatex">\(\gamma[k] = \frac{\left|S_{12}[k]\right|}{\sqrt{S_{11}[k] \cdot S_{22}[k]}}\)</span>$
+   The resulting metric <span class="arithmatex">\(\gamma[k]\)</span> is bounded strictly within <span class="arithmatex">\([0.0, 1.0]\)</span>.</li>
+<li><strong>Decibel Conversion &amp; Clamping Policy:</strong>
+   Linear auto-power and cross-power spectra are mapped to decibels with a <span class="arithmatex">\(10^{-12}\)</span> lower bound clamp:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// Excerpt: src/main.cpp (convert_linear_auto_power_to_db)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">convert_linear_auto_power_to_db</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">linear_val</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">                                     </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out_db</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">linear_val</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">out_db</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">linear_val</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">clamped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="mf">1e-12</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">1e-12</span><span class="p">;</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">        </span><span class="n">out_db</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">10.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">log10</span><span class="p">(</span><span class="n">clamped</span><span class="p">));</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">}</span>
+</code></pre></div></li>
+<li>Mathematical formula:
+     $<span class="arithmatex">\(P_{\text{dB}}[k] = 10 \log_{10}\left(\max\left(P[k], 10^{-12}\right)\right)\)</span>$</li>
+<li><em>Non-finite Value Policy:</em> Any <code>NaN</code>, <code>+Inf</code>, <code>-Inf</code>, or negative values are clamped to <span class="arithmatex">\(10^{-12}\)</span>, corresponding to a fixed floor of <span class="arithmatex">\(-120.0\text{ dB}\)</span>.</li>
+<li><em>Physical Units:</em> Spectral power units are uncalibrated <span class="arithmatex">\(\text{ADC-count}^2\)</span> per FFT bin. They do <strong>not</strong> represent absolute milliwatts (<span class="arithmatex">\(\text{dBm}\)</span>) or calibrated astronomical flux units (Jansky).</li>
+</ol>
+<h3 id="frequency-bin-mapping-spectral-resolution">Frequency Bin Mapping &amp; Spectral Resolution<a class="headerlink" href="#frequency-bin-mapping-spectral-resolution" title="Permanent link">&para;</a></h3>
+<p>FFT shift is performed to center the local oscillator (zero intermediate frequency) at bin <span class="arithmatex">\(k = N/2 = 1024\)</span>.
+The physical center frequency for bin <span class="arithmatex">\(k \in [0, N-1]\)</span> is given by:
+$<span class="arithmatex">\(f[k] = f_c + \left(k - \frac{N}{2}\right) \frac{f_s}{N}\)</span>$</p>
+<p>Substituting actual system parameters (<span class="arithmatex">\(f_c = 35.0\text{ MHz}\)</span>, <span class="arithmatex">\(f_s = 10.0\text{ MSPS}\)</span>, <span class="arithmatex">\(N = 2048\)</span>):
+- <strong>Bin Width (Frequency Resolution):</strong>
+  $<span class="arithmatex">\(\Delta f = \frac{f_s}{N} = \frac{10,000,000\text{ Hz}}{2048} = 4882.8125\text{ Hz} = 4.8828125\text{ kHz}\)</span>$
+- <strong>First Bin Center (<span class="arithmatex">\(k = 0\)</span>):</strong>
+  $<span class="arithmatex">\(f[0] = 35.0\text{ MHz} + (0 - 1024) \times 4.8828125\text{ kHz} = 30.0000000\text{ MHz}\)</span>$
+- <strong>Center / DC Bin (<span class="arithmatex">\(k = 1024\)</span>):</strong>
+  $<span class="arithmatex">\(f[1024] = 35.0\text{ MHz} + (1024 - 1024) \times 4.8828125\text{ kHz} = 35.0000000\text{ MHz}\)</span>$
+- <strong>Final Bin Center (<span class="arithmatex">\(k = 2047\)</span>):</strong>
+  $<span class="arithmatex">\(f[2047] = 35.0\text{ MHz} + (2047 - 1024) \times 4.8828125\text{ kHz} = 39.9951171875\text{ MHz}\)</span>$</p>
+<p><em>Nyquist Edge vs. Bin Center:</em> The nominal double-sided Nyquist span extends from <span class="arithmatex">\(30.0000000\text{ MHz}\)</span> to <span class="arithmatex">\(40.0000000\text{ MHz}\)</span>. The center of the highest bin (<span class="arithmatex">\(k=2047\)</span>) resides at <span class="arithmatex">\(39.9951171875\text{ MHz}\)</span>, with its upper edge extending to:
+$<span class="arithmatex">\(39.9951171875\text{ MHz} + \frac{4.8828125\text{ kHz}}{2} = 39.99755859375\text{ MHz}\)</span>$</p>
+<h3 id="welch-temporal-geometry">Welch Temporal Geometry<a class="headerlink" href="#welch-temporal-geometry" title="Permanent link">&para;</a></h3>
+<p>A clear distinction must be maintained between temporal stream advance, total data support window, and CPU wall-clock execution time:</p>
+<ol>
+<li><strong>Advance Time (<span class="arithmatex">\(T_{\text{advance}}\)</span>):</strong>
+   $<span class="arithmatex">\(T_{\text{advance}} = \frac{M \cdot H}{f_s} = \frac{1953 \times 1024}{10,000,000} = 0.1999872\text{ s}\)</span>$
+   The time separation between the leading edges of consecutive integration blocks.</li>
+<li><strong>Support Time (<span class="arithmatex">\(T_{\text{support}}\)</span>):</strong>
+   $<span class="arithmatex">\(T_{\text{support}} = \frac{N + (M - 1) H}{f_s} = \frac{2048 + (1953 - 1) \times 1024}{10,000,000} = \frac{2,000,896}{10,000,000} = 0.2000896\text{ s}\)</span>$
+   The complete physical duration of the time-domain signal contributing to an integrated frame (exceeding <span class="arithmatex">\(T_{\text{advance}}\)</span> by exactly <span class="arithmatex">\(1024\text{ samples} \equiv 100\text{ \mu s}\)</span> due to initial window overlap).</li>
+<li><strong>CPU Execution Wall-Clock Time:</strong>
+   The elapsed processing time spent by the Raspberry Pi 5 executing <code>invoke_integration_cycle()</code>. To sustain real-time operation without ring buffer overflow, the execution time must strictly satisfy:
+   $<span class="arithmatex">\(T_{\text{CPU}} &lt; T_{\text{advance}} \quad (\approx 200\text{ ms})\)</span>$</li>
+</ol>
+<hr />
+<h2 id="section-5-udp-telemetry-storage-subsystem">Section 5 — UDP Telemetry &amp; Storage Subsystem<a class="headerlink" href="#section-5-udp-telemetry-storage-subsystem" title="Permanent link">&para;</a></h2>
+<h3 id="network-port-configuration">Network Port Configuration<a class="headerlink" href="#network-port-configuration" title="Permanent link">&para;</a></h3>
+<p>The SOL2 v3 protocol distributes data products across up to five independent UDP destination ports:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Product Stream</th>
+<th style="text-align: left;">CLI Flag</th>
+<th style="text-align: left;">Default Port</th>
+<th style="text-align: left;">Active Condition / Disable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">**Cross-Power $</td>
+<td style="text-align: left;">S_{12}</td>
+<td style="text-align: left;">$ (dB)**</td>
+<td style="text-align: left;"><code>--port-s12</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Auto-Power <span class="arithmatex">\(S_{11}\)</span> (dB)</strong></td>
+<td style="text-align: left;"><code>--port-s11</code></td>
+<td style="text-align: left;"><code>9997</code> (via config)</td>
+<td style="text-align: left;">Port <code>0</code> disables; default enabled.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Auto-Power <span class="arithmatex">\(S_{22}\)</span> (dB)</strong></td>
+<td style="text-align: left;"><code>--port-s22</code></td>
+<td style="text-align: left;"><code>9998</code> (via config)</td>
+<td style="text-align: left;">Port <code>0</code> disables; default enabled.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cross-Phase (rad)</strong></td>
+<td style="text-align: left;"><code>--port-phase</code></td>
+<td style="text-align: left;"><code>9996</code></td>
+<td style="text-align: left;">Port <code>0</code> disables; default enabled.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Coherence (<span class="arithmatex">\(\gamma\)</span>)</strong></td>
+<td style="text-align: left;"><code>--port-coherence</code></td>
+<td style="text-align: left;"><code>9995</code></td>
+<td style="text-align: left;">Port <code>0</code> disables; default enabled.</td>
+</tr>
+</tbody>
+</table>
+<p><em>Protocol Deprecation Notice:</em> Legacy SOL2 v2 flags <code>--port-aux</code> and <code>--aux-mode</code> are explicitly rejected by the CLI validator with an instructive error message.</p>
+<h3 id="sol2-v3-udp-protocol-characteristics">SOL2 v3 UDP Protocol Characteristics<a class="headerlink" href="#sol2-v3-udp-protocol-characteristics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Packet Chunking &amp; Fragmentation:</strong> A vector of <span class="arithmatex">\(2048\)</span> floating-point bins (<span class="arithmatex">\(8192\text{ bytes}\)</span>) exceeds the standard Ethernet MTU (<span class="arithmatex">\(1500\text{ bytes}\)</span>). The <code>TelemetrySender</code> partitions each spectral payload into multiple chunk datagrams.</li>
+<li><strong>Header &amp; Sequencing:</strong> Header fields encode <code>session_id</code>, <code>frame_id</code>, total chunk count, current chunk index, payload type discriminator (<code>Payload::S12</code>, <code>S11</code>, <code>S22</code>, <code>Phase</code>, <code>Coherence</code>), and microsecond timestamp <code>timestamp_us</code>.</li>
+<li><strong>Egress Accounting:</strong>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// Excerpt: src/main.cpp (api_bridge::accumulate_telemetry_result)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">accumulate_telemetry_result</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">TelemetrySender</span><span class="o">::</span><span class="n">Result</span><span class="o">&amp;</span><span class="w"> </span><span class="n">res</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">                                        </span><span class="n">PortTelemetryStats</span><span class="o">&amp;</span><span class="w"> </span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="n">st</span><span class="p">.</span><span class="n">chunks_sent_total</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">res</span><span class="p">.</span><span class="n">datagrams</span><span class="p">;</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">res</span><span class="p">.</span><span class="n">queued</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="n">st</span><span class="p">.</span><span class="n">frames_complete</span><span class="p">;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">        </span><span class="o">++</span><span class="n">st</span><span class="p">.</span><span class="n">send_errors</span><span class="p">;</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">res</span><span class="p">.</span><span class="n">datagrams</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="n">st</span><span class="p">.</span><span class="n">frames_partial</span><span class="p">;</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">}</span>
+</code></pre></div>
+  The pipeline tracks completed frames (<code>frames_complete</code>), truncated transfers (<code>frames_partial</code>), and socket enqueue errors (<code>send_errors</code>).</li>
+<li><strong>Send vs. Delivery Semantics:</strong> <code>res.queued == true</code> denotes non-blocking submission to the local Linux network socket buffer. Because UDP is connectionless and unacknowledged, transmission from the host provides no guarantee of packet reception at the downstream client.</li>
+<li><strong>Timestamp Provenance:</strong>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">// Excerpt: src/main.cpp (current_utc_timestamp_us)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kt">uint64_t</span><span class="w"> </span><span class="nf">current_utc_timestamp_us</span><span class="p">()</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint64_t</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">microseconds</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="p">.</span><span class="n">time_since_epoch</span><span class="p">()).</span><span class="n">count</span><span class="p">());</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">}</span>
+</code></pre></div>
+  <em>Confirmed Behavior:</em> Telemetry timestamps are <strong>Host Wall-Clock Timestamps</strong> derived from the Linux kernel clock. They are <strong>not hardware-latched timestamps</strong> generated from GPS/PPS or RSPdx hardware sample counters. Latencies introduced by USB transport and kernel scheduling remain uncompensated.</li>
+</ul>
+<h3 id="archival-storage-pipeline">Archival Storage Pipeline<a class="headerlink" href="#archival-storage-pipeline" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Compilation &amp; Activation Gates:</strong> Compiled conditionally via <code>-DSOLAR_BUILD_STORAGE=ON</code> (defining <code>SOLAR_STORAGE_ENABLED</code>). Activated at runtime by supplying <code>--config &lt;path_to_json&gt;</code>.</li>
+<li><strong>Offline Configuration Verification (<code>--check-config</code>):</strong> Parses the storage JSON specification, executes validation checks, prints configuration hashes and storage rate estimates, and exits cleanly without initializing hardware.</li>
+<li><strong>Data Ingestion:</strong> Receives un-decibelized linear auto-powers (<code>auto_power1</code>, <code>auto_power2</code>) and raw complex cross-power components (<code>cross_real</code>, <code>cross_imag</code>) via <code>storage-&gt;try_submit()</code>.</li>
+<li><strong>Queueing &amp; Backpressure:</strong> Employs non-blocking submission semantics (<code>try_submit</code>). If disk I/O saturates internal queue depth, frames are discarded to prevent backpressure from stalling real-time DSP execution.</li>
+<li><strong>Background Maintenance:</strong> A dedicated helper thread (<code>solar::storage::AutoMaintenance</code>) monitors filesystem capacity, enforces retention policies, and executes directory maintenance during live runs.</li>
+<li><em>Unverified Features:</em> Storage container formatting (e.g., raw binary, HDF5, or FITS) and automatic cloud/network replication are handled within external translation units not present in <code>src/main.cpp</code>.</li>
+</ul>
+<hr />
+<h2 id="section-6-health-monitoring-fail-closed-logic">Section 6 — Health Monitoring &amp; Fail-Closed Logic<a class="headerlink" href="#section-6-health-monitoring-fail-closed-logic" title="Permanent link">&para;</a></h2>
+<h3 id="health-invariants-continuity-checks">Health Invariants &amp; Continuity Checks<a class="headerlink" href="#health-invariants-continuity-checks" title="Permanent link">&para;</a></h3>
+<p>The supervisor performs continuity and health audits across three distinct pipeline stages:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1">// Excerpt: src/main.cpp (check_alignment_health)</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">auto</span><span class="w"> </span><span class="n">check_alignment_health</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">err</span><span class="p">;</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">children</span><span class="p">.</span><span class="n">check_children_alive</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">rb1</span><span class="p">.</span><span class="n">is_ready</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">rb2</span><span class="p">.</span><span class="n">is_ready</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">        </span><span class="n">mark</span><span class="p">(</span><span class="s">"health.producer_failure"</span><span class="p">);</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"[ALIGNMENT_LOST] Producer stopped/reset: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">err</span><span class="p">);</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">cli</span><span class="p">.</span><span class="n">skip_align</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">        </span><span class="p">(</span><span class="n">rb1</span><span class="p">.</span><span class="n">get_overflow_count</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">aligned_drops1</span><span class="w"> </span><span class="o">||</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">         </span><span class="n">rb2</span><span class="p">.</span><span class="n">get_overflow_count</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">aligned_drops2</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">        </span><span class="n">mark</span><span class="p">(</span><span class="s">"health.overflow"</span><span class="p">);</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"[ALIGNMENT_LOST] Sample drop since stream gate"</span><span class="p">);</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="p">};</span>
+</code></pre></div>
+<p><em>The Fundamental Axiom of Independent Receiver Interferometry:</em><br />
+When two independent SDR receivers lack a hardware genlock / shared sample-clock distribution line, any uncorrected sample loss immediately destroys relative phase and delay calibration. <strong>It is physically invalid to assume two independent channels retain integer alignment after any sample drop</strong>. Consequently, any detected buffer overflow or producer reset invalidates the calibration state.</p>
+<h3 id="fault-classification-fail-closed-recovery-flowchart">Fault Classification &amp; Fail-Closed Recovery Flowchart<a class="headerlink" href="#fault-classification-fail-closed-recovery-flowchart" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Fault detected in RUNNING loop (!cycle_ok || overflow_occurred)
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>                         |
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>                         v
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>            Increment telemetry_frame_id (Visible sequence gap)
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>            Transition SystemState -&gt; RECOVERING
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>                         |
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>         +---------------+---------------+
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>         |                               |
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>         v                               v
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>[is_phase_calibrated == true]     [cli.skip_align == true]
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>   Phase vector invalidated          Diagnostic CW / Dummy Load Mode
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>         |                               |
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>         v                               +---&gt; diag_recovery_count &lt;= 5:
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>   FAIL-CLOSED                              Flush SHM -&gt; prime_buffers()
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>   Immediate System Abort!                  Resume RUNNING.
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>   exit_code = 1                         |
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>                                         +---&gt; diag_recovery_count &gt; 5:
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>                                                    FAIL-CLOSED -&gt; STOPPING
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>                                         |
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>                                         v
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>                         [is_sample_aligned == true (Default)]
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>                            Sample alignment lost (k != 0)
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>                                         |
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>                                         v
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>                                    FAIL-CLOSED
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>                                 Immediate System Abort!
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>                                 exit_code = 1
+</code></pre></div>
+<ul>
+<li><strong>Frame Discontinuity Signaling (<code>++telemetry_frame_id</code>):</strong> When an integration cycle aborts due to overflow or arithmetic failure, <code>telemetry_frame_id</code> is incremented. This introduces a visible sequence gap in downstream UDP streams, ensuring archiving systems detect missing data.</li>
+<li><strong>Diagnostic Mode Recovery (<code>--skip-align</code>):</strong> Only when sample alignment is explicitly bypassed does the system permit transient recovery. Up to 5 consecutive recoveries (<code>kMaxDiagRecoveries = 5</code>) are permitted via <code>rb.flush()</code> and buffer re-priming.</li>
+<li><strong>Fail-Closed Policy for Scientific Observation:</strong> In standard scientific observation modes (<code>ALIGNED</code> or <code>ALIGNED+CAL</code>), any sample drop causes an <strong>immediate fail-closed termination</strong> (<code>exit_code = 1</code>). Corrupted data is never permitted to masquerade as valid astronomical observations.</li>
+</ul>
+<h3 id="system-shutdown-resource-teardown">System Shutdown &amp; Resource Teardown<a class="headerlink" href="#system-shutdown-resource-teardown" title="Permanent link">&para;</a></h3>
+<p>Upon receiving termination signals (<code>SIGINT</code>, <code>SIGTERM</code>) or encountering fatal errors, teardown proceeds through deterministic RAII scopes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1">// Excerpt: src/main.cpp (ChildProcessGuard::terminate_and_reap_all)</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">terminate_and_reap_all</span><span class="p">()</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid1</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">kill</span><span class="p">(</span><span class="n">pid1</span><span class="p">,</span><span class="w"> </span><span class="n">SIGTERM</span><span class="p">);</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid2</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">kill</span><span class="p">(</span><span class="n">pid2</span><span class="p">,</span><span class="w"> </span><span class="n">SIGTERM</span><span class="p">);</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">deadline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">((</span><span class="n">pid1</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">pid2</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">deadline</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid1</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">::</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">,</span><span class="w"> </span><span class="n">WNOHANG</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pid1</span><span class="p">)</span><span class="w"> </span><span class="n">pid1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid2</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">::</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">,</span><span class="w"> </span><span class="n">WNOHANG</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pid2</span><span class="p">)</span><span class="w"> </span><span class="n">pid2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid1</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">pid2</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="p">(</span><span class="mi">25</span><span class="p">));</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">    </span><span class="c1">// Escalate to SIGKILL after 3.0-second grace period</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid1</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">kill</span><span class="p">(</span><span class="n">pid1</span><span class="p">,</span><span class="w"> </span><span class="n">SIGKILL</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="n">pid1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid2</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">kill</span><span class="p">(</span><span class="n">pid2</span><span class="p">,</span><span class="w"> </span><span class="n">SIGKILL</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="o">::</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="n">pid2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="p">}</span>
+</code></pre></div>
+<ol>
+<li><strong>Hardware Safe State Assertion:</strong> Invokes <code>hw_guard-&gt;turn_off()</code> and <code>force_antenna_off()</code>, driving GPIO 6 and GPIO 26 to <code>LOW</code>.</li>
+<li><strong>Child Process Reaping:</strong> Issues <code>SIGTERM</code> to both child producers, allowing up to 3.0 seconds for orderly device de-initialization. If a child hangs, the supervisor escalates to <code>SIGKILL</code> and reaps the PID via <code>waitpid()</code>.</li>
+<li><strong>Storage Pipeline Termination:</strong> Calls <code>auto_maintenance.stop()</code> to synchronize outstanding file handles.</li>
+<li><strong>POSIX Shared Memory Unlinking:</strong> Calls <code>SharedMemoryRingBuffer::unlink_shm()</code> for <code>/solar_correlator_ch1</code> and <code>/solar_correlator_ch2</code>, removing files from <code>/dev/shm</code>.</li>
+<li><strong>Process Lock Release:</strong> Destructs <code>SingleInstanceLock</code>, executing <code>flock(fd, LOCK_UN)</code> and closing the file descriptor.</li>
+</ol>
+<hr />
+<h2 id="section-7-command-line-interface-reference">Section 7 — Command-Line Interface Reference<a class="headerlink" href="#section-7-command-line-interface-reference" title="Permanent link">&para;</a></h2>
+<p>All command-line switches parsed by <code>parse_and_validate_cli()</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Option Flag</th>
+<th style="text-align: left;">Argument Type</th>
+<th style="text-align: left;">Default Value</th>
+<th style="text-align: left;">Valid Range / Constraints</th>
+<th style="text-align: left;">Dependencies &amp; Conflicts</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>--dest-ip</code></td>
+<td style="text-align: left;"><code>&lt;string&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_DEST_IP</code></td>
+<td style="text-align: left;">Valid IPv4 address string (<code>inet_pton</code>)</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Destination IPv4 address for UDP telemetry.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-s12</code></td>
+<td style="text-align: left;"><code>&lt;uint16&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_PORT_S12</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(1 \dots 65535\)</span> (Non-zero)</td>
+<td style="text-align: left;">Must not collide with active ports</td>
+<td style="text-align: left;">Primary port for cross-power spectrum $</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-s11</code></td>
+<td style="text-align: left;"><code>&lt;uint16&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_PORT_S11</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(0 \dots 65535\)</span> (<span class="arithmatex">\(0\)</span> = Disabled)</td>
+<td style="text-align: left;">Must not collide with active ports</td>
+<td style="text-align: left;">Port for Channel 1 auto-power spectrum <span class="arithmatex">\(S_{11}\)</span> (dB).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-s22</code></td>
+<td style="text-align: left;"><code>&lt;uint16&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_PORT_S22</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(0 \dots 65535\)</span> (<span class="arithmatex">\(0\)</span> = Disabled)</td>
+<td style="text-align: left;">Must not collide with active ports</td>
+<td style="text-align: left;">Port for Channel 2 auto-power spectrum <span class="arithmatex">\(S_{22}\)</span> (dB).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-phase</code></td>
+<td style="text-align: left;"><code>&lt;uint16&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_PORT_PHASE</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(0 \dots 65535\)</span> (<span class="arithmatex">\(0\)</span> = Disabled)</td>
+<td style="text-align: left;">Must not collide with active ports</td>
+<td style="text-align: left;">Port for cross-spectral phase spectrum (rad).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-coherence</code></td>
+<td style="text-align: left;"><code>&lt;uint16&gt;</code></td>
+<td style="text-align: left;"><code>SolarConfig::Network::UDP_PORT_COHERENCE</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(0 \dots 65535\)</span> (<span class="arithmatex">\(0\)</span> = Disabled)</td>
+<td style="text-align: left;">Must not collide with active ports</td>
+<td style="text-align: left;">Port for spectral coherence amplitude <span class="arithmatex">\(\gamma\)</span>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--skip-align</code>, <code>--no-align</code></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;">Boolean switch</td>
+<td style="text-align: left;"><strong>Conflicts with:</strong> <code>--cal-phase</code></td>
+<td style="text-align: left;">Bypasses coarse time alignment (diagnostic mode).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--input-source</code></td>
+<td style="text-align: left;"><code>&lt;string&gt;</code></td>
+<td style="text-align: left;"><code>"antenna"</code></td>
+<td style="text-align: left;"><code>"antenna"</code> or <code>"noise"</code></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Designates feed path selected post-calibration.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--cal-phase</code></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;">Boolean switch</td>
+<td style="text-align: left;"><strong>Requires:</strong> Successful time alignment (<span class="arithmatex">\(k=0\)</span>)</td>
+<td style="text-align: left;">Executes initial static phase response calibration.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--max-align-retries</code></td>
+<td style="text-align: left;"><code>&lt;int&gt;</code></td>
+<td style="text-align: left;"><code>8</code></td>
+<td style="text-align: left;"><span class="arithmatex">\(1 \dots 1000\)</span></td>
+<td style="text-align: left;">Active only when alignment enabled</td>
+<td style="text-align: left;">Maximum correlation snapshot alignment attempts.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--serial-ch1</code></td>
+<td style="text-align: left;"><code>&lt;string&gt;</code></td>
+<td style="text-align: left;"><code>""</code> (Empty)</td>
+<td style="text-align: left;">Alphanumeric serial string</td>
+<td style="text-align: left;"><strong>Must pair with:</strong> <code>--serial-ch2</code>; cannot be identical</td>
+<td style="text-align: left;">Explicit hardware serial assignment for Channel 1.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--serial-ch2</code></td>
+<td style="text-align: left;"><code>&lt;string&gt;</code></td>
+<td style="text-align: left;"><code>""</code> (Empty)</td>
+<td style="text-align: left;">Alphanumeric serial string</td>
+<td style="text-align: left;"><strong>Must pair with:</strong> <code>--serial-ch1</code>; cannot be identical</td>
+<td style="text-align: left;">Explicit hardware serial assignment for Channel 2.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--config</code></td>
+<td style="text-align: left;"><code>&lt;path&gt;</code></td>
+<td style="text-align: left;"><code>""</code> (Empty)</td>
+<td style="text-align: left;">Valid readable JSON file path</td>
+<td style="text-align: left;">Requires <code>SOLAR_BUILD_STORAGE=ON</code></td>
+<td style="text-align: left;">Enables storage and background maintenance pipeline.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--check-config</code></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;">Boolean switch</td>
+<td style="text-align: left;"><strong>Requires:</strong> <code>--config &lt;path&gt;</code></td>
+<td style="text-align: left;">Validates configuration schema offline and exits.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-h</code>, <code>--help</code></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;">Boolean switch</td>
+<td style="text-align: left;">Exits immediately</td>
+<td style="text-align: left;">Displays CLI help message and usage syntax.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--port-aux</code>, <code>--aux-mode</code></td>
+<td style="text-align: left;">(any)</td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;"><strong>Deprecated</strong></td>
+<td style="text-align: left;">Syntax error if supplied</td>
+<td style="text-align: left;">Rejected with migration guidance to <code>--port-phase</code> / <code>--port-coherence</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="execution-examples">Execution Examples<a class="headerlink" href="#execution-examples" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Standard Astronomical Antenna Observation:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>./build/solar_correlator<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--port-s12<span class="w"> </span><span class="m">9999</span><span class="w"> </span>--port-s11<span class="w"> </span><span class="m">9997</span><span class="w"> </span>--port-s22<span class="w"> </span><span class="m">9998</span>
+</code></pre></div></li>
+<li><strong>Antenna Observation with Initial Delay &amp; Static Phase Calibration:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>./build/solar_correlator<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--cal-phase<span class="w"> </span>--input-source<span class="w"> </span>antenna
+</code></pre></div></li>
+<li><strong>Diagnostic Continuous Wave (CW) / 50-Ohm Termination Mode:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>./build/solar_correlator<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--skip-align<span class="w"> </span>--port-s12<span class="w"> </span><span class="m">9999</span>
+</code></pre></div></li>
+<li><strong>Dedicated Reference Noise Diode Characterization:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>./build/solar_correlator<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--input-source<span class="w"> </span>noise
+</code></pre></div></li>
+<li><strong>Phase-Calibrated Noise Diode Integration:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>./build/solar_correlator<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">192</span>.168.1.100<span class="w"> </span>--cal-phase<span class="w"> </span>--input-source<span class="w"> </span>noise
+</code></pre></div></li>
+<li><strong>Archival Storage Verification &amp; Execution:</strong></li>
+<li><em>Offline Schema Validation:</em>
+     <div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>./build/solar_correlator<span class="w"> </span>--config<span class="w"> </span>configs/storage_production.json<span class="w"> </span>--check-config
+</code></pre></div></li>
+<li><em>Production Run with Active Storage Pipeline:</em>
+     <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>./build/solar_correlator<span class="w"> </span>--config<span class="w"> </span>configs/storage_production.json<span class="w"> </span>--dest-ip<span class="w"> </span><span class="m">192</span>.168.1.100
+</code></pre></div></li>
+</ol>
+<hr />
+<h2 id="section-8-limitations-verification-matrix">Section 8 — Limitations &amp; Verification Matrix<a class="headerlink" href="#section-8-limitations-verification-matrix" title="Permanent link">&para;</a></h2>
+<h3 id="evidence-traceability-matrix">Evidence Traceability Matrix<a class="headerlink" href="#evidence-traceability-matrix" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Technical Claim</th>
+<th style="text-align: left;">Code Location / Identifier</th>
+<th style="text-align: left;">Verification Level</th>
+<th style="text-align: left;">Invalidation Conditions &amp; Verification Gaps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>API Close Prior to Fork</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 353–376 (<code>main</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Official SDRplay API documentation regarding multi-process constraints is not provided in-repo.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Inode-Preserving Advisory Lock</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 167–227 (<code>SingleInstanceLock</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Behavior unverified if external cron daemons purge <code>/tmp</code> during long-duration runs.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sample Discontinuity Detection</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 259–274 (<code>sdr_stream_callback</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Empirical drop frequency on Raspberry Pi 5 under thermal throttling has not been benchmarked.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Unhandled Hardware Events</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 276–279 (<code>sdr_event_callback</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Overload and PLL events are discarded; hardware failure during operation will not trigger callback handling.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Absence of Fractional Delay Tracking</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 450–468 (<code>StartupAlignment</code>)</td>
+<td style="text-align: left;"><strong>Design Inference</strong></td>
+<td style="text-align: left;">Only integer delay <span class="arithmatex">\(k=0\)</span> is addressed; sub-sample (<span class="arithmatex">\(&lt;100\text{ ns}\)</span>) phase shifts are not tracked.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>FFT Window Energy Scaling</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 394–406 (JSON metadata)</td>
+<td style="text-align: left;"><strong>Verified from configuration</strong></td>
+<td style="text-align: left;">Window energy computation implementation resides in external <code>correlator.cpp</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Software-Latched UTC Timestamps</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 324–329 (<code>current_utc_timestamp_us</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Host <code>system_clock</code> timestamps lack hardware PPS discipline; USB and kernel scheduling jitter remain unmodeled.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Fail-Closed Overflow Termination</strong></td>
+<td style="text-align: left;"><code>src/main.cpp</code>: lines 579–633 (<code>main</code>)</td>
+<td style="text-align: left;"><strong>Directly verified from code</strong></td>
+<td style="text-align: left;">Code path confirmed; sustained throughput limits prior to buffer exhaustion have not been stress-tested.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="features-not-present-in-surveyed-source-code">Features Not Present in Surveyed Source Code<a class="headerlink" href="#features-not-present-in-surveyed-source-code" title="Permanent link">&para;</a></h3>
+<p>The following capabilities are <strong>unsupported or absent</strong> in the surveyed codebase:
+1. <strong>Absolute Flux Calibration:</strong> Output spectra are scaled in uncalibrated <span class="arithmatex">\(\text{ADC-count}^2\)</span> units; no lookup tables or conversion factors exist to map values to absolute Jansky (Jy) or <span class="arithmatex">\(\text{dBm/Hz}\)</span>.
+2. <strong>Real-Time Fractional Delay Compensation:</strong> The pipeline lacks fractional-delay FIR interpolation (e.g., Farrow filter structures) to compensate for baseline geometric delay changes during diurnal tracking.
+3. <strong>Periodic In-Beam Recalibration:</strong> Phase calibration <span class="arithmatex">\(\phi_{\text{cal}}\)</span> is strictly a one-shot startup procedure; there is no scheduled mechanism to re-engage the noise source during long-term observations.
+4. <strong>Hardware GPS/PPS Disciplining:</strong> The system does not interface with external timing hardware to bind sample blocks to microsecond-accurate atomic time standards.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

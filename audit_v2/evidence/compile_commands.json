@@ -1,0 +1,80 @@
+[
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++  -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_udp_sender.dir/tests/test_udp_sender.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_udp_sender.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_udp_sender.cpp",
+  "output": "CMakeFiles/test_udp_sender.dir/tests/test_udp_sender.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++  -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -O3 -DNDEBUG -UNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_telemetry_sender.dir/tests/test_telemetry_sender.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_telemetry_sender.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_telemetry_sender.cpp",
+  "output": "CMakeFiles/test_telemetry_sender.dir/tests/test_telemetry_sender.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++  -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage_core.dir/src/storage/storage_aggregator.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_aggregator.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_aggregator.cpp",
+  "output": "CMakeFiles/solar_storage_core.dir/src/storage/storage_aggregator.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++  -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_storage_core.dir/tests/storage/test_storage_core.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_storage_core.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_storage_core.cpp",
+  "output": "CMakeFiles/test_storage_core.dir/tests/storage/test_storage_core.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -DSOLAR_STORAGE_SCRIPTS=\\\"/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/scripts\\\" -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage.dir/src/storage/storage_config.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_config.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_config.cpp",
+  "output": "CMakeFiles/solar_storage.dir/src/storage/storage_config.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -DSOLAR_STORAGE_SCRIPTS=\\\"/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/scripts\\\" -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage.dir/src/storage/storage_budget.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_budget.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_budget.cpp",
+  "output": "CMakeFiles/solar_storage.dir/src/storage/storage_budget.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -DSOLAR_STORAGE_SCRIPTS=\\\"/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/scripts\\\" -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage.dir/src/storage/bounded_hdf5_vfd.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/bounded_hdf5_vfd.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/bounded_hdf5_vfd.cpp",
+  "output": "CMakeFiles/solar_storage.dir/src/storage/bounded_hdf5_vfd.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -DSOLAR_STORAGE_SCRIPTS=\\\"/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/scripts\\\" -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage.dir/src/storage/hdf5_writer.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/hdf5_writer.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/hdf5_writer.cpp",
+  "output": "CMakeFiles/solar_storage.dir/src/storage/hdf5_writer.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -DSOLAR_STORAGE_SCRIPTS=\\\"/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/scripts\\\" -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/solar_storage.dir/src/storage/storage_pipeline.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_pipeline.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src/storage/storage_pipeline.cpp",
+  "output": "CMakeFiles/solar_storage.dir/src/storage/storage_pipeline.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_storage_io.dir/tests/storage/test_storage_io.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_storage_io.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_storage_io.cpp",
+  "output": "CMakeFiles/test_storage_io.dir/tests/storage/test_storage_io.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_storage_pipeline.dir/tests/storage/test_pipeline.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_pipeline.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/test_pipeline.cpp",
+  "output": "CMakeFiles/test_storage_pipeline.dir/tests/storage/test_pipeline.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++ -DH5_BUILT_AS_DYNAMIC_LIB -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200809L -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -isystem /workspace/scratch/18136a729284/deps/install/include -isystem /workspace/scratch/18136a729284/deps/rusqlite/libsqlite3-sys/sqlite3 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/measure_storage_day.dir/tests/storage/measure_day.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/measure_day.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/storage/measure_day.cpp",
+  "output": "CMakeFiles/measure_storage_day.dir/tests/storage/measure_day.cpp.o"
+},
+{
+  "directory": "/workspace/scratch/18136a729284/audit_work/build",
+  "command": "/usr/bin/c++  -I/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/src -O3 -DNDEBUG -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -O3 -o CMakeFiles/test_startup_alignment.dir/tests/test_startup_alignment.cpp.o -c /workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_startup_alignment.cpp",
+  "file": "/workspace/scratch/18136a729284/audit_work/patched/solar_correlator/tests/test_startup_alignment.cpp",
+  "output": "CMakeFiles/test_startup_alignment.dir/tests/test_startup_alignment.cpp.o"
+}
+]
