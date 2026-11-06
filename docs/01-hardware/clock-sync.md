@@ -55,7 +55,6 @@ The design decision is justified across six primary engineering criteria tailore
 
 1. **Native External VCXO Architecture & Hardware Customizability:**
    Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
-
    * Custom Pulling Range & Damping: Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
   
    * Superior Loaded Q-Factor: High-$Q$ bulk acoustic wave quartz resonators exhibit loaded quality factors orders of magnitude higher ($Q > 10^4$) than integrated semiconductor inductors ($Q \approx 10 \dots 20$), drastically suppressing broadband thermal noise floor.
@@ -63,11 +62,11 @@ The design decision is justified across six primary engineering criteria tailore
 2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
    Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
-   $$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
+$$\text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}$$
 
-   $$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
+$$R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12$$
 
-   $$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
+$$f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}$$
 
    Operating the ADF4002 in pure Integer-N mode ($N=12, R=5$) completely eliminates fractional-N boundary spurs, sub-harmonic spurs, and delta-sigma dithering noise. In high-sensitivity solar interferometry across 30.0–40.0 MHz, any spurious tones leaking through or mixing across receiver front-ends would generate false correlation fringes, corrupting scientific visibility measurements. Furthermore, a high PFD frequency ($2.0\text{ MHz}$) pushes reference spurs far beyond the loop filter cutoff, enabling clean passive attenuation ($> 85\text{ dBc}$).
 
