@@ -49,7 +49,8 @@ This module provides the precision frequency synthesis bridge:
 #### 2.1.1. Engineering Rationale and Core Selection Criteria
 To synthesize a coherent, low-jitter $24.0\text{ MHz}$ reference clock for the dual SDRplay RSPdx digitizers from an external $10.0\text{ MHz}$ GPSDO reference, an integer-N Phase-Locked Loop (PLL) frequency synthesizer core is required. The Analog Devices ADF4002BRUZ (16-lead TSSOP package) was selected as the central phase-frequency detector (PFD) and frequency translator.
 
-The design decision is justified across six primary engineering criteria tailored to radio interferometric requirements:
+The design decision is justified across five primary engineering criteria tailored to radio interferometric requirements:
+
 1. **Native External VCXO Architecture & Hardware Customizability:**
    Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
    * **Custom Pulling Range & Damping:** Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
@@ -59,15 +60,11 @@ The design decision is justified across six primary engineering criteria tailore
    Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
    $$
-   \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}
-   $$
-
-   $$
-   R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12
-   $$
-
-   $$
+   \begin{gathered}
+   \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz} \\
+   R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12 \\
    f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}
+   \end{gathered}
    $$
 
 3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
