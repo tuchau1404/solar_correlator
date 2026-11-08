@@ -60,12 +60,19 @@ The design decision is justified across six primary engineering criteria tailore
    2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
       Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
 
+      2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
+      Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
+
       $$
-      \begin{gathered}
-      \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz} \\
-      R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12 \\
+      \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}
+      $$
+
+      $$
+      R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12
+      $$
+
+      $$
       f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}
-      \end{gathered}
       $$
 
    3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
