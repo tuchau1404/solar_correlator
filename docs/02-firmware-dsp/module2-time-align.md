@@ -56,11 +56,11 @@ The table below summarizes five consecutive cold-boot verification iterations re
 
 | Run (#) | Boot Type | Measured Offset ($k_{\text{offset}}$) | Time Delay ($\Delta t$) | Measured PNR | Compensation Action (`skip`) | Residual Offset ($k_{\text{residual}}$) | Status |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Run 1** | Cold-Boot | $+1,815\text{ samples}$ | $+181.50\ \mu\text{s}$ | $48.651\text{ dB}$ | Channel 1 ($1,815\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
-| **Run 2** | Cold-Boot | $-57,543\text{ samples}$ | $-5,754.30\ \mu\text{s}$ | $45.582\text{ dB}$ | Channel 2 ($57,543\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
-| **Run 3** | Cold-Boot | $+38,821\text{ samples}$ | $+3,882.10\ \mu\text{s}$ | $47.700\text{ dB}$ | Channel 1 ($38,821\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
-| **Run 4** | Cold-Boot | $-38,830\text{ samples}$ | $-3,883.00\ \mu\text{s}$ | $47.244\text{ dB}$ | Channel 2 ($38,830\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
-| **Run 5** | Cold-Boot | $+38,629\text{ samples}$ | $+3,862.90\ \mu\text{s}$ | $46.025\text{ dB}$ | Channel 1 ($38,629\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| Run 1 | Cold-Boot | $+1,815\text{ samples}$ | $+181.50\ \mu\text{s}$ | $48.651\text{ dB}$ | Channel 1 ($1,815\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| Run 2 | Cold-Boot | $-57,543\text{ samples}$ | $-5,754.30\ \mu\text{s}$ | $45.582\text{ dB}$ | Channel 2 ($57,543\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| Run 3 | Cold-Boot | $+38,821\text{ samples}$ | $+3,882.10\ \mu\text{s}$ | $47.700\text{ dB}$ | Channel 1 ($38,821\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| Run 4 | Cold-Boot | $-38,830\text{ samples}$ | $-3,883.00\ \mu\text{s}$ | $47.244\text{ dB}$ | Channel 2 ($38,830\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
+| Run 5 | Cold-Boot | $+38,629\text{ samples}$ | $+3,862.90\ \mu\text{s}$ | $46.025\text{ dB}$ | Channel 1 ($38,629\text{ samples}$) | $0\text{ samples}$ ($0.0\text{ ns}$) | **PASSED** |
 
 *(Note: Target acceptance threshold is $\vert{}k_{\text{residual}}\vert{} \le 1\text{ sample}$ with $\text{PNR} \ge 10.0\text{ dB}$. A positive offset indicates Channel 1 leads Channel 2; a negative offset indicates Channel 2 leads Channel 1).*
 
@@ -84,10 +84,10 @@ Module 2 is evaluated against four quantitative criteria:
 
 | Acceptance Metric | Quantitative Threshold | Verification Methodology |
 | :--- | :--- | :--- |
-| **Post-Alignment Delay Skew** | $\vert{}k\vert{} \le 1\text{ sample}$ ($\le 100\text{ ns}$) | Cross-correlation peak location after initial buffer trimming. |
-| **Peak-to-Noise Ratio (PNR)** | $\ge 10.0\text{ dB}$ (Broadband noise) | Signal peak compared against the mean baseline floor ($\pm 16\text{ bins}$ excluded). |
-| **Temporal Stability (60s Run)** | Zero Sample Drift ($\Delta k = 0$) | Continuous polling of lag position at 5-second intervals. |
-| **Data Integrity & Continuity** | Buffer Drop / Overflow $= 0$ | Monitoring atomic ring buffer overflow counters under full 80 MB/s streaming. |
+| Post-Alignment Delay Skew | $\vert{}k\vert{} \le 1\text{ sample}$ ($\le 100\text{ ns}$) | Cross-correlation peak location after initial buffer trimming. |
+| Peak-to-Noise Ratio (PNR) | $\ge 10.0\text{ dB}$ (Broadband noise) | Signal peak compared against the mean baseline floor ($\pm 16\text{ bins}$ excluded). |
+| Temporal Stability (60s Run) | Zero Sample Drift ($\Delta k = 0$) | Continuous polling of lag position at 5-second intervals. |
+| Data Integrity & Continuity | Buffer Drop / Overflow $= 0$ | Monitoring atomic ring buffer overflow counters under full 80 MB/s streaming. |
 
 ---
 
@@ -106,6 +106,7 @@ The physical calibration setup interfaces the signal distribution network with t
 - **Clock Distribution:** A 24.0 MHz reference clock is fed into both `REFin` SMA ports, stabilizing the internal synthesizers and phase-locking the ADC sampling rates.
   
 - **Host Interconnect:** Both units connect directly to the dual blue USB 3.0 ports of the Raspberry Pi 5, which are routed to the dedicated RP1 I/O controller sustaining an aggregate throughput of $80\text{ MB/s}$.
+
 ---
 
 ### 2.2. Test Signal Selection: Broadband Avalanche Noise vs. Single-Tone CW
@@ -133,7 +134,7 @@ $$
 R_{ss}(\tau) = \mathcal{F}^{-1}\{S_{ss}(f)\} \approx N_0 \cdot \delta(\tau)
 $$
 
-When cross-correlating broadband noise, the array values cancel to near zero at all non-matching offsets ($k \neq k_0$) due to random phase distribution. At the true offset ($k = k_0$), all spectral components add coherently, producing a distinct, sharp impulse. On the physical test bench, an avalanche noise source (reverse-biased 2N2222 B-E junction with MMIC amplification) produces an experimental $\text{PNR}$ of $44\text{ dB}$, providing reliable peak detection.
+When cross-correlating broadband noise, the array values cancel to near zero at all non-matching offsets ($k \neq k_0$) due to random phase distribution. At the true offset ($k = k_0$), all spectral components add coherently, producing a distinct, sharp impulse. On the physical test bench, an avalanche noise source (reverse-biased 2N2222 B-E junction with MMIC amplification) produces an experimental PNR of 44 dB, providing reliable peak detection.
 
 ---
 
@@ -141,11 +142,20 @@ When cross-correlating broadband noise, the array values cancel to near zero at 
 ### 3.1. Mathematical Signal Model
 
 Let the calibration noise source provide a common stationary zero-mean complex analytic baseband signal $s[n] \in \mathbb{C}$, generated through direct-conversion (Zero-IF) quadrature mixing and digitized at a uniform sampling rate of $f_s = 10.0\text{ MSPS}$ ($T_s = 100\text{ ns}$). The signal power across the baseband passband is denoted by:
-$$\mathbb{E}\big[|s[n]|^2\big] = \sigma_s^2$$
+
+$$
+\mathbb{E}\big[|s[n]|^2\big] = \sigma_s^2
+$$
 
 The discrete-time analytic sequences recorded simultaneously across the two receiver channels are modeled as:
-$$x_1[n] = s[n] + w_1[n]$$
-$$x_2[n] = s[n - k_0] \cdot e^{-j\theta_0} + w_2[n]$$
+
+$$
+x_1[n] = s[n] + w_1[n]
+$$
+
+$$
+x_2[n] = s[n - k_0] \cdot e^{-j\theta_0} + w_2[n]
+$$
 
 Where the physical and statistical parameters are defined as follows:
 
@@ -154,10 +164,16 @@ Where the physical and statistical parameters are defined as follows:
 - $w_1[n], w_2[n] \sim \mathcal{CN}(0, \sigma_w^2)$ represent independent and identically distributed (i.i.d.) zero-mean Circularly Symmetric Complex Gaussian (CSCSC) thermal noise processes generated within the respective RF front-ends and low-noise amplifiers (LNAs).
 
 Because the two RSPdx units are housed in physically isolated chassis and routed through independent RF signal chains, their internal thermal noise processes exhibit zero mutual cross-correlation across all temporal lags:
-$$\mathbb{E}\big[w_1[n] \cdot w_2^*[m]\big] = 0, \quad \forall n, m \in \mathbb{Z}$$
+
+$$
+\mathbb{E}\big[w_1[n] \cdot w_2^*[m]\big] = 0, \quad \forall n, m \in \mathbb{Z}
+$$
 
 Furthermore, the external calibration signal $s[n]$ is statistically uncorrelated with the receiver thermal noise:
-$$\mathbb{E}\big[s[n] \cdot w_1^*[m]\big] = \mathbb{E}\big[s[n] \cdot w_2^*[m]\big] = 0, \quad \forall n, m \in \mathbb{Z}$$
+
+$$
+\mathbb{E}\big[s[n] \cdot w_1^*[m]\big] = \mathbb{E}\big[s[n] \cdot w_2^*[m]\big] = 0, \quad \forall n, m \in \mathbb{Z}
+$$
 
 The input signal-to-noise ratio per channel is governed by $\text{SNR}_{\text{in}} = \sigma_s^2 / \sigma_w^2$. Consequently, under cross-correlation, all uncorrelated noise terms vanish asymptotically, and only the shared coherent component $s[n]$ correlates constructively to reveal the delay parameter $k_0$.
 
@@ -188,24 +204,24 @@ Because the thermal noise terms $w_1$ and $w_2$ are mutually independent and unc
 - **Misaligned Offsets ($k \neq k_0$):**  
   The signal sequences are temporally unaligned. At each sample index $n$, the phase difference $\Delta\theta_n = \angle s[n] - \angle s[n - k_0 - k]$ is uniformly distributed across $[-\pi, \pi)$. The summation behaves as a two-dimensional isotropic random walk in the complex plane. By the Central Limit Theorem, the root-mean-square (RMS) amplitude scales sublinearly with the window length:
   
-  $$
-  |R_{12}[k]| \sim \mathcal{O}(\sqrt{N}), \quad \forall k \neq k_0
-  $$
+$$
+|R_{12}[k]| \sim \mathcal{O}(\sqrt{N}), \quad \forall k \neq k_0
+$$
 
   This establishes the flat background noise floor across the lag domain.
 
 - **Matched Alignment ($k = k_0$):**  
   At the true physical delay index, the time lag is completely cancelled: $s[n - k_0 - k] = s[n]$. Consequently, the time-varying phase fluctuations cancel identically:
   
-  $$
-  s[n] \cdot s^*[n] e^{j\theta_0} = |s[n]|^2 e^{j\theta_0}
-  $$
+$$
+s[n] \cdot s^*[n] e^{j\theta_0} = |s[n]|^2 e^{j\theta_0}
+$$
 
   All $N$ terms accumulate coherently in the direction of the residual static phase vector $e^{j\theta_0}$. The resulting peak amplitude scales linearly with $N$:
 
-  $$
-  |R_{12}[k_0]| \approx e^{j\theta_0} \sum_{n=0}^{N-1} |s[n]|^2 \approx N \sigma_s^2 \cdot e^{j\theta_0} \sim \mathcal{O}(N)
-  $$
+$$
+|R_{12}[k_0]| \approx e^{j\theta_0} \sum_{n=0}^{N-1} |s[n]|^2 \approx N \sigma_s^2 \cdot e^{j\theta_0} \sim \mathcal{O}(N)
+$$
 
 #### Processing Gain and Theoretical PNR Ceiling
 The disparate asymptotic growth rates between the matched peak and the unmatched noise floor provide an intrinsic processing gain:
