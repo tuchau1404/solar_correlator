@@ -53,6 +53,7 @@ The design decision is justified across five primary engineering criteria tailor
 
 1. **Native External VCXO Architecture & Hardware Customizability:**
    Unlike general-purpose clock generators or RF synthesizers that embed on-chip LC/ring voltage-controlled oscillators, the ADF4002 is specifically engineered as a dedicated PFD/Charge Pump core designed to drive an external Voltage-Controlled Crystal Oscillator (VCXO). This architectural separation grants full customization flexibility:
+   
    * **Custom Pulling Range & Damping:** Engineers can freely select an application-specific $24.0\text{ MHz}$ quartz crystal oscillator with an optimal pulling range (e.g., $\pm 50\text{ ppm}$ to $\pm 100\text{ ppm}$) and tailor the tuning sensitivity ($K_v$ in $\text{kHz/V}$) to match the charge pump voltage swing ($0\text{V} \dots 3.3\text{V}$).
   
    * **Superior Loaded Q-Factor:** High-$Q$ bulk acoustic wave quartz resonators exhibit loaded quality factors orders of magnitude higher ($Q > 10^4$) than integrated semiconductor inductors ($Q \approx 10 \dots 20$), drastically suppressing broadband thermal noise floor.
