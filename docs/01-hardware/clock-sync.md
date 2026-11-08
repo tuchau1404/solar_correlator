@@ -60,24 +60,24 @@ The design decision is justified across six primary engineering criteria tailore
   2. **Inherent Spectral Purity & Zero Fractional Spurious Products:**
       Converting $10.0\text{ MHz}$ to $24.0\text{ MHz}$ yields an exact integer-ratio common divisor:
       
-  $$
-  \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}
-  $$  
+      $$
+      \text{GCD}(10.0\text{ MHz}, 24.0\text{ MHz}) = 2.0\text{ MHz}
+      $$  
 
-  $$
-  R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12
-  $$
+      $$
+      R = \frac{10.0\text{ MHz}}{2.0\text{ MHz}} = 5, \qquad N = \frac{24.0\text{ MHz}}{2.0\text{ MHz}} = 12
+      $$
 
-  $$
-  f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}
-  $$
+      $$
+      f_{\text{PFD}} = \frac{f_{\text{ref}}}{R} = \frac{10.0\text{ MHz}}{5} = 2.0\text{ MHz}
+      $$
 
-   3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
-      The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
+  3. **Integrated Hardware Lock Detection via Multi-Function MUXOUT Pin:**
+    The ADF4002 incorporates an onboard precision digital lock detector accessible via the `MUXOUT` pin, eliminating the need for external analog window comparators or complex envelope detectors:
 
-      * Deterministic Digital Threshold: When the phase error between the reference and feedback clocks remains below $15\text{ ns}$ for 5 consecutive PFD cycles ($2.5\ \mu\text{s}$ window at $f_{\text{PFD}} = 2.0\text{ MHz}$), `MUXOUT` asserts logic HIGH ($+3.3\text{V}$).
-     
-      * Fail-Closed Hardware Gating: The pin directly drives a status LED for physical visual inspection and connects to a hardware external interrupt (EXTI) pin on the supervisory MCU. Any loss of phase lock instantly alerts the edge processor ($< 1\ \mu\text{s}$ latency) to trip a Fail-Closed safety shutdown, halting digital correlation to prevent corrupted data ingestion.
+    * Deterministic Digital Threshold: When the phase error between the reference and feedback clocks remains below $15\text{ ns}$ for 5 consecutive PFD cycles ($2.5\ \mu\text{s}$ window at $f_{\text{PFD}} = 2.0\text{ MHz}$), `MUXOUT` asserts logic HIGH ($+3.3\text{V}$).
+    
+    * Fail-Closed Hardware Gating: The pin directly drives a status LED for physical visual inspection and connects to a hardware external interrupt (EXTI) pin on the supervisory MCU. Any loss of phase lock instantly alerts the edge processor ($< 1\ \mu\text{s}$ latency) to trip a Fail-Closed safety shutdown, halting digital correlation to prevent corrupted data ingestion.
 
    4. **Zero-Cost, Industry-Standard Modeling via ADIsimPLL™:**
       Development risk and prototyping turnaround are minimized by native integration with Analog Devices' proprietary, free simulation suite ADIsimPLL™:
