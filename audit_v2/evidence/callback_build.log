@@ -1,0 +1,16 @@
+In file included from audit_work/patched/solar_correlator/tests/../src/main.cpp:34,
+                 from audit_work/patched/solar_correlator/tests/test_stream_continuity.cpp:3:
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp: In member function ‘void HardwareGuard::start_calibration()’:
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp:31:24: warning: ignoring return value of ‘int system(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   31 |             std::system(("pinctrl set " + std::to_string(SolarConfig::Hardware::PIN_RF_SWITCH) + " op dh").c_str());
+      |             ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp:35:24: warning: ignoring return value of ‘int system(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   35 |             std::system(("pinctrl set " + std::to_string(SolarConfig::Hardware::PIN_NOISE_SOURCE) + " op dh").c_str());
+      |             ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp: In member function ‘void HardwareGuard::turn_off()’:
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp:48:24: warning: ignoring return value of ‘int system(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   48 |             std::system(("pinctrl set " + std::to_string(SolarConfig::Hardware::PIN_NOISE_SOURCE) + " op dl").c_str());
+      |             ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+audit_work/patched/solar_correlator/tests/../src/hardware_control.hpp:52:24: warning: ignoring return value of ‘int system(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   52 |             std::system(("pinctrl set " + std::to_string(SolarConfig::Hardware::PIN_RF_SWITCH) + " op dl").c_str());
+      |             ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

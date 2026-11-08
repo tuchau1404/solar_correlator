@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 150" width="100%" height="100%" style="background:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#475569" />
+    </marker>
+  </defs>
+
+  <!-- Kênh 1 -->
+  <text x="50" y="45" font-size="13" font-weight="700" fill="#1E40AF" text-anchor="middle">x₁[n]</text>
+  <line x1="75" y1="40" x2="115" y2="40" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+
+  <rect x="120" y="20" width="120" height="40" rx="6" fill="#F1F5F9" stroke="#475569" stroke-width="1.5" />
+  <text x="180" y="45" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">Forward FFT</text>
+
+  <line x1="240" y1="40" x2="280" y2="40" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <text x="310" y="45" font-size="13" font-weight="700" fill="#B45309" text-anchor="middle">X₁(f)</text>
+
+  <!-- Kênh 2 -->
+  <text x="50" y="115" font-size="13" font-weight="700" fill="#1E40AF" text-anchor="middle">x₂[n]</text>
+  <line x1="75" y1="110" x2="115" y2="110" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+
+  <rect x="120" y="90" width="120" height="40" rx="6" fill="#F1F5F9" stroke="#475569" stroke-width="1.5" />
+  <text x="180" y="115" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">Forward FFT</text>
+
+  <line x1="240" y1="110" x2="280" y2="110" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <text x="310" y="115" font-size="13" font-weight="700" fill="#B45309" text-anchor="middle">X₂(f)*</text>
+
+  <!-- Chập vào Nhân liên hợp -->
+  <path d="M 340 40 L 375 40 L 375 65 L 395 65" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <path d="M 340 110 L 375 110 L 375 85 L 395 85" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+
+  <rect x="400" y="52" width="170" height="46" rx="6" fill="#FDF2F8" stroke="#DB2777" stroke-width="1.5" />
+  <text x="485" y="72" font-size="12" font-weight="700" fill="#9D174D" text-anchor="middle">Cross-Multiply</text>
+  <text x="485" y="88" font-size="10.5" fill="#BE185D" text-anchor="middle">X₁(f) · conj(X₂(f))</text>
+
+  <!-- S12(f) -->
+  <line x1="570" y1="75" x2="605" y2="75" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <text x="630" y="80" font-size="13" font-weight="700" fill="#B45309" text-anchor="middle">S₁₂(f)</text>
+
+  <!-- Inverse FFT -->
+  <line x1="655" y1="75" x2="690" y2="75" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <rect x="695" y="52" width="110" height="46" rx="6" fill="#F1F5F9" stroke="#475569" stroke-width="1.5" />
+  <text x="750" y="80" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">Inverse FFT</text>
+
+  <!-- Output R12[k] -->
+  <line x1="805" y1="75" x2="835" y2="75" stroke="#475569" stroke-width="2" marker-end="url(#arr)" />
+  <text x="858" y="80" font-size="13" font-weight="700" fill="#15803D" text-anchor="middle">R₁₂[k]</text>
+</svg>

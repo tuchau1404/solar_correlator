@@ -1,0 +1,54 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: right
+
+classes: {
+  sdr_node: {
+    shape: rectangle
+    style: {
+      fill: "#EFF6FF"
+      stroke: "#2563EB"
+      stroke-width: 2
+      border-radius: 8
+    }
+  }
+  host_node: {
+    shape: rectangle
+    style: {
+      fill: "#F8FAFC"
+      stroke: "#0F172A"
+      stroke-width: 2
+      border-radius: 8
+    }
+  }
+}
+
+rsp1: "RSPdx Unit 1" {
+  class: sdr_node
+}
+
+rsp2: "RSPdx Unit 2" {
+  class: sdr_node
+}
+
+rpi5: "Raspberry Pi 5\n(RP1 I/O Controller)" {
+  class: host_node
+}
+
+rsp1 -> rpi5: "USB 3.0 Cable\n(40 MB/s)" {
+  style: {
+    stroke: "#2563EB"
+    stroke-width: 2
+  }
+}
+
+rsp2 -> rpi5: "USB 3.0 Cable\n(40 MB/s)" {
+  style: {
+    stroke: "#2563EB"
+    stroke-width: 2
+  }
+}
